@@ -30,10 +30,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test timer and PWA behavior
+        run: npm run test:logic
+
       - name: Build static site
         env:
           GITHUB_PAGES: "true"
-          NEXT_PUBLIC_BASE_PATH: "/adventure-focus-quest"
+          NEXT_PUBLIC_BASE_PATH: "/focus-quest"
         run: npx next build
 
       - name: Upload Pages artifact

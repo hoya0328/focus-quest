@@ -1,18 +1,31 @@
 {
-  "name": "모험 한 칸",
-  "short_name": "모험한칸",
+  "name": "Focus Quest",
+  "short_name": "Focus Quest",
   "description": "픽셀 모험 친구와 함께하는 반응형 포모도로 집중 타이머",
-  "start_url": ".",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#071a2d",
   "theme_color": "#071a2d",
   "lang": "ko",
+  "orientation": "any",
+  "categories": ["productivity", "education", "lifestyle"],
   "icons": [
     {
       "src": "characters/momo-hiking.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "집중 모험 시작",
+      "short_name": "집중 시작",
+      "description": "Focus Quest를 열고 집중 친구를 선택해요.",
+      "url": "./"
     }
   ]
 }

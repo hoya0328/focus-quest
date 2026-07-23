@@ -31,11 +31,13 @@ test("server-renders the adventure focus app", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>모험 한 칸 \| 귀여운 집중 타이머<\/title>/);
+  assert.match(html, /<title>Focus Quest \| 픽셀 모험 집중 타이머<\/title>/);
   assert.match(html, /누구와 함께/);
   assert.match(html, /모모와 구름산 등산 선택/);
   assert.match(html, /포도와 산호빛 수영 선택/);
   assert.match(html, /보리와 별빛 낚시 선택/);
+  assert.match(html, /이번 주의 발자국/);
+  assert.match(html, /집중 모험 기록/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/);
 });
 

@@ -1,12 +1,45 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+/* Local-storage hydration intentionally restores several client-only state values. */
+/* eslint-disable react-hooks/set-state-in-effect */
 
-type AdventureId = "hike" | "swim" | "fish";
-type BgmId = "forest" | "waves" | "lake" | "quiet";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ACTIVE_SESSION_KEY,
+  HISTORY_KEY,
+  addFocusRecord,
+  createActiveSession,
+  createFocusRecord,
+  getDailyCount,
+  getWeeklySummary,
+  parseActiveSession,
+  parseHistory,
+  pauseActiveSession,
+  resumeActiveSession,
+  type ActiveSession,
+  type AdventureId,
+  type BgmId,
+  type FocusRecord,
+  type SessionMode,
+} from "@/lib/pomodoro";
+
 type Screen = "select" | "setup" | "focus" | "complete";
 
 const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+
+type FullscreenDocument = Document & {
+  webkitExitFullscreen?: () => Promise<void> | void;
+  webkitFullscreenElement?: Element | null;
+};
+
+type FullscreenElement = HTMLElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+};
 
 type Adventure = {
   id: AdventureId;
@@ -70,6 +103,38 @@ function padTime(value: number) {
 function formatTime(seconds: number) {
   const safe = Math.max(0, seconds);
   return `${padTime(Math.floor(safe / 60))}:${padTime(safe % 60)}`;
+}
+
+function isFullscreen() {
+  const fullscreenDocument = document as FullscreenDocument;
+  return Boolean(
+    document.fullscreenElement ?? fullscreenDocument.webkitFullscreenElement,
+  );
+}
+
+function enterFullscreen() {
+  const element = document.documentElement as FullscreenElement;
+  const request = element.requestFullscreen ?? element.webkitRequestFullscreen;
+  if (!request) return;
+  try {
+    const result = request.call(element);
+    if (result instanceof Promise) void result.catch(() => undefined);
+  } catch {
+    // Standalone PWAs and iOS Safari already use the full viewport.
+  }
+}
+
+function leaveFullscreen() {
+  const fullscreenDocument = document as FullscreenDocument;
+  const exit =
+    document.exitFullscreen ?? fullscreenDocument.webkitExitFullscreen;
+  if (!exit || !isFullscreen()) return;
+  try {
+    const result = exit.call(document);
+    if (result instanceof Promise) void result.catch(() => undefined);
+  } catch {
+    // Some mobile browsers do not expose a fullscreen exit API.
+  }
 }
 
 function createAmbientSound(theme: Exclude<BgmId, "quiet">) {
@@ -152,24 +217,46 @@ export default function Home() {
   const [breakMinutes, setBreakMinutes] = useState(5);
   const [bgm, setBgm] = useState<BgmId>("forest");
   const [remaining, setRemaining] = useState(25 * 60);
+  const [sessionMode, setSessionMode] = useState<SessionMode>("focus");
+  const [sessionDurationMinutes, setSessionDurationMinutes] = useState(25);
+  const [completionMode, setCompletionMode] = useState<SessionMode>("focus");
   const [endAt, setEndAt] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [completedToday, setCompletedToday] = useState(0);
+  const [history, setHistory] = useState<FocusRecord[]>([]);
   const [showExit, setShowExit] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const [showIosInstallHint, setShowIosInstallHint] = useState(false);
   const audioRef = useRef<AudioContext | null>(null);
+  const activeSessionRef = useRef<ActiveSession | null>(null);
+  const completionLockRef = useRef(false);
 
   const selected = useMemo(
     () => adventures.find((item) => item.id === selectedId) ?? adventures[0],
     [selectedId],
   );
 
-  const totalSeconds = focusMinutes * 60;
+  const totalSeconds = Math.max(1, sessionDurationMinutes * 60);
   const progress = Math.min(1, Math.max(0, 1 - remaining / totalSeconds));
+  const weeklySummary = useMemo(
+    () => getWeeklySummary(history),
+    [history],
+  );
+  const maxDayMinutes = Math.max(
+    1,
+    ...weeklySummary.days.map((day) => day.minutes),
+  );
 
   useEffect(() => {
     const stored = window.localStorage.getItem("haru-focus-preferences");
     const stats = window.localStorage.getItem("haru-focus-stats");
+    const storedHistory = window.localStorage.getItem(HISTORY_KEY);
+    const storedSession = window.localStorage.getItem(ACTIVE_SESSION_KEY);
+    let loadedFocusMinutes = 25;
+    let loadedSelectedId: AdventureId = "hike";
 
     if (stored) {
       try {
@@ -178,36 +265,150 @@ export default function Home() {
           breakMinutes?: number;
           bgm?: BgmId;
           selectedId?: AdventureId;
+          soundOn?: boolean;
         };
-        if (preferences.focusMinutes) setFocusMinutes(preferences.focusMinutes);
+        if (preferences.focusMinutes) {
+          loadedFocusMinutes = preferences.focusMinutes;
+          setFocusMinutes(preferences.focusMinutes);
+        }
         if (preferences.breakMinutes) setBreakMinutes(preferences.breakMinutes);
-        if (preferences.bgm) setBgm(preferences.bgm);
-        if (preferences.selectedId) setSelectedId(preferences.selectedId);
+        if (preferences.bgm) {
+          setBgm(preferences.bgm);
+        }
+        if (preferences.selectedId) {
+          loadedSelectedId = preferences.selectedId;
+          setSelectedId(preferences.selectedId);
+        }
+        if (typeof preferences.soundOn === "boolean") {
+          setSoundOn(preferences.soundOn);
+        }
       } catch {
         window.localStorage.removeItem("haru-focus-preferences");
       }
     }
 
+    let loadedHistory = parseHistory(storedHistory);
     if (stats) {
       try {
         const parsed = JSON.parse(stats) as { date: string; count: number };
-        if (parsed.date === new Date().toDateString()) setCompletedToday(parsed.count);
+        if (
+          loadedHistory.length === 0 &&
+          parsed.date === new Date().toDateString() &&
+          parsed.count > 0
+        ) {
+          const now = Date.now();
+          loadedHistory = Array.from({ length: parsed.count }, (_, index) => ({
+            id: `legacy-${now}-${index}`,
+            completedAt: new Date(now - index * 1000).toISOString(),
+            durationMinutes: loadedFocusMinutes,
+            adventureId: loadedSelectedId,
+          }));
+          window.localStorage.setItem(
+            HISTORY_KEY,
+            JSON.stringify(loadedHistory),
+          );
+        }
       } catch {
         window.localStorage.removeItem("haru-focus-stats");
       }
     }
+    setHistory(loadedHistory);
+    setCompletedToday(getDailyCount(loadedHistory));
+
+    const restored = parseActiveSession(storedSession);
+    if (restored) {
+      const { session, remainingSeconds, expired } = restored;
+      activeSessionRef.current = session;
+      setSelectedId(session.adventureId);
+      setBgm(session.bgm);
+      setSessionMode(session.mode);
+      setSessionDurationMinutes(session.durationMinutes);
+      setRemaining(remainingSeconds);
+      setEndAt(session.endAt);
+      setPaused(session.paused);
+
+      if (expired) {
+        window.localStorage.removeItem(ACTIVE_SESSION_KEY);
+        activeSessionRef.current = null;
+        setCompletionMode(session.mode);
+        setEndAt(null);
+        setPaused(false);
+        setScreen("complete");
+
+        if (session.mode === "focus") {
+          const completedAt = new Date(session.endAt ?? Date.now());
+          const record = {
+            ...createFocusRecord({
+              durationMinutes: session.durationMinutes,
+              adventureId: session.adventureId,
+              completedAt,
+            }),
+            id: `${session.startedAt}-${session.adventureId}`,
+          };
+          loadedHistory = addFocusRecord(loadedHistory, record);
+          setHistory(loadedHistory);
+          setCompletedToday(getDailyCount(loadedHistory));
+          window.localStorage.setItem(
+            HISTORY_KEY,
+            JSON.stringify(loadedHistory),
+          );
+        }
+      } else {
+        setScreen("focus");
+      }
+    } else if (storedSession) {
+      window.localStorage.removeItem(ACTIVE_SESSION_KEY);
+    }
 
     if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.register(`${publicBasePath}/service-worker.js`);
+      void navigator.serviceWorker.register(
+        `${publicBasePath}/service-worker.js`,
+        { scope: `${publicBasePath}/` },
+      );
     }
+
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      Boolean(
+        (navigator as Navigator & { standalone?: boolean }).standalone,
+      );
+    setShowIosInstallHint(
+      /iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone,
+    );
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(
       "haru-focus-preferences",
-      JSON.stringify({ focusMinutes, breakMinutes, bgm, selectedId }),
+      JSON.stringify({
+        focusMinutes,
+        breakMinutes,
+        bgm,
+        selectedId,
+        soundOn,
+      }),
     );
-  }, [focusMinutes, breakMinutes, bgm, selectedId]);
+  }, [bgm, breakMinutes, focusMinutes, hydrated, selectedId, soundOn]);
+
+  useEffect(() => {
+    const onBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    const onInstalled = () => {
+      setInstallPrompt(null);
+      setShowIosInstallHint(false);
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
 
   const stopAudio = useCallback(() => {
     if (audioRef.current) {
@@ -226,18 +427,52 @@ export default function Home() {
     [soundOn, stopAudio],
   );
 
+  const persistSession = useCallback((session: ActiveSession | null) => {
+    activeSessionRef.current = session;
+    if (session) {
+      window.localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(session));
+    } else {
+      window.localStorage.removeItem(ACTIVE_SESSION_KEY);
+    }
+  }, []);
+
   const completeSession = useCallback(() => {
+    const session = activeSessionRef.current;
+    if (!session || completionLockRef.current) return;
+
+    completionLockRef.current = true;
     stopAudio();
-    const nextCount = completedToday + 1;
-    setCompletedToday(nextCount);
-    window.localStorage.setItem(
-      "haru-focus-stats",
-      JSON.stringify({ date: new Date().toDateString(), count: nextCount }),
-    );
+    persistSession(null);
+
+    if (session.mode === "focus") {
+      const record = {
+        ...createFocusRecord({
+          durationMinutes: session.durationMinutes,
+          adventureId: session.adventureId,
+          completedAt: new Date(),
+        }),
+        id: `${session.startedAt}-${session.adventureId}`,
+      };
+
+      setHistory((current) => {
+        const nextHistory = addFocusRecord(current, record);
+        const nextCount = getDailyCount(nextHistory);
+        setCompletedToday(nextCount);
+        window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHistory));
+        window.localStorage.setItem(
+          "haru-focus-stats",
+          JSON.stringify({ date: new Date().toDateString(), count: nextCount }),
+        );
+        return nextHistory;
+      });
+    }
+
+    setCompletionMode(session.mode);
     setScreen("complete");
     setEndAt(null);
     setPaused(false);
-  }, [completedToday, stopAudio]);
+    setShowExit(false);
+  }, [persistSession, stopAudio]);
 
   useEffect(() => {
     if (screen !== "focus" || paused || !endAt) return;
@@ -256,6 +491,7 @@ export default function Home() {
   useEffect(() => () => stopAudio(), [stopAudio]);
 
   const chooseAdventure = (id: AdventureId) => {
+    persistSession(null);
     setSelectedId(id);
     const defaultBgm: Record<AdventureId, BgmId> = {
       hike: "forest",
@@ -263,27 +499,51 @@ export default function Home() {
       fish: "lake",
     };
     setBgm(defaultBgm[id]);
+    setSessionMode("focus");
+    setSessionDurationMinutes(focusMinutes);
+    setRemaining(focusMinutes * 60);
     setScreen("setup");
   };
 
-  const beginFocus = () => {
-    const seconds = focusMinutes * 60;
+  const beginSession = (mode: SessionMode) => {
+    const durationMinutes = mode === "focus" ? focusMinutes : breakMinutes;
+    const seconds = durationMinutes * 60;
+    const theme = mode === "focus" ? bgm : "quiet";
+    const session = createActiveSession({
+      mode,
+      durationMinutes,
+      adventureId: selectedId,
+      bgm: theme,
+    });
+
+    completionLockRef.current = false;
+    persistSession(session);
+    setSessionMode(mode);
+    setSessionDurationMinutes(durationMinutes);
     setRemaining(seconds);
-    setEndAt(Date.now() + seconds * 1000);
+    setEndAt(session.endAt);
     setPaused(false);
     setScreen("focus");
-    startAudio(bgm);
-    if (document.documentElement.requestFullscreen) {
-      void document.documentElement.requestFullscreen().catch(() => undefined);
-    }
+    startAudio(theme);
+    enterFullscreen();
   };
 
+  const beginFocus = () => beginSession("focus");
+  const beginBreak = () => beginSession("break");
+
   const togglePause = () => {
+    const session = activeSessionRef.current;
+    if (!session) return;
+
     if (paused) {
-      setEndAt(Date.now() + remaining * 1000);
+      const resumed = resumeActiveSession(session);
+      persistSession(resumed);
+      setEndAt(resumed.endAt);
       setPaused(false);
-      startAudio(bgm);
+      startAudio(session.mode === "focus" ? bgm : "quiet");
     } else {
+      const pausedSession = pauseActiveSession(session, remaining);
+      persistSession(pausedSession);
       setPaused(true);
       setEndAt(null);
       stopAudio();
@@ -296,28 +556,39 @@ export default function Home() {
       setSoundOn(false);
     } else {
       setSoundOn(true);
-      if (bgm !== "quiet") audioRef.current = createAmbientSound(bgm);
+      if (sessionMode === "focus" && bgm !== "quiet") {
+        audioRef.current = createAmbientSound(bgm);
+      }
     }
   };
 
   const exitSession = () => {
     stopAudio();
+    persistSession(null);
     setShowExit(false);
     setEndAt(null);
     setPaused(false);
+    setSessionMode("focus");
+    setSessionDurationMinutes(focusMinutes);
+    setRemaining(focusMinutes * 60);
     setScreen("setup");
-    if (document.fullscreenElement) {
-      void document.exitFullscreen().catch(() => undefined);
-    }
+    leaveFullscreen();
+  };
+
+  const installApp = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice.outcome === "accepted") setInstallPrompt(null);
   };
 
   return (
     <main className={`app-shell screen-${screen}`} style={{ "--accent": selected.color } as React.CSSProperties}>
       {screen !== "focus" && (
         <header className="topbar">
-          <button className="brand" type="button" onClick={() => setScreen("select")} aria-label="모험 한 칸 홈">
+          <button className="brand" type="button" onClick={() => setScreen("select")} aria-label="Focus Quest 홈">
             <span className="brand-mark">●</span>
-            <span>모험 한 칸</span>
+            <span>Focus Quest</span>
           </button>
           <div className="today-chip" aria-label={`오늘 ${completedToday}번 집중 완료`}>
             <span>✦</span>
@@ -376,6 +647,101 @@ export default function Home() {
             <i />
             <p>알림 대신 모험을 바라보는 부드러운 집중</p>
           </div>
+
+          {(installPrompt || showIosInstallHint) && (
+            <aside className="install-card" aria-label="앱 설치 안내">
+              <div>
+                <strong>홈 화면에서 바로 모험하기</strong>
+                <p>
+                  {showIosInstallHint
+                    ? "iPhone에서는 공유 버튼을 누른 뒤 ‘홈 화면에 추가’를 선택해 주세요."
+                    : "앱처럼 설치하면 주소창 없이 더 몰입해서 사용할 수 있어요."}
+                </p>
+              </div>
+              {installPrompt && (
+                <button type="button" onClick={() => void installApp()}>
+                  앱으로 설치
+                </button>
+              )}
+            </aside>
+          )}
+
+          <section className="weekly-summary" aria-labelledby="weekly-title">
+            <div className="weekly-heading">
+              <div>
+                <span className="eyebrow">이번 주의 발자국</span>
+                <h2 id="weekly-title">집중 모험 기록</h2>
+              </div>
+              <p>이 기기에만 안전하게 저장돼요.</p>
+            </div>
+
+            <div className="weekly-metrics">
+              <div>
+                <strong>{weeklySummary.minutes}</strong>
+                <span>집중한 분</span>
+              </div>
+              <div>
+                <strong>{weeklySummary.sessions}</strong>
+                <span>완료한 칸</span>
+              </div>
+              <div>
+                <strong>{weeklySummary.activeDays}</strong>
+                <span>모험한 날</span>
+              </div>
+            </div>
+
+            <div className="week-chart" aria-label="요일별 집중 시간">
+              {weeklySummary.days.map((day) => (
+                <div className="week-day" key={day.date}>
+                  <span className="bar-track">
+                    <i
+                      style={{
+                        height: `${Math.max(
+                          day.minutes > 0 ? 12 : 2,
+                          (day.minutes / maxDayMinutes) * 100,
+                        )}%`,
+                      }}
+                    />
+                  </span>
+                  <strong>{day.label}</strong>
+                  <small>{day.minutes > 0 ? `${day.minutes}분` : "·"}</small>
+                </div>
+              ))}
+            </div>
+
+            <div className="recent-history">
+              <h3>최근 모험</h3>
+              {history.length === 0 ? (
+                <p className="empty-history">
+                  첫 집중을 마치면 이곳에 모험 기록이 생겨요.
+                </p>
+              ) : (
+                <ul>
+                  {history.slice(0, 4).map((record) => {
+                    const adventure =
+                      adventures.find((item) => item.id === record.adventureId) ??
+                      adventures[0];
+                    const completedAt = new Date(record.completedAt);
+                    return (
+                      <li key={record.id}>
+                        <span>{adventure.icon}</span>
+                        <div>
+                          <strong>{adventure.name}</strong>
+                          <small>
+                            {completedAt.toLocaleDateString("ko-KR", {
+                              month: "short",
+                              day: "numeric",
+                            })}{" "}
+                            · {record.durationMinutes}분
+                          </small>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </section>
         </section>
       )}
 
@@ -485,7 +851,9 @@ export default function Home() {
       )}
 
       {screen === "focus" && (
-        <section className={`focus-screen focus-${selected.id}`}>
+        <section
+          className={`focus-screen focus-${selected.id} session-${sessionMode}`}
+        >
           <div className="scene-sky">
             <div className="scene-sun" />
             <div className="scene-cloud scene-cloud-a" />
@@ -501,34 +869,60 @@ export default function Home() {
           <div className="reeds reeds-left">╿╿ ╿</div>
           <div className="reeds reeds-right">╿ ╿╿</div>
 
+          {sessionMode === "break" && (
+            <div className="break-scene" aria-hidden="true">
+              <div className="break-moon" />
+              <div className="break-campfire">
+                <i />
+                <span />
+              </div>
+              <div className="sleep-signal">z Z</div>
+            </div>
+          )}
+
           <div className="scene-progress-track">
             <div style={{ width: `${progress * 100}%` }} />
           </div>
 
           <img
             src={selected.image}
-            alt={`${selected.friend}의 집중 모험`}
-            className="focus-character"
-            style={{ "--journey": progress } as React.CSSProperties}
+            alt={
+              sessionMode === "focus"
+                ? `${selected.friend}의 집중 모험`
+                : `${selected.friend}의 휴식 시간`
+            }
+            className={`focus-character ${sessionMode === "break" ? "is-resting" : ""}`}
+            style={
+              {
+                "--journey": sessionMode === "break" ? 0.5 : progress,
+              } as React.CSSProperties
+            }
           />
 
           <div className="focus-top">
             <div className="focus-status">
               <span className="live-dot" />
-              {paused ? "잠시 멈춤" : `${selected.friend}와 집중 중`}
+              {paused
+                ? "잠시 멈춤"
+                : sessionMode === "focus"
+                  ? `${selected.friend}와 집중 중`
+                  : `${selected.friend}와 회복 중`}
             </div>
             <div className="focus-actions">
-              <button type="button" onClick={toggleSound} aria-label={soundOn ? "소리 끄기" : "소리 켜기"}>
-                {soundOn && bgm !== "quiet" ? "♪" : "×♪"}
-              </button>
+              {sessionMode === "focus" && (
+                <button
+                  type="button"
+                  onClick={toggleSound}
+                  aria-label={soundOn ? "소리 끄기" : "소리 켜기"}
+                >
+                  {soundOn && bgm !== "quiet" ? "♪" : "×♪"}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
-                  if (document.fullscreenElement) {
-                    void document.exitFullscreen();
-                  } else {
-                    void document.documentElement.requestFullscreen().catch(() => undefined);
-                  }
+                  if (isFullscreen()) leaveFullscreen();
+                  else enterFullscreen();
                 }}
                 aria-label="전체 화면 전환"
               >
@@ -538,18 +932,26 @@ export default function Home() {
           </div>
 
           <div className="timer-card">
-            <span>{selected.name}</span>
+            <span>
+              {sessionMode === "focus" ? selected.name : "모닥불 옆 휴식"}
+            </span>
             <strong>{formatTime(remaining)}</strong>
             <div className="timer-progress">
               <i style={{ width: `${progress * 100}%` }} />
             </div>
-            <p>{paused ? "괜찮아요. 준비되면 다시 출발해요." : `${Math.round(progress * 100)}% · 한 칸씩 잘 가고 있어요`}</p>
+            <p>
+              {paused
+                ? "괜찮아요. 준비되면 다시 출발해요."
+                : sessionMode === "focus"
+                  ? `${Math.round(progress * 100)}% · 한 칸씩 잘 가고 있어요`
+                  : `${Math.round(progress * 100)}% · 천천히 숨을 고르고 있어요`}
+            </p>
             <div className="timer-controls">
               <button className="pause-button" type="button" onClick={togglePause}>
                 {paused ? "계속하기" : "잠시 멈춤"}
               </button>
               <button className="exit-button" type="button" onClick={() => setShowExit(true)}>
-                그만하기
+                {sessionMode === "focus" ? "그만하기" : "휴식 끝내기"}
               </button>
             </div>
           </div>
@@ -560,14 +962,26 @@ export default function Home() {
                 <div className="modal-character">
                   <img src={selected.image} alt="" />
                 </div>
-                <span>아직 모험이 끝나지 않았어요</span>
-                <h2 id="exit-title">여기서 돌아갈까요?</h2>
-                <p>지금까지의 기록은 오늘의 완료 칸에 포함되지 않아요.</p>
+                <span>
+                  {sessionMode === "focus"
+                    ? "아직 모험이 끝나지 않았어요"
+                    : "아직 쉴 시간이 남았어요"}
+                </span>
+                <h2 id="exit-title">
+                  {sessionMode === "focus"
+                    ? "여기서 돌아갈까요?"
+                    : "휴식을 마칠까요?"}
+                </h2>
+                <p>
+                  {sessionMode === "focus"
+                    ? "지금까지의 기록은 오늘의 완료 칸에 포함되지 않아요."
+                    : "바로 다음 집중 모험을 준비할 수 있어요."}
+                </p>
                 <button className="keep-going" type="button" onClick={() => setShowExit(false)}>
-                  계속 집중할래요
+                  {sessionMode === "focus" ? "계속 집중할래요" : "조금 더 쉴래요"}
                 </button>
                 <button className="confirm-exit" type="button" onClick={exitSession}>
-                  이번 모험 그만하기
+                  {sessionMode === "focus" ? "이번 모험 그만하기" : "휴식 마치기"}
                 </button>
               </div>
             </div>
@@ -576,46 +990,89 @@ export default function Home() {
       )}
 
       {screen === "complete" && (
-        <section className={`complete-screen complete-${selected.id}`}>
+        <section
+          className={`complete-screen complete-${selected.id} complete-${completionMode}`}
+        >
           <div className="sparkles">✦　·　✧　　✦　·　✧</div>
           <div className="complete-card">
-            <span className="complete-kicker">ADVENTURE COMPLETE</span>
+            <span className="complete-kicker">
+              {completionMode === "focus"
+                ? "ADVENTURE COMPLETE"
+                : "BREAK COMPLETE"}
+            </span>
             <div className="complete-character-wrap">
               <div className="complete-halo" />
-              <img src={selected.image} alt={`${selected.friend} 모험 완료`} />
-              <span className="badge">+1</span>
+              <img
+                src={selected.image}
+                alt={
+                  completionMode === "focus"
+                    ? `${selected.friend} 모험 완료`
+                    : `${selected.friend} 휴식 완료`
+                }
+              />
+              <span className="badge">
+                {completionMode === "focus" ? "+1" : "♥"}
+              </span>
             </div>
-            <h1>{selected.friend}와 한 칸 완성!</h1>
-            <p>{focusMinutes}분 동안 온전히 집중했어요. 정말 멋진 모험이었어요.</p>
+            <h1>
+              {completionMode === "focus"
+                ? `${selected.friend}와 한 칸 완성!`
+                : "충전 완료, 다시 출발!"}
+            </h1>
+            <p>
+              {completionMode === "focus"
+                ? `${sessionDurationMinutes}분 동안 온전히 집중했어요. 정말 멋진 모험이었어요.`
+                : `${sessionDurationMinutes}분 동안 몸과 마음을 쉬었어요. 다음 모험을 시작해 볼까요?`}
+            </p>
             <div className="session-stats">
               <div>
-                <strong>{focusMinutes}</strong>
-                <span>집중한 분</span>
+                <strong>{sessionDurationMinutes}</strong>
+                <span>
+                  {completionMode === "focus" ? "집중한 분" : "회복한 분"}
+                </span>
               </div>
               <div>
-                <strong>{completedToday}</strong>
-                <span>오늘의 칸</span>
+                <strong>
+                  {completionMode === "focus"
+                    ? completedToday
+                    : weeklySummary.minutes}
+                </strong>
+                <span>
+                  {completionMode === "focus" ? "오늘의 칸" : "이번 주 분"}
+                </span>
               </div>
               <div>
-                <strong>{breakMinutes}</strong>
-                <span>추천 휴식</span>
+                <strong>
+                  {completionMode === "focus"
+                    ? breakMinutes
+                    : focusMinutes}
+                </strong>
+                <span>
+                  {completionMode === "focus" ? "추천 휴식" : "다음 집중"}
+                </span>
               </div>
             </div>
             <button
               className="primary-button"
               type="button"
-              onClick={() => {
-                setRemaining(breakMinutes * 60);
-                setFocusMinutes(breakMinutes);
-                setBgm("quiet");
-                setScreen("setup");
-              }}
+              onClick={completionMode === "focus" ? beginBreak : beginFocus}
             >
-              <span>{breakMinutes}분 쉬어가기</span>
+              <span>
+                {completionMode === "focus"
+                  ? `${breakMinutes}분 쉬어가기`
+                  : `${focusMinutes}분 집중 시작`}
+              </span>
               <strong>→</strong>
             </button>
-            <button className="text-button" type="button" onClick={() => setScreen("select")}>
-              새 모험 고르기
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => {
+                leaveFullscreen();
+                setScreen(completionMode === "focus" ? "select" : "setup");
+              }}
+            >
+              {completionMode === "focus" ? "새 모험 고르기" : "시간 다시 설정하기"}
             </button>
           </div>
         </section>
