@@ -1,10 +1,11 @@
 const CACHE_NAME = "adventure-focus-v2";
+const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const CORE_ASSETS = [
-  "/",
-  "/manifest.webmanifest",
-  "/characters/momo-hiking.png",
-  "/characters/podo-swimming.png",
-  "/characters/bori-fishing.png"
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/manifest.webmanifest`,
+  `${BASE_PATH}/characters/momo-hiking.png`,
+  `${BASE_PATH}/characters/podo-swimming.png`,
+  `${BASE_PATH}/characters/bori-fishing.png`
 ];
 
 self.addEventListener("install", (event) => {

@@ -6,6 +6,8 @@ type AdventureId = "hike" | "swim" | "fish";
 type BgmId = "forest" | "waves" | "lake" | "quiet";
 type Screen = "select" | "setup" | "focus" | "complete";
 
+const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 type Adventure = {
   id: AdventureId;
   name: string;
@@ -25,7 +27,7 @@ const adventures: Adventure[] = [
     friend: "모모",
     tagline: "한 걸음씩 정상까지",
     description: "숲길을 지나 노을빛 정상에 도착해요.",
-    image: "/characters/momo-hiking.png",
+    image: `${publicBasePath}/characters/momo-hiking.png`,
     color: "#f0b13e",
     soft: "#173d37",
     icon: "⛰",
@@ -36,7 +38,7 @@ const adventures: Adventure[] = [
     friend: "포도",
     tagline: "물결을 따라 첨벙첨벙",
     description: "맑은 바다를 건너 작은 섬을 찾아가요.",
-    image: "/characters/podo-swimming.png",
+    image: `${publicBasePath}/characters/podo-swimming.png`,
     color: "#36c4ce",
     soft: "#103b50",
     icon: "≈",
@@ -47,7 +49,7 @@ const adventures: Adventure[] = [
     friend: "보리",
     tagline: "기다림도 멋진 모험",
     description: "잔잔한 호숫가에서 별 물고기를 기다려요.",
-    image: "/characters/bori-fishing.png",
+    image: `${publicBasePath}/characters/bori-fishing.png`,
     color: "#ef8b47",
     soft: "#204847",
     icon: "◌",
@@ -196,7 +198,7 @@ export default function Home() {
     }
 
     if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.register("/service-worker.js");
+      void navigator.serviceWorker.register(`${publicBasePath}/service-worker.js`);
     }
   }, []);
 

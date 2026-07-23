@@ -1,98 +1,111 @@
-# vinext-starter
+<div align="center">
+  <img src="./public/characters/momo-hiking.png" width="190" alt="등산 친구 모모" />
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+  # 모험 한 칸
 
-## Prerequisites
+  **집중이 의무가 아니라, 완성하고 싶은 작은 모험이 되도록.**
 
-- Node.js `>=22.13.0`
+  귀여운 픽셀 친구와 함께하는 반응형 포모도로 집중 타이머
 
-## Quick Start
+  [🌐 바로 체험하기](https://hoya0328.github.io/adventure-focus-quest/) ·
+  [📖 서비스 소개](#서비스-소개) ·
+  [🗺️ 로드맵](#로드맵)
+
+  ![Portfolio](https://img.shields.io/badge/Portfolio-First_Project-f0b13e?style=flat-square)
+  ![Product](https://img.shields.io/badge/Product-Focus_Adventure-36c4ce?style=flat-square)
+  ![PWA](https://img.shields.io/badge/PWA-Installable-ef8b47?style=flat-square)
+</div>
+
+---
+
+## 서비스 소개
+
+**모험 한 칸**은 타이머를 바라보는 시간을 작은 픽셀 모험으로 바꿉니다.
+
+사용자는 등산, 수영, 낚시 중 오늘의 모험과 친구를 고릅니다. 집중 시간이 흐르는 동안 캐릭터가 화면 속 여정을 이어가며, 세션을 끝까지 완료하면 오늘의 모험 기록이 한 칸 쌓입니다.
+
+휴대폰을 강제로 차단하지 않습니다. 전체 화면의 아늑한 장면과 캐릭터의 움직임으로 사용자가 자연스럽게 다른 앱에서 멀어지도록 설계했습니다.
+
+## 왜 만들었나요?
+
+일반적인 생산성 도구는 효율적이지만, 매일 다시 열고 싶을 만큼 애착이 생기기는 어렵습니다.
+
+이 프로젝트는 다음 질문에서 출발했습니다.
+
+> 생산성 도구에 게임의 기대감과 캐릭터에 대한 애착을 더하면, 집중을 더 즐거운 습관으로 만들 수 있을까?
+
+## 핵심 경험
+
+- **모험 친구 선택** — 모모, 포도, 보리 중 오늘의 파트너 선택
+- **나만의 포모도로** — 1~120분 집중 및 1~30분 휴식 설정
+- **전체 화면 집중** — 진행률에 따라 움직이는 픽셀 캐릭터와 배경
+- **저작권 걱정 없는 사운드** — 브라우저가 실시간 생성하는 앰비언트 BGM
+- **부드러운 중단 경험** — 강제 차단 대신 일시정지와 모험 포기 확인
+- **오늘의 기록** — 로그인 없이 기기에 완료 횟수 저장
+- **반응형 PWA** — PC와 모바일에서 사용하고 홈 화면에 설치
+
+## 캐릭터
+
+| 모모 | 포도 | 보리 |
+|---|---|---|
+| <img src="./public/characters/momo-hiking.png" width="180" alt="모모" /> | <img src="./public/characters/podo-swimming.png" width="180" alt="포도" /> | <img src="./public/characters/bori-fishing.png" width="180" alt="보리" /> |
+| 구름산 등산 | 산호빛 수영 | 별빛 낚시 |
+
+캐릭터와 UI는 기존 게임 에셋을 복제하지 않고 독자적인 고해상도 레트로 픽셀 아트로 제작했습니다.
+
+## 제품 설계
+
+```text
+모험 선택
+   ↓
+집중·휴식·사운드 설정
+   ↓
+전체 화면 집중 모험
+   ↓
+완료 보상과 오늘의 기록
+```
+
+단순한 시간 측정보다 `선택 → 몰입 → 완주 → 보상`의 감정 흐름에 집중했습니다.
+
+## 기술 구성
+
+- Next.js 16
+- React 19
+- TypeScript
+- CSS 기반 반응형 픽셀 UI
+- Web Audio API 기반 실시간 앰비언트 사운드
+- LocalStorage 기반 개인 설정·완료 기록
+- Service Worker 및 Web App Manifest
+- GitHub Actions + GitHub Pages
+
+## 로컬 실행
 
 ```bash
 npm install
 npm run dev
-npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+## 로드맵
 
-## Included Shape
+- [x] 캐릭터 선택과 세 가지 모험
+- [x] 사용자 지정 포모도로
+- [x] 전체 화면 집중 모드
+- [x] 실시간 생성 BGM
+- [x] 모바일·PC 반응형 PWA
+- [ ] 휴식 전용 장면
+- [ ] 주간 집중 리포트
+- [ ] 캐릭터 장비와 배지 수집
+- [ ] 새로운 모험 지역
+- [ ] 앱스토어용 네이티브 패키징
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+## 포트폴리오 노트
 
-## Workspace Auth Headers
+이 프로젝트는 **개발로 창작하는 걸 즐기는 PM**을 지향하며 만든 첫 번째 포트폴리오 프로젝트입니다.
 
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
+문제를 정의하고, 핵심 경험을 설계하고, 캐릭터와 인터랙션을 구체화한 뒤 실제로 작동하는 제품까지 연결했습니다. 완성된 결과뿐 아니라 사용자 피드백에 따라 콘셉트와 구현을 빠르게 바꾸는 과정도 제품 작업의 일부로 담았습니다.
 
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
+---
 
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
-```
-
-## Optional Dispatch-Owned ChatGPT Sign-In
-
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
-
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Useful Commands
-
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+<div align="center">
+  <strong>오늘도 한 칸, 나만의 속도로 앞으로.</strong>
+</div>
