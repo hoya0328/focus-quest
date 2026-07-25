@@ -4,6 +4,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import FishingQuestScene from "@/app/components/FishingQuestScene";
 import {
   ACTIVE_SESSION_KEY,
   HISTORY_KEY,
@@ -913,6 +914,15 @@ export default function Home() {
           className={`focus-screen focus-${selected.id} session-${sessionMode} ${paused ? "is-paused" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
           style={{ "--journey": progress } as React.CSSProperties}
         >
+          {selected.id === "fish" && sessionMode === "focus" && (
+            <FishingQuestScene
+              progress={progress}
+              paused={paused}
+              celebrating={isCelebrating}
+              assetBasePath={publicBasePath}
+            />
+          )}
+
           <div className="scene-sky">
             <div className="scene-sun" />
             <div className="scene-cloud scene-cloud-a" />
@@ -928,7 +938,7 @@ export default function Home() {
           <div className="reeds reeds-left">╿╿ ╿</div>
           <div className="reeds reeds-right">╿ ╿╿</div>
 
-          {sessionMode === "focus" && (
+          {sessionMode === "focus" && selected.id !== "fish" && (
             <div
               className={`adventure-world adventure-world-${selected.id}`}
               aria-hidden="true"
@@ -951,18 +961,6 @@ export default function Home() {
                     <span>정상</span>
                   </div>
                   <div className="walking-dust"><i /><i /><i /></div>
-                </>
-              )}
-
-              {selected.id === "fish" && (
-                <>
-                  <div className="lake-depth lake-depth-far" />
-                  <div className="lake-depth lake-depth-near" />
-                  <div className="fishing-dock"><i /><i /><i /></div>
-                  <div className="bobber-ripples"><i /><i /><i /></div>
-                  <div className="lake-fish-shadow fish-shadow-one" />
-                  <div className="lake-fish-shadow fish-shadow-two" />
-                  <div className="lily-pads"><i /><i /><i /></div>
                 </>
               )}
 
@@ -998,50 +996,44 @@ export default function Home() {
             <div style={{ width: `${progress * 100}%` }} />
           </div>
 
-          <div
-            className={`focus-character-rig focus-character-rig-${selected.id} ${sessionMode === "break" ? "is-resting" : ""}`}
-            style={
-              {
-                "--journey": sessionMode === "break" ? 0.5 : progress,
-              } as React.CSSProperties
-            }
-          >
-            {sessionMode === "focus" ? (
-              <span
-                className={`adventure-sprite adventure-sprite-${selected.id}`}
-                style={{ backgroundImage: `url("${adventureSprites[selected.id]}")` }}
-                role="img"
-                aria-label={`${selected.friend}의 움직이는 ${selected.name} 모험`}
-              />
-            ) : (
-              <img
-                src={selected.image}
-                alt={`${selected.friend}의 휴식 시간`}
-                className="focus-character"
-              />
-            )}
-          </div>
+          {(selected.id !== "fish" || sessionMode === "break") && (
+            <div
+              className={`focus-character-rig focus-character-rig-${selected.id} ${sessionMode === "break" ? "is-resting" : ""}`}
+              style={
+                {
+                  "--journey": sessionMode === "break" ? 0.5 : progress,
+                } as React.CSSProperties
+              }
+            >
+              {sessionMode === "focus" ? (
+                <span
+                  className={`adventure-sprite adventure-sprite-${selected.id}`}
+                  style={{ backgroundImage: `url("${adventureSprites[selected.id]}")` }}
+                  role="img"
+                  aria-label={`${selected.friend}의 움직이는 ${selected.name} 모험`}
+                />
+              ) : (
+                <img
+                  src={selected.image}
+                  alt={`${selected.friend}의 휴식 시간`}
+                  className="focus-character"
+                />
+              )}
+            </div>
+          )}
 
-          {isCelebrating && (
+          {isCelebrating && selected.id !== "fish" && (
             <div
               className={`scene-success scene-success-${selected.id}`}
               role="status"
               aria-live="assertive"
             >
-              {selected.id === "fish" && (
-                <div className="caught-carp">
-                  <i className="caught-carp-tail" />
-                  <i className="caught-carp-body" />
-                </div>
-              )}
               {selected.id === "hike" && <div className="summit-sunburst" />}
               {selected.id === "swim" && <div className="treasure-pearl" />}
               <strong>
-                {selected.id === "fish"
-                  ? "황금 잉어를 낚았어요!"
-                  : selected.id === "hike"
-                    ? "정상에 도착했어요!"
-                    : "빛나는 진주를 발견했어요!"}
+                {selected.id === "hike"
+                  ? "정상에 도착했어요!"
+                  : "빛나는 진주를 발견했어요!"}
               </strong>
             </div>
           )}
