@@ -1,0 +1,532 @@
+/* Sprite-based adventure scenes. Imported after globals.css. */
+
+.focus-screen {
+  --scene-shadow: rgba(2, 11, 18, 0.58);
+  isolation: isolate;
+}
+
+.focus-screen .adventure-world {
+  z-index: 2;
+  inset: 0;
+}
+
+.focus-screen .focus-character-rig {
+  z-index: 5;
+  height: auto;
+  translate: none;
+  pointer-events: none;
+  transition: left 0.55s linear, bottom 0.55s linear;
+}
+
+.focus-character-rig .adventure-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 800% 100%;
+  image-rendering: pixelated;
+  filter: drop-shadow(8px 11px 0 var(--scene-shadow));
+  will-change: background-position;
+}
+
+.adventure-sprite-hike { animation: sprite-eight 880ms steps(7) infinite; }
+.adventure-sprite-fish { animation: sprite-eight 3.6s steps(7) infinite; }
+.adventure-sprite-swim { animation: sprite-eight 920ms steps(7) infinite; }
+
+.is-paused .adventure-sprite,
+.is-paused .adventure-world * {
+  animation-play-state: paused !important;
+}
+
+/* Hiking: the trail and the character use the same diagonal. */
+.focus-hike {
+  background:
+    linear-gradient(180deg, transparent 0 47%, rgba(7, 24, 31, 0.35) 100%),
+    linear-gradient(180deg, #2b7a78 0%, #5c9a74 48%, #173a2d 49%, #0b251f 100%);
+}
+
+.focus-hike .mountain-far {
+  inset: 18% -4% 0;
+  background: #416f65;
+  opacity: 0.68;
+  clip-path: polygon(0 100%,0 61%,11% 45%,23% 66%,37% 31%,51% 64%,66% 38%,80% 65%,93% 28%,100% 48%,100% 100%);
+}
+
+.focus-hike .mountain-near {
+  inset: 40% -4% -5%;
+  background: #193d31;
+  clip-path: polygon(0 100%,0 72%,13% 57%,27% 75%,42% 47%,56% 71%,70% 46%,84% 72%,100% 43%,100% 100%);
+}
+
+.focus-hike .focus-character-rig-hike {
+  left: calc(2% + (var(--journey) * 51%));
+  bottom: calc(9% + (var(--journey) * 31%));
+  width: clamp(138px, 13.5vw, 205px);
+  aspect-ratio: 222 / 292;
+}
+
+.focus-hike .forest-depth {
+  left: -16vw;
+  width: 126vw;
+  transition: transform 0.55s linear;
+}
+
+.focus-hike .forest-depth-back {
+  z-index: 1;
+  bottom: 31%;
+  opacity: 0.38;
+  transform: translateX(calc(var(--journey) * -8vw)) scale(0.74);
+}
+
+.focus-hike .forest-depth-front {
+  z-index: 7;
+  bottom: -7%;
+  opacity: 0.8;
+  transform: translateX(calc(var(--journey) * -22vw));
+}
+
+.hike-ridge {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: 0;
+}
+
+.hike-ridge-back {
+  height: 47%;
+  background: #214d3c;
+  opacity: 0.72;
+  clip-path: polygon(0 100%,0 71%,10% 56%,19% 64%,29% 48%,39% 58%,49% 37%,60% 49%,70% 25%,80% 44%,91% 21%,100% 34%,100% 100%);
+}
+
+.hike-ridge-front {
+  z-index: 2;
+  height: 35%;
+  background: #102f26;
+  clip-path: polygon(0 100%,0 75%,12% 58%,23% 68%,35% 47%,47% 61%,59% 38%,72% 54%,84% 30%,100% 44%,100% 100%);
+}
+
+.focus-hike .hiking-trail {
+  z-index: 4;
+  left: -2%;
+  right: auto;
+  bottom: 3%;
+  width: 70%;
+  height: 52%;
+  background: #8a724c;
+  clip-path: polygon(0 83%,14% 74%,26% 76%,39% 59%,52% 58%,66% 42%,79% 34%,92% 16%,100% 9%,100% 26%,91% 31%,81% 46%,68% 54%,54% 70%,41% 72%,28% 89%,15% 87%,0 98%);
+  filter: drop-shadow(0 8px 0 rgba(4, 18, 18, 0.3));
+}
+
+.focus-hike .hiking-trail::after { display: none; }
+
+.focus-hike .hiking-trail span {
+  width: 28px;
+  height: 7px;
+  border: 0;
+  background: #bda16b;
+  box-shadow: 4px 4px 0 #5d4b33;
+}
+
+.focus-hike .hiking-trail span:nth-child(1) { left: 8%; bottom: 11%; }
+.focus-hike .hiking-trail span:nth-child(2) { left: 26%; bottom: 24%; }
+.focus-hike .hiking-trail span:nth-child(3) { left: 45%; bottom: 42%; }
+.focus-hike .hiking-trail span:nth-child(4) { left: 65%; bottom: 60%; }
+.focus-hike .hiking-trail span:nth-child(5) { left: 87%; bottom: 80%; }
+
+.summit-station {
+  position: absolute;
+  z-index: 6;
+  left: 62%;
+  bottom: 51%;
+  width: 78px;
+  height: 105px;
+  opacity: calc(0.25 + (var(--journey) * 0.75));
+}
+
+.summit-station::after {
+  content: "";
+  position: absolute;
+  left: -58px;
+  bottom: -30px;
+  width: 170px;
+  height: 58px;
+  background: #17392f;
+  clip-path: polygon(0 100%,42% 18%,63% 0,100% 100%);
+}
+
+.summit-station .summit-flag {
+  right: auto;
+  left: 16px;
+  top: 0;
+  width: 6px;
+  height: 80px;
+  background: #f4dca3;
+}
+
+.summit-station span {
+  position: absolute;
+  z-index: 2;
+  left: -2px;
+  top: -31px;
+  padding: 3px 7px;
+  border: 2px solid #f4dca3;
+  background: #0a2431;
+  color: #f6d99f;
+  font: 800 10px/1.2 "Courier New", "Malgun Gothic", monospace;
+}
+
+.focus-hike .walking-dust {
+  z-index: 6;
+  left: calc(3% + (var(--journey) * 51%));
+  bottom: calc(10% + (var(--journey) * 31%));
+}
+
+/* Fishing: rod, line and bobber are rendered together in every frame. */
+.focus-fish {
+  background:
+    linear-gradient(180deg, rgba(246, 154, 76, 0.16) 0 42%, transparent 43%),
+    linear-gradient(180deg, #b85f4d 0%, #66506b 43%, #0f5361 44%, #062f43 100%);
+}
+
+.focus-fish .lake-shore {
+  display: block;
+  left: -5%;
+  right: -5%;
+  bottom: -17%;
+  height: 34%;
+  background: #102f2e;
+}
+
+.focus-fish .focus-character-rig-fish {
+  left: 2.5%;
+  bottom: 13%;
+  width: clamp(250px, 25vw, 390px);
+  aspect-ratio: 248 / 346;
+}
+
+.lake-depth {
+  position: absolute;
+  left: -8%;
+  width: 116%;
+  border-top: 4px solid rgba(137, 223, 211, 0.22);
+}
+
+.lake-depth-far {
+  top: 46%;
+  height: 22%;
+  background: repeating-linear-gradient(0deg, rgba(58,155,157,.12) 0 3px, transparent 3px 24px);
+  animation: water-depth-shift 8s linear infinite;
+}
+
+.lake-depth-near {
+  top: 68%;
+  bottom: 0;
+  background: repeating-linear-gradient(0deg, rgba(28,115,124,.15) 0 5px, transparent 5px 32px);
+  animation: water-depth-shift 12s linear infinite reverse;
+}
+
+.fishing-dock {
+  position: absolute;
+  z-index: 4;
+  left: -2%;
+  bottom: 12%;
+  width: 34%;
+  height: 12%;
+  border-top: 13px solid #8e6037;
+  background: repeating-linear-gradient(90deg, #5e432c 0 9px, #3e3126 9px 13px);
+  box-shadow: 0 -5px 0 #bd8650, 0 9px 0 rgba(1,13,19,.38);
+}
+
+.fishing-dock i {
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 22vh;
+  background: #4a3728;
+  box-shadow: 4px 0 0 #2b2921;
+}
+
+.fishing-dock i:nth-child(1) { left: 10%; }
+.fishing-dock i:nth-child(2) { left: 50%; }
+.fishing-dock i:nth-child(3) { right: 5%; }
+
+.bobber-ripples {
+  position: absolute;
+  z-index: 3;
+  left: 23%;
+  bottom: 19%;
+  width: 95px;
+  height: 34px;
+}
+
+.bobber-ripples i {
+  position: absolute;
+  inset: 0;
+  border: 3px solid rgba(124,225,218,.45);
+  border-radius: 50%;
+  animation: synced-ripple 3.6s steps(4) infinite;
+}
+
+.bobber-ripples i:nth-child(2) { animation-delay: -1.2s; }
+.bobber-ripples i:nth-child(3) { animation-delay: -2.4s; }
+.focus-fish .fish-shadow-one { bottom: 27%; }
+.focus-fish .fish-shadow-two { bottom: 9%; }
+
+.lily-pads { position: absolute; right: 5%; bottom: 17%; }
+.lily-pads i {
+  position: absolute;
+  width: 72px;
+  height: 21px;
+  border: 4px solid #123d32;
+  border-radius: 50%;
+  background: #2d6c4e;
+  animation: lily-float 3s steps(3) infinite;
+}
+.lily-pads i:nth-child(2) { left: -110px; top: 25px; scale: .7; animation-delay: -1s; }
+.lily-pads i:nth-child(3) { left: 83px; top: 42px; scale: .52; animation-delay: -2s; }
+
+/* Swimming: the final position meets the chest instead of passing it. */
+.focus-swim {
+  background:
+    linear-gradient(180deg, rgba(119,220,219,.18), transparent 32%),
+    linear-gradient(180deg, #148aa0, #0c657f 38%, #083f62 70%, #052b4b);
+}
+
+.focus-swim .focus-character-rig-swim {
+  left: calc(1% + (var(--journey) * 49%));
+  bottom: calc(27% + (var(--journey) * 9%));
+  width: clamp(210px, 25vw, 370px);
+  aspect-ratio: 272 / 280;
+}
+
+.underwater-rays { position: absolute; inset: 0; overflow: hidden; opacity: .25; }
+.underwater-rays i {
+  position: absolute;
+  top: -15%;
+  width: 14%;
+  height: 74%;
+  background: linear-gradient(180deg, rgba(182,245,224,.62), transparent);
+  clip-path: polygon(28% 0,62% 0,100% 100%,0 100%);
+  animation: ray-sway 7s ease-in-out infinite alternate;
+}
+.underwater-rays i:nth-child(1) { left: 9%; rotate: -7deg; }
+.underwater-rays i:nth-child(2) { left: 41%; rotate: 3deg; animation-delay: -2s; }
+.underwater-rays i:nth-child(3) { right: 5%; rotate: 8deg; animation-delay: -4s; }
+
+.focus-swim .bubble-stream {
+  left: calc(4% + (var(--journey) * 49%));
+  bottom: calc(36% + (var(--journey) * 9%));
+}
+
+.sea-ruins {
+  position: absolute;
+  left: 69%;
+  bottom: 0;
+  width: 28%;
+  height: 43%;
+  opacity: .72;
+}
+
+.sea-ruins::before,
+.sea-ruins::after,
+.sea-ruins i {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  background: #154c58;
+  box-shadow: inset 8px 0 0 rgba(82,145,137,.16);
+}
+.sea-ruins::before { left: 0; width: 48px; height: 82%; }
+.sea-ruins::after { right: 0; width: 56px; height: 64%; }
+.sea-ruins i:nth-child(1) { left: 41px; width: 45%; height: 35px; bottom: 72%; }
+.sea-ruins i:nth-child(2) { left: 34%; width: 38px; height: 48%; }
+.sea-ruins i:nth-child(3) { right: 55px; width: 34px; height: 39%; }
+
+.focus-swim .sunken-chest {
+  z-index: 5;
+  right: auto;
+  left: 63%;
+  bottom: 13%;
+  width: 112px;
+  height: 66px;
+  opacity: calc(.22 + (var(--journey) * .78));
+  transform: translateX(calc((1 - var(--journey)) * 6vw));
+  transition: transform .55s linear, opacity .55s linear;
+}
+
+.focus-swim .sunken-chest span {
+  position: absolute;
+  left: -28px;
+  right: -28px;
+  bottom: -14px;
+  height: 22px;
+  background: #123e54;
+  clip-path: polygon(0 100%,12% 28%,31% 56%,47% 12%,67% 45%,86% 20%,100% 100%);
+}
+
+/* Goal events play in the active scene before the summary screen. */
+.scene-success { position: absolute; z-index: 8; pointer-events: none; }
+.scene-success strong {
+  position: absolute;
+  padding: 8px 12px;
+  border: 3px solid #ffe0a0;
+  background: #082437;
+  color: #ffe5ad;
+  font: 900 clamp(12px,1.4vw,17px)/1.2 "Courier New","Malgun Gothic",monospace;
+  white-space: nowrap;
+  box-shadow: 5px 5px 0 #020b13;
+  animation: success-label 4.2s steps(5) both;
+}
+
+.scene-success-fish { left: 19%; bottom: 29%; width: 150px; height: 145px; }
+.scene-success-fish strong { left: 25px; top: -18px; }
+.caught-carp {
+  position: absolute;
+  left: 13px;
+  top: 48px;
+  width: 125px;
+  height: 70px;
+  animation: caught-carp-arc 4.2s cubic-bezier(.25,.75,.3,1) both;
+}
+.caught-carp-body {
+  position: absolute;
+  right: 0;
+  top: 14px;
+  width: 86px;
+  height: 48px;
+  border: 4px solid #6d451b;
+  background: linear-gradient(135deg,#fff2a7,#f3a42d 55%,#c66f18);
+  clip-path: polygon(0 50%,18% 8%,72% 0,100% 50%,72% 100%,18% 92%);
+}
+.caught-carp-body::after {
+  content: "";
+  position: absolute;
+  right: 17px;
+  top: 12px;
+  width: 7px;
+  height: 7px;
+  background: #2e261a;
+}
+.caught-carp-tail {
+  position: absolute;
+  left: 0;
+  top: 11px;
+  width: 53px;
+  height: 53px;
+  background: #e89523;
+  clip-path: polygon(0 0,100% 50%,0 100%,24% 50%);
+  animation: caught-tail 350ms steps(2) infinite;
+}
+
+.scene-success-hike { left: 55%; bottom: 52%; width: 160px; height: 160px; }
+.scene-success-hike strong { left: 3px; top: -15px; }
+.summit-sunburst {
+  width: 150px;
+  height: 150px;
+  background: repeating-conic-gradient(#ffd56a 0 7deg,transparent 7deg 18deg);
+  clip-path: circle(50%);
+  animation: summit-burst 4.2s steps(8) both;
+}
+
+.scene-success-swim { left: 61%; bottom: 20%; width: 150px; height: 150px; }
+.scene-success-swim strong { left: -12px; top: -35px; }
+.treasure-pearl {
+  position: absolute;
+  left: 42px;
+  top: 55px;
+  width: 54px;
+  height: 54px;
+  border: 5px solid #8cccd2;
+  border-radius: 50%;
+  background: #fff5d5;
+  box-shadow: 0 0 0 11px rgba(195,250,236,.2),0 0 36px #d2fff2;
+  animation: pearl-rise 4.2s steps(7) both;
+}
+.is-celebrating.focus-swim .sunken-chest::before { transform: rotate(-38deg); }
+
+.celebration-caption {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #ffe0a0;
+  background: rgba(239,150,55,.16);
+  color: #ffe3aa;
+  font-weight: 900;
+  text-align: center;
+}
+
+@keyframes sprite-eight { to { background-position: 100% 0; } }
+@keyframes water-depth-shift { from { transform: translateX(-2%); } to { transform: translateX(3%); } }
+@keyframes synced-ripple {
+  0%,18% { opacity: 0; transform: scaleX(.2); }
+  28% { opacity: .75; }
+  60%,100% { opacity: 0; transform: scaleX(1.25); }
+}
+@keyframes lily-float { 0%,100% { translate: 0 0; } 50% { translate: 7px 3px; } }
+@keyframes ray-sway { from { transform: skewX(-5deg); opacity: .45; } to { transform: skewX(7deg); opacity: .9; } }
+@keyframes success-label {
+  0%,8% { opacity: 0; transform: translateY(12px) scale(.85); }
+  20%,83% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-8px) scale(.96); }
+}
+@keyframes caught-carp-arc {
+  0% { opacity: 0; transform: translate(45px,105px) rotate(-18deg) scale(.45); }
+  20% { opacity: 1; }
+  47% { transform: translate(-10px,-35px) rotate(12deg) scale(1); }
+  72% { transform: translate(-42px,10px) rotate(-7deg) scale(.92); }
+  100% { opacity: 0; transform: translate(-68px,35px) rotate(-13deg) scale(.72); }
+}
+@keyframes caught-tail { from { transform: rotate(-10deg); } to { transform: rotate(11deg); } }
+@keyframes summit-burst {
+  0% { opacity: 0; transform: scale(.2) rotate(0); }
+  18%,74% { opacity: .72; transform: scale(1) rotate(35deg); }
+  100% { opacity: 0; transform: scale(1.35) rotate(65deg); }
+}
+@keyframes pearl-rise {
+  0% { opacity: 0; transform: translateY(60px) scale(.35); }
+  22%,76% { opacity: 1; transform: translateY(-14px) scale(1); }
+  100% { opacity: 0; transform: translateY(-55px) scale(.7); }
+}
+
+@media (max-width: 720px) {
+  .focus-hike .focus-character-rig-hike {
+    left: calc(-1% + (var(--journey) * 48%));
+    bottom: calc(13% + (var(--journey) * 27%));
+    width: clamp(116px,29vw,164px);
+  }
+  .focus-hike .hiking-trail { width: 76%; bottom: 7%; }
+  .focus-hike .walking-dust {
+    left: calc(1% + (var(--journey) * 48%));
+    bottom: calc(15% + (var(--journey) * 27%));
+  }
+  .summit-station { left: 61%; bottom: 48%; scale: .78; }
+  .focus-fish .focus-character-rig-fish {
+    left: -3%;
+    bottom: 23%;
+    width: clamp(220px,56vw,310px);
+  }
+  .fishing-dock { width: 49%; bottom: 21%; }
+  .bobber-ripples { left: 28%; bottom: 27%; }
+  .focus-swim .focus-character-rig-swim {
+    left: calc(-5% + (var(--journey) * 45%));
+    bottom: calc(34% + (var(--journey) * 7%));
+    width: clamp(185px,49vw,270px);
+  }
+  .focus-swim .sunken-chest { left: 64%; bottom: 25%; scale: .76; }
+  .sea-ruins { left: 68%; height: 48%; }
+  .scene-success-fish { left: 23%; bottom: 38%; scale: .78; }
+  .scene-success-hike { left: 48%; bottom: 50%; scale: .78; }
+  .scene-success-swim { left: 58%; bottom: 31%; scale: .78; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adventure-sprite,
+  .adventure-world *,
+  .scene-success,
+  .scene-success * {
+    animation: none !important;
+  }
+  .adventure-sprite { background-position: 57.142% 0; }
+}

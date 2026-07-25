@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./adventure-motion-v2.css";
 
 const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 

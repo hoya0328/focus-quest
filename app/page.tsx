@@ -89,6 +89,12 @@ const adventures: Adventure[] = [
   },
 ];
 
+const adventureSprites: Record<AdventureId, string> = {
+  hike: `${publicBasePath}/sprites/momo-walk-sheet.png`,
+  fish: `${publicBasePath}/sprites/bori-fish-sheet.png`,
+  swim: `${publicBasePath}/sprites/podo-swim-sheet.png`,
+};
+
 const bgms: { id: BgmId; name: string; note: string; icon: string }[] = [
   { id: "forest", name: "숲의 숨", note: "포근한 화음", icon: "♬" },
   { id: "waves", name: "푸른 물결", note: "잔잔한 파도", icon: "≈" },
@@ -254,6 +260,7 @@ export default function Home() {
   const [completedToday, setCompletedToday] = useState(0);
   const [history, setHistory] = useState<FocusRecord[]>([]);
   const [showExit, setShowExit] = useState(false);
+  const [isCelebrating, setIsCelebrating] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
@@ -501,11 +508,27 @@ export default function Home() {
     }
 
     setCompletionMode(session.mode);
-    setScreen("complete");
     setEndAt(null);
     setPaused(false);
     setShowExit(false);
+
+    if (session.mode === "focus") {
+      setRemaining(0);
+      setIsCelebrating(true);
+      return;
+    }
+
+    setScreen("complete");
   }, [persistSession, stopAudio]);
+
+  useEffect(() => {
+    if (!isCelebrating) return;
+    const celebrationTimer = window.setTimeout(() => {
+      setIsCelebrating(false);
+      setScreen("complete");
+    }, 4200);
+    return () => window.clearTimeout(celebrationTimer);
+  }, [isCelebrating]);
 
   useEffect(() => {
     if (screen !== "focus" || paused || !endAt) return;
@@ -550,6 +573,7 @@ export default function Home() {
     });
 
     completionLockRef.current = false;
+    setIsCelebrating(false);
     persistSession(session);
     setSessionMode(mode);
     setSessionDurationMinutes(durationMinutes);
@@ -601,6 +625,7 @@ export default function Home() {
     setShowExit(false);
     setEndAt(null);
     setPaused(false);
+    setIsCelebrating(false);
     setSessionMode("focus");
     setSessionDurationMinutes(focusMinutes);
     setRemaining(focusMinutes * 60);
@@ -885,7 +910,7 @@ export default function Home() {
 
       {screen === "focus" && (
         <section
-          className={`focus-screen focus-${selected.id} session-${sessionMode} ${paused ? "is-paused" : ""}`}
+          className={`focus-screen focus-${selected.id} session-${sessionMode} ${paused ? "is-paused" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
           style={{ "--journey": progress } as React.CSSProperties}
         >
           <div className="scene-sky">
@@ -916,11 +941,14 @@ export default function Home() {
                   <div className="forest-depth forest-depth-front">
                     <i /><i /><i /><i />
                   </div>
+                  <div className="hike-ridge hike-ridge-back" />
+                  <div className="hike-ridge hike-ridge-front" />
                   <div className="hiking-trail">
-                    <span /><span /><span /><span />
+                    <span /><span /><span /><span /><span />
                   </div>
-                  <div className="summit-peak">
+                  <div className="summit-station">
                     <i className="summit-flag" />
+                    <span>정상</span>
                   </div>
                   <div className="walking-dust"><i /><i /><i /></div>
                 </>
@@ -928,18 +956,19 @@ export default function Home() {
 
               {selected.id === "fish" && (
                 <>
-                  <div className="fishing-cast-line" />
-                  <div className="fishing-bobber"><i /></div>
-                  <div className="fishing-ripple ripple-one" />
-                  <div className="fishing-ripple ripple-two" />
-                  <div className="empty-catch">…</div>
+                  <div className="lake-depth lake-depth-far" />
+                  <div className="lake-depth lake-depth-near" />
+                  <div className="fishing-dock"><i /><i /><i /></div>
+                  <div className="bobber-ripples"><i /><i /><i /></div>
                   <div className="lake-fish-shadow fish-shadow-one" />
                   <div className="lake-fish-shadow fish-shadow-two" />
+                  <div className="lily-pads"><i /><i /><i /></div>
                 </>
               )}
 
               {selected.id === "swim" && (
                 <>
+                  <div className="underwater-rays"><i /><i /><i /></div>
                   <div className="swim-current current-one" />
                   <div className="swim-current current-two" />
                   <div className="bubble-stream">
@@ -947,7 +976,8 @@ export default function Home() {
                   </div>
                   <div className="coral coral-left" />
                   <div className="coral coral-right" />
-                  <div className="sunken-chest"><i /></div>
+                  <div className="sea-ruins"><i /><i /><i /></div>
+                  <div className="sunken-chest"><i /><span /></div>
                 </>
               )}
             </div>
@@ -976,27 +1006,52 @@ export default function Home() {
               } as React.CSSProperties
             }
           >
-            <img
-              src={selected.image}
-              alt={
-                sessionMode === "focus"
-                  ? `${selected.friend}의 집중 모험`
-                  : `${selected.friend}의 휴식 시간`
-              }
-              className="focus-character"
-            />
-            {selected.id === "hike" && sessionMode === "focus" && (
-              <span className="step-spark">⌁</span>
-            )}
-            {selected.id === "swim" && sessionMode === "focus" && (
-              <span className="swim-kick-bubbles">° · °</span>
+            {sessionMode === "focus" ? (
+              <span
+                className={`adventure-sprite adventure-sprite-${selected.id}`}
+                style={{ backgroundImage: `url("${adventureSprites[selected.id]}")` }}
+                role="img"
+                aria-label={`${selected.friend}의 움직이는 ${selected.name} 모험`}
+              />
+            ) : (
+              <img
+                src={selected.image}
+                alt={`${selected.friend}의 휴식 시간`}
+                className="focus-character"
+              />
             )}
           </div>
+
+          {isCelebrating && (
+            <div
+              className={`scene-success scene-success-${selected.id}`}
+              role="status"
+              aria-live="assertive"
+            >
+              {selected.id === "fish" && (
+                <div className="caught-carp">
+                  <i className="caught-carp-tail" />
+                  <i className="caught-carp-body" />
+                </div>
+              )}
+              {selected.id === "hike" && <div className="summit-sunburst" />}
+              {selected.id === "swim" && <div className="treasure-pearl" />}
+              <strong>
+                {selected.id === "fish"
+                  ? "황금 잉어를 낚았어요!"
+                  : selected.id === "hike"
+                    ? "정상에 도착했어요!"
+                    : "빛나는 진주를 발견했어요!"}
+              </strong>
+            </div>
+          )}
 
           <div className="focus-top">
             <div className="focus-status">
               <span className="live-dot" />
-              {paused
+              {isCelebrating
+                ? "목표 달성!"
+                : paused
                 ? "잠시 멈춤"
                 : sessionMode === "focus"
                   ? `${selected.friend}와 집중 중`
@@ -1034,19 +1089,27 @@ export default function Home() {
               <i style={{ width: `${progress * 100}%` }} />
             </div>
             <p>
-              {paused
+              {isCelebrating
+                ? "100% · 캐릭터와 함께 목표를 완성했어요!"
+                : paused
                 ? "괜찮아요. 준비되면 다시 출발해요."
                 : sessionMode === "focus"
                   ? `${Math.round(progress * 100)}% · ${adventureNarration}`
                   : `${Math.round(progress * 100)}% · 천천히 숨을 고르고 있어요`}
             </p>
             <div className="timer-controls">
-              <button className="pause-button" type="button" onClick={togglePause}>
-                {paused ? "계속하기" : "잠시 멈춤"}
-              </button>
-              <button className="exit-button" type="button" onClick={() => setShowExit(true)}>
-                {sessionMode === "focus" ? "그만하기" : "휴식 끝내기"}
-              </button>
+              {isCelebrating ? (
+                <span className="celebration-caption">성공 장면 재생 중…</span>
+              ) : (
+                <>
+                  <button className="pause-button" type="button" onClick={togglePause}>
+                    {paused ? "계속하기" : "잠시 멈춤"}
+                  </button>
+                  <button className="exit-button" type="button" onClick={() => setShowExit(true)}>
+                    {sessionMode === "focus" ? "그만하기" : "휴식 끝내기"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1096,25 +1159,6 @@ export default function Home() {
             </span>
             <div className="complete-character-wrap">
               <div className="complete-halo" />
-              {completionMode === "focus" && selected.id === "fish" && (
-                <div className="quest-reward golden-carp" aria-label="황금 잉어를 낚았어요">
-                  <i className="carp-tail" />
-                  <i className="carp-body" />
-                  <span>황금 잉어!</span>
-                </div>
-              )}
-              {completionMode === "focus" && selected.id === "hike" && (
-                <div className="quest-reward summit-reward" aria-label="정상에 도착했어요">
-                  <i />
-                  <span>정상 도착!</span>
-                </div>
-              )}
-              {completionMode === "focus" && selected.id === "swim" && (
-                <div className="quest-reward pearl-reward" aria-label="빛나는 진주를 발견했어요">
-                  <i />
-                  <span>진주 발견!</span>
-                </div>
-              )}
               <img
                 src={selected.image}
                 alt={
