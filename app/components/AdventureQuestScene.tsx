@@ -305,7 +305,7 @@ export default function AdventureQuestScene({
 
           const finish = this.getRoute(1).end;
           this.goal.setPosition(
-            kind === "hike" ? finish.x + 75 * unit : compact ? width * 0.78 : width * 0.69,
+            kind === "hike" ? finish.x + 75 * unit : compact ? width * 0.78 : width * 0.63,
             kind === "hike" ? finish.y + 45 * unit : compact ? height * 0.55 : height * 0.62,
           );
           this.goal.setScale(unit);
