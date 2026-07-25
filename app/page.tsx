@@ -105,6 +105,34 @@ function formatTime(seconds: number) {
   return `${padTime(Math.floor(safe / 60))}:${padTime(safe % 60)}`;
 }
 
+function getAdventureNarration(
+  adventureId: AdventureId,
+  progress: number,
+  mode: SessionMode,
+) {
+  if (mode === "break") return "모닥불 옆에서 다음 모험을 준비하고 있어요";
+
+  const percent = Math.round(progress * 100);
+  if (adventureId === "fish") {
+    if (percent < 30) return "첫 번째 캐스팅 · 호수는 아직 조용해요";
+    if (percent < 70) return "다시 한번 캐스팅 · 입질을 기다리는 중";
+    if (percent < 95) return "마지막 포인트 탐색 · 집중을 유지해요";
+    return "낚싯대가 크게 흔들려요 · 거의 다 왔어요!";
+  }
+
+  if (adventureId === "hike") {
+    if (percent < 30) return "울창한 숲길 · 호흡을 맞추며 걷는 중";
+    if (percent < 70) return "능선 오르막 · 한 걸음씩 정상을 향해";
+    if (percent < 95) return "정상 바로 아래 · 마지막 발걸음";
+    return "정상 깃발이 보여요 · 거의 다 왔어요!";
+  }
+
+  if (percent < 30) return "얕은 산호초 · 물살을 타고 탐험 중";
+  if (percent < 70) return "푸른 해저 동굴 · 반짝임을 따라가는 중";
+  if (percent < 95) return "보물의 흔적 발견 · 조금만 더 헤엄쳐요";
+  return "해저 보물에 도착했어요 · 거의 다 왔어요!";
+}
+
 function isFullscreen() {
   const fullscreenDocument = document as FullscreenDocument;
   return Boolean(
@@ -241,6 +269,11 @@ export default function Home() {
 
   const totalSeconds = Math.max(1, sessionDurationMinutes * 60);
   const progress = Math.min(1, Math.max(0, 1 - remaining / totalSeconds));
+  const adventureNarration = getAdventureNarration(
+    selectedId,
+    progress,
+    sessionMode,
+  );
   const weeklySummary = useMemo(
     () => getWeeklySummary(history),
     [history],
@@ -852,7 +885,8 @@ export default function Home() {
 
       {screen === "focus" && (
         <section
-          className={`focus-screen focus-${selected.id} session-${sessionMode}`}
+          className={`focus-screen focus-${selected.id} session-${sessionMode} ${paused ? "is-paused" : ""}`}
+          style={{ "--journey": progress } as React.CSSProperties}
         >
           <div className="scene-sky">
             <div className="scene-sun" />
@@ -869,6 +903,56 @@ export default function Home() {
           <div className="reeds reeds-left">╿╿ ╿</div>
           <div className="reeds reeds-right">╿ ╿╿</div>
 
+          {sessionMode === "focus" && (
+            <div
+              className={`adventure-world adventure-world-${selected.id}`}
+              aria-hidden="true"
+            >
+              {selected.id === "hike" && (
+                <>
+                  <div className="forest-depth forest-depth-back">
+                    <i /><i /><i /><i /><i /><i />
+                  </div>
+                  <div className="forest-depth forest-depth-front">
+                    <i /><i /><i /><i />
+                  </div>
+                  <div className="hiking-trail">
+                    <span /><span /><span /><span />
+                  </div>
+                  <div className="summit-peak">
+                    <i className="summit-flag" />
+                  </div>
+                  <div className="walking-dust"><i /><i /><i /></div>
+                </>
+              )}
+
+              {selected.id === "fish" && (
+                <>
+                  <div className="fishing-cast-line" />
+                  <div className="fishing-bobber"><i /></div>
+                  <div className="fishing-ripple ripple-one" />
+                  <div className="fishing-ripple ripple-two" />
+                  <div className="empty-catch">…</div>
+                  <div className="lake-fish-shadow fish-shadow-one" />
+                  <div className="lake-fish-shadow fish-shadow-two" />
+                </>
+              )}
+
+              {selected.id === "swim" && (
+                <>
+                  <div className="swim-current current-one" />
+                  <div className="swim-current current-two" />
+                  <div className="bubble-stream">
+                    <i /><i /><i /><i /><i />
+                  </div>
+                  <div className="coral coral-left" />
+                  <div className="coral coral-right" />
+                  <div className="sunken-chest"><i /></div>
+                </>
+              )}
+            </div>
+          )}
+
           {sessionMode === "break" && (
             <div className="break-scene" aria-hidden="true">
               <div className="break-moon" />
@@ -884,20 +968,30 @@ export default function Home() {
             <div style={{ width: `${progress * 100}%` }} />
           </div>
 
-          <img
-            src={selected.image}
-            alt={
-              sessionMode === "focus"
-                ? `${selected.friend}의 집중 모험`
-                : `${selected.friend}의 휴식 시간`
-            }
-            className={`focus-character ${sessionMode === "break" ? "is-resting" : ""}`}
+          <div
+            className={`focus-character-rig focus-character-rig-${selected.id} ${sessionMode === "break" ? "is-resting" : ""}`}
             style={
               {
                 "--journey": sessionMode === "break" ? 0.5 : progress,
               } as React.CSSProperties
             }
-          />
+          >
+            <img
+              src={selected.image}
+              alt={
+                sessionMode === "focus"
+                  ? `${selected.friend}의 집중 모험`
+                  : `${selected.friend}의 휴식 시간`
+              }
+              className="focus-character"
+            />
+            {selected.id === "hike" && sessionMode === "focus" && (
+              <span className="step-spark">⌁</span>
+            )}
+            {selected.id === "swim" && sessionMode === "focus" && (
+              <span className="swim-kick-bubbles">° · °</span>
+            )}
+          </div>
 
           <div className="focus-top">
             <div className="focus-status">
@@ -943,7 +1037,7 @@ export default function Home() {
               {paused
                 ? "괜찮아요. 준비되면 다시 출발해요."
                 : sessionMode === "focus"
-                  ? `${Math.round(progress * 100)}% · 한 칸씩 잘 가고 있어요`
+                  ? `${Math.round(progress * 100)}% · ${adventureNarration}`
                   : `${Math.round(progress * 100)}% · 천천히 숨을 고르고 있어요`}
             </p>
             <div className="timer-controls">
@@ -1002,6 +1096,25 @@ export default function Home() {
             </span>
             <div className="complete-character-wrap">
               <div className="complete-halo" />
+              {completionMode === "focus" && selected.id === "fish" && (
+                <div className="quest-reward golden-carp" aria-label="황금 잉어를 낚았어요">
+                  <i className="carp-tail" />
+                  <i className="carp-body" />
+                  <span>황금 잉어!</span>
+                </div>
+              )}
+              {completionMode === "focus" && selected.id === "hike" && (
+                <div className="quest-reward summit-reward" aria-label="정상에 도착했어요">
+                  <i />
+                  <span>정상 도착!</span>
+                </div>
+              )}
+              {completionMode === "focus" && selected.id === "swim" && (
+                <div className="quest-reward pearl-reward" aria-label="빛나는 진주를 발견했어요">
+                  <i />
+                  <span>진주 발견!</span>
+                </div>
+              )}
               <img
                 src={selected.image}
                 alt={
