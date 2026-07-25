@@ -167,8 +167,11 @@ export default function FishingQuestScene({
         private layoutScene() {
           const width = this.scale.width;
           const height = this.scale.height;
+          const isCompact = width < 600;
           const horizon = Math.max(180, height * 0.43);
-          const dockY = Math.min(height - 54, Math.max(horizon + 115, height * 0.78));
+          const dockY = isCompact
+            ? Math.min(height * 0.58, horizon + 125)
+            : Math.min(height - 54, Math.max(horizon + 115, height * 0.78));
           const unit = Math.max(0.72, Math.min(width / 1200, height / 700));
 
           this.backdrop.clear();
@@ -275,7 +278,9 @@ export default function FishingQuestScene({
             glow.setScale(unit);
           });
 
-          const displayWidth = Math.max(330, Math.min(500, width * 0.44, height * 0.78));
+          const displayWidth = isCompact
+            ? Math.max(235, Math.min(285, width * 0.72))
+            : Math.max(330, Math.min(500, width * 0.44, height * 0.78));
           const displayHeight = displayWidth * (430 / 520);
           const anglerX = Math.max(displayWidth * 0.5 - 22, Math.min(width * 0.2, width - displayWidth * 0.5));
           const anglerY = dockY - displayHeight * 0.453;
