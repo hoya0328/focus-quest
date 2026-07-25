@@ -1,0 +1,41 @@
+{
+  "explorer.compactFolders": false,
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "package.json": "package-lock.json, eslint.config.mjs, postcss.config.mjs, next.config.ts, vite.config.ts, drizzle.config.ts"
+  },
+  "files.exclude": {
+    "**/.agents": true,
+    "**/.codex": true,
+    "**/.git": true,
+    "**/.github": true,
+    "**/.next": true,
+    "**/.openai": true,
+    "**/.vscode": true,
+    "**/.wrangler": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/out": true,
+    "**/outputs": true,
+    "**/tmp": true,
+    "**/profile": true,
+    "**/examples": true,
+    "**/build": true,
+    "**/drizzle": true,
+    "**/types": true,
+    "**/*.tsbuildinfo": true,
+    "**/next-env.d.ts": true,
+    "**/.gitignore": true,
+    "Focus Quest.code-workspace": true
+  },
+  "search.exclude": {
+    "**/.next": true,
+    "**/.wrangler": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/out": true,
+    "**/outputs": true,
+    "**/tmp": true
+  }
+}

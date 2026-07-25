@@ -1,0 +1,11 @@
+{
+  "folders": [
+    {
+      "name": "Focus Quest",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "window.title": "Focus Quest — ${activeEditorShort}${separator}${appName}"
+  }
+}
