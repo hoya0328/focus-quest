@@ -175,7 +175,7 @@ export default function AdventureQuestScene({
                 : { x: width * 0.62, y: height * 0.36 }
               : compact
                 ? { x: width * 0.55, y: height * 0.51 }
-                : { x: width * 0.58, y: height * 0.56 };
+                : { x: width * 0.47, y: height * 0.56 };
 
           const x = Phaser.Math.Linear(start.x, end.x, progress);
           const baseY = Phaser.Math.Linear(start.y, end.y, progress);
@@ -305,7 +305,7 @@ export default function AdventureQuestScene({
 
           const finish = this.getRoute(1).end;
           this.goal.setPosition(
-            kind === "hike" ? finish.x + 75 * unit : compact ? width * 0.78 : width * 0.63,
+            kind === "hike" ? finish.x + 75 * unit : compact ? width * 0.78 : width * 0.54,
             kind === "hike" ? finish.y + 45 * unit : compact ? height * 0.55 : height * 0.62,
           );
           this.goal.setScale(unit);
