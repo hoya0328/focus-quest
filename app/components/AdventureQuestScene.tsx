@@ -39,10 +39,13 @@ export default function AdventureQuestScene({
       if (disposed || !mountRef.current) return;
 
       class AdventureScene extends Phaser.Scene implements SceneController {
+        private hikeBackdrop?: import("phaser").GameObjects.Image;
         private swimBackdrop?: import("phaser").GameObjects.Image;
         private backdrop!: import("phaser").GameObjects.Graphics;
         private hero!: import("phaser").GameObjects.Sprite;
         private swimChest?: import("phaser").GameObjects.Sprite;
+        private hikePole?: import("phaser").GameObjects.Rectangle;
+        private hikeFlag?: import("phaser").GameObjects.Polygon;
         private goal!: import("phaser").GameObjects.Container;
         private reward!: import("phaser").GameObjects.Arc;
         private successLabel!: import("phaser").GameObjects.Text;
@@ -63,7 +66,12 @@ export default function AdventureQuestScene({
             frameWidth: kind === "hike" ? 360 : 420,
             frameHeight: kind === "hike" ? 360 : 340,
           });
-          if (kind === "swim") {
+          if (kind === "hike") {
+            this.load.image(
+              "hike-pixel-summit",
+              `${assetBasePath}/backgrounds/hike-pixel-summit-v1.png`,
+            );
+          } else {
             this.load.image(
               "swim-pixel-depth",
               `${assetBasePath}/backgrounds/swim-pixel-depth.png`,
@@ -80,7 +88,12 @@ export default function AdventureQuestScene({
         }
 
         create() {
-          if (kind === "swim") {
+          if (kind === "hike") {
+            this.hikeBackdrop = this.add
+              .image(0, 0, "hike-pixel-summit")
+              .setOrigin(0.5)
+              .setDepth(0);
+          } else {
             this.swimBackdrop = this.add
               .image(0, 0, "swim-pixel-depth")
               .setOrigin(0.5)
@@ -146,12 +159,24 @@ export default function AdventureQuestScene({
 
           const goalGraphics = this.add.graphics();
           if (kind === "hike") {
-            goalGraphics.fillStyle(0x173b31, 1);
-            goalGraphics.fillTriangle(-68, 58, 0, -12, 75, 58);
-            goalGraphics.fillStyle(0xf7dda0, 1);
-            goalGraphics.fillRect(0, -80, 6, 102);
-            goalGraphics.fillStyle(0xef784e, 1);
-            goalGraphics.fillTriangle(6, -78, 70, -58, 6, -39);
+            goalGraphics.fillStyle(0x263a30, 0.88);
+            goalGraphics.fillEllipse(0, 24, 82, 22);
+            goalGraphics.fillStyle(0x465348, 1);
+            goalGraphics.fillEllipse(-14, 15, 27, 19);
+            goalGraphics.fillStyle(0x5d6251, 1);
+            goalGraphics.fillEllipse(10, 12, 24, 18);
+            goalGraphics.fillStyle(0x74705a, 1);
+            goalGraphics.fillEllipse(-1, 0, 20, 16);
+            this.hikePole = this.add
+              .rectangle(10, 18, 5, 76, 0xf5dda3)
+              .setOrigin(0.5, 1)
+              .setVisible(false);
+            this.hikePole.setStrokeStyle(2, 0x765331);
+            this.hikeFlag = this.add
+              .polygon(14, -52, [0, 0, 48, 13, 0, 28], 0xef784e)
+              .setOrigin(0, 0.5)
+              .setVisible(false);
+            this.hikeFlag.setStrokeStyle(2, 0x8f3f34);
           } else {
             this.swimChest = this.add.sprite(0, 0, "swim-treasure", 0);
           }
@@ -159,11 +184,11 @@ export default function AdventureQuestScene({
           this.reward = this.add.circle(
             0,
             kind === "hike" ? -118 : 0,
-            kind === "hike" ? 34 : 76,
+            kind === "hike" ? 24 : 76,
             kind === "hike" ? 0xffd35f : 0xf7f0d2,
-            kind === "hike" ? 0.96 : 0.72,
+            kind === "hike" ? 0.26 : 0.72,
           );
-          this.reward.setStrokeStyle(6, kind === "hike" ? 0xff9b45 : 0x74ddd1);
+          this.reward.setStrokeStyle(4, kind === "hike" ? 0xff9b45 : 0x74ddd1);
           if (kind === "swim") {
             this.reward.setBlendMode(Phaser.BlendModes.ADD);
           }
@@ -172,7 +197,7 @@ export default function AdventureQuestScene({
             0,
             0,
             kind === "hike"
-              ? [goalGraphics, this.reward]
+              ? [this.reward, goalGraphics, this.hikePole!, this.hikeFlag!]
               : [this.reward, goalGraphics, this.swimChest!],
           );
           this.goal.setDepth(10);
@@ -223,28 +248,76 @@ export default function AdventureQuestScene({
           controllerRef.current = this;
         }
 
+        private getHikeSourcePoint(progress: number) {
+          const clamped = Phaser.Math.Clamp(progress, 0, 1);
+          return {
+            x: Phaser.Math.Interpolation.CatmullRom(
+              [0.07, 0.17, 0.29, 0.4, 0.5, 0.59, 0.66],
+              clamped,
+            ),
+            y: Phaser.Math.Interpolation.CatmullRom(
+              [0.85, 0.78, 0.7, 0.61, 0.52, 0.42, 0.31],
+              clamped,
+            ),
+          };
+        }
+
+        private positionHikeBackdrop(progress: number) {
+          const image = this.hikeBackdrop;
+          if (!image) return;
+          const width = this.scale.width;
+          const height = this.scale.height;
+          const displayWidth = image.frame.realWidth * image.scaleX;
+          const compact = width < 600;
+          let imageLeft = (width - displayWidth) / 2;
+
+          if (compact && displayWidth > width) {
+            const sourcePoint = this.getHikeSourcePoint(progress);
+            const targetX = width * (0.3 + progress * 0.1);
+            imageLeft = Phaser.Math.Clamp(
+              targetX - sourcePoint.x * displayWidth,
+              width - displayWidth,
+              0,
+            );
+          }
+
+          image.setPosition(imageLeft + displayWidth / 2, height / 2);
+        }
+
+        private mapHikePoint(progress: number) {
+          const image = this.hikeBackdrop;
+          if (!image) return { x: 0, y: 0 };
+          const sourcePoint = this.getHikeSourcePoint(progress);
+          const displayWidth = image.frame.realWidth * image.scaleX;
+          const displayHeight = image.frame.realHeight * image.scaleY;
+          return {
+            x: image.x - displayWidth / 2 + sourcePoint.x * displayWidth,
+            y: image.y - displayHeight / 2 + sourcePoint.y * displayHeight,
+          };
+        }
+
         private getRoute(progress: number) {
           const width = this.scale.width;
           const height = this.scale.height;
           const compact = width < 600;
+          if (kind === "hike" && this.hikeBackdrop) {
+            return {
+              ...this.mapHikePoint(progress),
+              start: this.mapHikePoint(0),
+              end: this.mapHikePoint(1),
+            };
+          }
+
           const start = compact
             ? { x: width * 0.15, y: height * 0.56 }
             : { x: width * 0.1, y: height * 0.75 };
-          const end =
-            kind === "hike"
-              ? compact
-                ? { x: width * 0.67, y: height * 0.36 }
-                : { x: width * 0.62, y: height * 0.36 }
-              : compact
-                ? { x: width * 0.55, y: height * 0.51 }
-                : { x: width * 0.47, y: height * 0.56 };
+          const end = compact
+            ? { x: width * 0.55, y: height * 0.51 }
+            : { x: width * 0.47, y: height * 0.56 };
 
           const x = Phaser.Math.Linear(start.x, end.x, progress);
           const baseY = Phaser.Math.Linear(start.y, end.y, progress);
-          const curve =
-            kind === "hike"
-              ? -Math.sin(progress * Math.PI) * height * 0.025
-              : Math.sin(progress * Math.PI * 2) * height * 0.025;
+          const curve = Math.sin(progress * Math.PI * 2) * height * 0.025;
           return { x, y: baseY + curve, start, end };
         }
 
@@ -256,52 +329,42 @@ export default function AdventureQuestScene({
           this.backdrop.clear();
 
           if (kind === "hike") {
-            const skyColors = [0x2f7371, 0x4e8975, 0x8aa26f, 0xd1a862];
-            skyColors.forEach((color, index) => {
-              this.backdrop.fillStyle(color, 1);
-              this.backdrop.fillRect(0, (height * 0.48 * index) / 4, width, height * 0.12 + 1);
-            });
-            this.backdrop.fillStyle(0xffd67b, 0.8);
-            this.backdrop.fillCircle(width * 0.79, height * 0.14, 55 * unit);
-            this.backdrop.fillStyle(0x315a50, 0.75);
-            this.backdrop.fillPoints([
-              { x: 0, y: height * 0.56 },
-              { x: 0, y: height * 0.44 },
-              { x: width * 0.18, y: height * 0.24 },
-              { x: width * 0.35, y: height * 0.46 },
-              { x: width * 0.55, y: height * 0.2 },
-              { x: width * 0.78, y: height * 0.45 },
-              { x: width, y: height * 0.27 },
-              { x: width, y: height * 0.58 },
-            ], true);
-            this.backdrop.fillStyle(0x173d31, 1);
-            this.backdrop.fillRect(0, height * 0.49, width, height * 0.51);
-
-            for (let index = 0; index < 18; index += 1) {
-              const treeX = ((index * 97) % Math.max(120, width + 80)) - 30;
-              const treeY = height * (0.48 + (index % 4) * 0.11);
-              const size = (33 + (index % 5) * 8) * unit;
-              this.backdrop.fillStyle(0x0b2c28, 0.82);
-              this.backdrop.fillRect(treeX - 4 * unit, treeY, 8 * unit, height - treeY);
-              this.backdrop.fillTriangle(treeX - size, treeY + 15, treeX, treeY - size, treeX + size, treeY + 15);
-              this.backdrop.fillTriangle(treeX - size * 0.8, treeY + size * 0.55, treeX, treeY - size * 0.35, treeX + size * 0.8, treeY + size * 0.55);
+            const image = this.hikeBackdrop;
+            if (image) {
+              const coverScale =
+                Math.max(
+                  width / image.frame.realWidth,
+                  height / image.frame.realHeight,
+                ) * 1.015;
+              image.setScale(coverScale);
+              this.positionHikeBackdrop(this.currentProgress);
             }
 
-            const route = this.getRoute(0);
-            const finish = this.getRoute(1);
-            const middleX = (route.start.x + finish.end.x) * 0.52;
-            const middleY = (route.start.y + finish.end.y) * 0.52 + height * 0.05;
-            this.backdrop.lineStyle(Math.max(54, 82 * unit), 0x806643, 1);
-            this.backdrop.beginPath();
-            this.backdrop.moveTo(-30, route.start.y + 35);
-            this.backdrop.lineTo(route.start.x, route.start.y + 18);
-            this.backdrop.lineTo(middleX, middleY);
-            this.backdrop.lineTo(finish.end.x + 55, finish.end.y + 25);
-            this.backdrop.strokePath();
-            this.backdrop.lineStyle(Math.max(4, 7 * unit), 0xb89b64, 0.8);
-            for (let index = 0; index < 8; index += 1) {
-              const point = this.getRoute(index / 7);
-              this.backdrop.lineBetween(point.x - 17, point.y + 38 * unit, point.x + 17, point.y + 34 * unit);
+            this.backdrop.fillStyle(0x071f1c, 0.1);
+            this.backdrop.fillRect(0, height * 0.77, width, height * 0.23);
+            this.backdrop.fillStyle(0xffd77a, 0.045);
+            this.backdrop.fillTriangle(
+              width * 0.72,
+              0,
+              width,
+              0,
+              width * 0.56,
+              height * 0.68,
+            );
+
+            for (let index = 0; index < (compact ? 5 : 9); index += 1) {
+              const leafX = 18 + ((index * 149) % Math.max(90, width - 36));
+              const leafY = height * (0.08 + ((index * 0.093) % 0.68));
+              this.backdrop.fillStyle(
+                index % 2 === 0 ? 0x6d8d45 : 0xd39c49,
+                0.22,
+              );
+              this.backdrop.fillEllipse(
+                leafX,
+                leafY,
+                (8 + (index % 3) * 3) * unit,
+                (4 + (index % 2) * 2) * unit,
+              );
             }
           } else {
             const image = this.swimBackdrop;
@@ -370,14 +433,13 @@ export default function AdventureQuestScene({
           this.hero.setDisplaySize(heroWidth, heroWidth * sourceRatio);
           this.setProgress(this.currentProgress);
 
-          const finish = this.getRoute(1).end;
-          this.goal.setPosition(
-            kind === "hike" ? finish.x + 75 * unit : compact ? width * 0.78 : width * 0.54,
-            kind === "hike" ? finish.y + 45 * unit : compact ? height * 0.55 : height * 0.62,
-          );
           if (kind === "hike") {
             this.goal.setScale(unit);
           } else {
+            this.goal.setPosition(
+              compact ? width * 0.78 : width * 0.54,
+              compact ? height * 0.55 : height * 0.62,
+            );
             this.goal.setScale(1);
             const chestWidth = compact
               ? Math.min(238, width * 0.61)
@@ -385,18 +447,40 @@ export default function AdventureQuestScene({
             this.swimChest?.setDisplaySize(chestWidth, chestWidth * (465 / 423));
             this.swimRewardBaseScale = chestWidth / 250;
             this.reward.setScale(this.swimRewardBaseScale);
+            this.successLabel.setPosition(
+              Math.min(width - 130, Math.max(130, this.goal.x)),
+              Math.max(48, this.goal.y - 100 * unit),
+            );
           }
-          this.successLabel.setPosition(
-            Math.min(width - 130, Math.max(130, this.goal.x)),
-            Math.max(48, this.goal.y - (kind === "hike" ? 145 : 100) * unit),
-          );
         }
 
         setProgress(value: number) {
           this.currentProgress = Phaser.Math.Clamp(value, 0, 1);
           if (!this.hero) return;
+          if (kind === "hike") {
+            this.positionHikeBackdrop(this.currentProgress);
+          }
           const point = this.getRoute(this.currentProgress);
           this.hero.setPosition(point.x, point.y);
+          if (kind === "hike") {
+            const width = this.scale.width;
+            const unit = Math.max(
+              0.68,
+              Math.min(width / 1200, this.scale.height / 700),
+            );
+            const finish = this.getRoute(1).end;
+            this.goal.setPosition(
+              finish.x + 42 * unit,
+              finish.y + 30 * unit,
+            );
+            this.goal.setAlpha(
+              Phaser.Math.Clamp((this.currentProgress - 0.72) / 0.24, 0, 1),
+            );
+            this.successLabel.setPosition(
+              Math.min(width - 130, Math.max(130, this.goal.x)),
+              Math.max(48, this.goal.y - 142 * unit),
+            );
+          }
           if (this.swimBackdrop) {
             const width = this.scale.width;
             const frameWidth =
@@ -425,11 +509,19 @@ export default function AdventureQuestScene({
           this.isCelebrating = value;
           if (!value) {
             this.tweens.killTweensOf(this.reward);
+            this.tweens.killTweensOf(this.hero);
+            this.hero.setAngle(0);
             if (this.swimChest) {
               this.swimChest.anims.stop();
               this.swimChest.setFrame(0);
               this.reward.setPosition(0, 0);
               this.reward.setScale(this.swimRewardBaseScale);
+            }
+            if (this.hikePole && this.hikeFlag) {
+              this.tweens.killTweensOf(this.hikePole);
+              this.tweens.killTweensOf(this.hikeFlag);
+              this.hikePole.setVisible(false).setScale(1, 0);
+              this.hikeFlag.setVisible(false).setScale(0, 1).setAlpha(0);
             }
             this.reward.setVisible(false);
             this.successLabel.setVisible(false);
@@ -443,6 +535,35 @@ export default function AdventureQuestScene({
           this.swimChest?.play("swim-chest-open");
           this.reward.setVisible(true);
           this.reward.setAlpha(0);
+          if (kind === "hike" && this.hikePole && this.hikeFlag) {
+            this.hikePole.setVisible(true).setScale(1, 0);
+            this.hikeFlag.setVisible(true).setScale(0, 1).setAlpha(0);
+            this.tweens.add({
+              targets: this.hero,
+              angle: 7,
+              x: "+=12",
+              y: "+=6",
+              duration: 240,
+              yoyo: true,
+              hold: 130,
+              ease: "Sine.InOut",
+            });
+            this.tweens.add({
+              targets: this.hikePole,
+              scaleY: 1,
+              duration: 560,
+              delay: 260,
+              ease: "Back.Out",
+            });
+            this.tweens.add({
+              targets: this.hikeFlag,
+              scaleX: 1,
+              alpha: 1,
+              duration: 440,
+              delay: 790,
+              ease: "Back.Out",
+            });
+          }
           if (kind === "swim") {
             this.reward.setScale(this.swimRewardBaseScale);
           }
@@ -459,6 +580,7 @@ export default function AdventureQuestScene({
                 },
             alpha: kind === "hike" ? 1 : 0.9,
             duration: kind === "hike" ? 650 : 720,
+            delay: kind === "hike" ? 760 : 0,
             yoyo: true,
             hold: kind === "hike" ? 1900 : 900,
             repeat: kind === "hike" ? 0 : 1,
@@ -468,7 +590,7 @@ export default function AdventureQuestScene({
             targets: this.successLabel,
             alpha: 1,
             y: "-=8",
-            delay: 260,
+            delay: kind === "hike" ? 1080 : 260,
             duration: 300,
             yoyo: true,
             hold: 2500,

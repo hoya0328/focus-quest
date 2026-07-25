@@ -36,13 +36,19 @@ export default function FishingQuestScene({
       if (disposed || !mountRef.current) return;
 
       class FishingScene extends Phaser.Scene implements FishingSceneController {
+        private lakeBackdrop!: import("phaser").GameObjects.Image;
         private backdrop!: import("phaser").GameObjects.Graphics;
         private waterGlints: import("phaser").GameObjects.Rectangle[] = [];
         private fishShadows: import("phaser").GameObjects.Ellipse[] = [];
         private fireflies: import("phaser").GameObjects.Arc[] = [];
+        private bobberRipples: import("phaser").GameObjects.Ellipse[] = [];
         private angler!: import("phaser").GameObjects.Sprite;
-        private goldenCatch!: import("phaser").GameObjects.Container;
+        private goldenCatch!: import("phaser").GameObjects.Image;
+        private catchSplash!: import("phaser").GameObjects.Container;
         private successLabel!: import("phaser").GameObjects.Text;
+        private bobberX = 0;
+        private bobberY = 0;
+        private sceneUnit = 1;
         private currentProgress = 0;
         private isPaused = false;
         private isCelebrating = false;
@@ -52,15 +58,27 @@ export default function FishingQuestScene({
         }
 
         preload() {
+          this.load.image(
+            "fishing-pixel-lake",
+            `${assetBasePath}/backgrounds/fish-pixel-lake-v1.png`,
+          );
           this.load.spritesheet(
             "bori-fishing",
             `${assetBasePath}/sprites/bori-fish-phaser.png`,
             { frameWidth: 520, frameHeight: 430 },
           );
+          this.load.image(
+            "golden-carp",
+            `${assetBasePath}/sprites/golden-carp-jump-v1.png`,
+          );
         }
 
         create() {
-          this.backdrop = this.add.graphics();
+          this.lakeBackdrop = this.add
+            .image(0, 0, "fishing-pixel-lake")
+            .setOrigin(0.5)
+            .setDepth(0);
+          this.backdrop = this.add.graphics().setDepth(1);
 
           for (let index = 0; index < 22; index += 1) {
             const glint = this.add.rectangle(0, 0, 28 + (index % 5) * 13, 2, 0x6ec6c2, 0.18);
@@ -115,30 +133,56 @@ export default function FishingQuestScene({
             ],
             repeat: -1,
           });
+          this.anims.create({
+            key: "bori-catch",
+            frames: [
+              { key: "bori-fishing", frame: 2, duration: 130 },
+              { key: "bori-fishing", frame: 1, duration: 240 },
+            ],
+            repeat: 0,
+          });
 
           this.angler = this.add.sprite(0, 0, "bori-fishing", 0);
           this.angler.setOrigin(0.5);
           this.angler.setDepth(12);
           this.angler.play("bori-cast-loop");
 
-          const fishBody = this.add.ellipse(0, 0, 88, 46, 0xf5b52f);
-          fishBody.setStrokeStyle(5, 0x6b3c17);
-          const fishBelly = this.add.ellipse(8, 8, 57, 23, 0xffe08a, 0.9);
-          const fishTail = this.add.triangle(-54, 0, 0, 0, 42, -31, 42, 31, 0xe58b1f);
-          fishTail.setStrokeStyle(4, 0x6b3c17);
-          const fishFin = this.add.triangle(2, 20, 0, 0, 28, 0, 13, 19, 0xcc741b);
-          const fishEye = this.add.circle(26, -9, 5, 0x221b15);
-          const fishShine = this.add.rectangle(-1, -13, 25, 5, 0xfff1a8, 0.75);
-          this.goldenCatch = this.add.container(0, 0, [
-            fishTail,
-            fishBody,
-            fishBelly,
-            fishFin,
-            fishEye,
-            fishShine,
-          ]);
+          for (let index = 0; index < 3; index += 1) {
+            const ripple = this.add
+              .ellipse(0, 0, 54, 15, 0x4ca9b2, 0)
+              .setStrokeStyle(3, 0x9ce3df, 0.52)
+              .setDepth(8);
+            this.bobberRipples.push(ripple);
+            this.tweens.add({
+              targets: ripple,
+              scaleX: { from: 0.25, to: 1.35 },
+              scaleY: { from: 0.4, to: 1 },
+              alpha: { from: 0.64, to: 0 },
+              duration: 1650,
+              delay: index * 520,
+              repeat: -1,
+              ease: "Sine.Out",
+            });
+          }
+
+          this.goldenCatch = this.add.image(0, 0, "golden-carp");
           this.goldenCatch.setDepth(14);
           this.goldenCatch.setVisible(false);
+
+          const splashRing = this.add
+            .ellipse(0, 10, 128, 30, 0x8fe1df, 0)
+            .setStrokeStyle(5, 0xb7f0e8, 0.82);
+          const splashLeft = this.add.circle(-42, -10, 9, 0xb7f0e8, 0.82);
+          const splashMiddle = this.add.circle(0, -24, 12, 0xd7fff4, 0.9);
+          const splashRight = this.add.circle(43, -7, 8, 0x8ed9db, 0.78);
+          this.catchSplash = this.add.container(0, 0, [
+            splashRing,
+            splashLeft,
+            splashMiddle,
+            splashRight,
+          ]);
+          this.catchSplash.setDepth(13);
+          this.catchSplash.setVisible(false);
 
           this.successLabel = this.add.text(0, 0, "황금 잉어를 낚았어요!", {
             fontFamily: '"Malgun Gothic", "Courier New", monospace',
@@ -164,96 +208,79 @@ export default function FishingQuestScene({
           controllerRef.current = this;
         }
 
+        update() {
+          const bobberSettled =
+            !this.isCelebrating && Number(this.angler.frame.name) === 0;
+          this.bobberRipples.forEach((ripple) => {
+            ripple.setVisible(bobberSettled);
+          });
+        }
+
+        private positionLakeBackdrop() {
+          const width = this.scale.width;
+          const height = this.scale.height;
+          const compact = width < 600;
+          const coverScale =
+            Math.max(
+              width / this.lakeBackdrop.frame.realWidth,
+              height / this.lakeBackdrop.frame.realHeight,
+            ) * 1.015;
+          this.lakeBackdrop.setScale(coverScale);
+          const displayWidth =
+            this.lakeBackdrop.frame.realWidth * this.lakeBackdrop.scaleX;
+          let imageLeft = (width - displayWidth) / 2;
+
+          if (compact && displayWidth > width) {
+            imageLeft = Phaser.Math.Clamp(
+              width * 0.44 - displayWidth * 0.43,
+              width - displayWidth,
+              0,
+            );
+          }
+          this.lakeBackdrop.setPosition(
+            imageLeft + displayWidth / 2,
+            height / 2,
+          );
+        }
+
+        private mapLakePoint(x: number, y: number) {
+          const displayWidth =
+            this.lakeBackdrop.frame.realWidth * this.lakeBackdrop.scaleX;
+          const displayHeight =
+            this.lakeBackdrop.frame.realHeight * this.lakeBackdrop.scaleY;
+          return {
+            x: this.lakeBackdrop.x - displayWidth / 2 + x * displayWidth,
+            y: this.lakeBackdrop.y - displayHeight / 2 + y * displayHeight,
+          };
+        }
+
         private layoutScene() {
           const width = this.scale.width;
           const height = this.scale.height;
           const isCompact = width < 600;
-          const horizon = Math.max(180, height * 0.43);
-          const dockY = isCompact
-            ? Math.min(height * 0.58, horizon + 125)
-            : Math.min(height - 54, Math.max(horizon + 115, height * 0.78));
           const unit = Math.max(0.72, Math.min(width / 1200, height / 700));
+          this.sceneUnit = unit;
 
           this.backdrop.clear();
+          this.positionLakeBackdrop();
+          const horizon = this.mapLakePoint(0.5, 0.39).y;
 
-          const skyBands = [0xb85f4d, 0xa55d59, 0x84576a, 0x62516b];
-          skyBands.forEach((color, index) => {
-            const bandTop = (horizon / skyBands.length) * index;
-            this.backdrop.fillStyle(color, 1);
-            this.backdrop.fillRect(0, bandTop, width, horizon / skyBands.length + 1);
-          });
-
-          this.backdrop.fillStyle(0xf6c55f, 0.16);
-          this.backdrop.fillCircle(width * 0.82, height * 0.18, 105 * unit);
-          this.backdrop.fillStyle(0xffdb72, 0.88);
-          this.backdrop.fillCircle(width * 0.82, height * 0.18, 66 * unit);
-
-          this.backdrop.fillStyle(0x493e55, 0.75);
-          this.backdrop.fillPoints([
-            { x: 0, y: horizon },
-            { x: 0, y: horizon - 55 * unit },
-            { x: width * 0.12, y: horizon - 112 * unit },
-            { x: width * 0.25, y: horizon - 42 * unit },
-            { x: width * 0.41, y: horizon - 135 * unit },
-            { x: width * 0.56, y: horizon - 50 * unit },
-            { x: width * 0.72, y: horizon - 104 * unit },
-            { x: width, y: horizon - 35 * unit },
-            { x: width, y: horizon },
-          ], true);
-
-          this.backdrop.fillStyle(0x173f48, 0.9);
-          this.backdrop.fillPoints([
-            { x: 0, y: horizon + 12 },
-            { x: 0, y: horizon - 18 * unit },
-            { x: width * 0.16, y: horizon - 62 * unit },
-            { x: width * 0.34, y: horizon - 15 * unit },
-            { x: width * 0.52, y: horizon - 72 * unit },
-            { x: width * 0.69, y: horizon - 20 * unit },
-            { x: width * 0.86, y: horizon - 55 * unit },
-            { x: width, y: horizon - 11 * unit },
-            { x: width, y: horizon + 12 },
-          ], true);
-
-          this.backdrop.fillStyle(0x0d5361, 1);
-          this.backdrop.fillRect(0, horizon, width, height - horizon);
-          this.backdrop.fillStyle(0x083f52, 0.58);
-          this.backdrop.fillRect(0, horizon + (height - horizon) * 0.43, width, height);
-          this.backdrop.lineStyle(Math.max(2, 3 * unit), 0x78d1c9, 0.28);
-          this.backdrop.lineBetween(0, horizon + 2, width, horizon + 2);
-
-          for (let index = 0; index < 26; index += 1) {
-            const lineY = horizon + 18 + ((index * 37) % Math.max(50, height - horizon - 24));
-            const lineX = ((index * 173) % Math.max(120, width)) - 45;
-            this.backdrop.fillStyle(index % 3 === 0 ? 0x58b7b3 : 0x2c8190, 0.16);
-            this.backdrop.fillRect(lineX, lineY, 42 + (index % 5) * 18, 3 * unit);
-          }
-
-          const dockWidth = isCompact ? width * 0.78 : Math.max(340, width * 0.35);
-          this.backdrop.fillStyle(0x39291f, 1);
-          this.backdrop.fillRect(0, dockY, dockWidth, Math.max(44, height * 0.075));
-          this.backdrop.fillStyle(0x8e6037, 1);
-          this.backdrop.fillRect(0, dockY - 12 * unit, dockWidth, 15 * unit);
-          this.backdrop.lineStyle(Math.max(3, 5 * unit), 0x5e432c, 1);
-          for (let x = 20; x < dockWidth; x += 42 * unit) {
-            this.backdrop.lineBetween(x, dockY - 10 * unit, x, dockY + height * 0.07);
-          }
-          this.backdrop.fillStyle(0x30251e, 1);
-          this.backdrop.fillRect(dockWidth * 0.18, dockY + height * 0.05, 16 * unit, height - dockY);
-          this.backdrop.fillRect(dockWidth * 0.78, dockY + height * 0.05, 16 * unit, height - dockY);
-
-          for (let index = 0; index < 18; index += 1) {
-            const reedX = width * 0.74 + ((index * 47) % Math.max(80, width * 0.25));
-            const reedHeight = 25 + (index % 5) * 17;
-            this.backdrop.fillStyle(index % 2 ? 0x1c5e4b : 0x214d42, 0.82);
-            this.backdrop.fillRect(reedX, height - reedHeight, 5 * unit, reedHeight);
-          }
-
-          this.backdrop.fillStyle(0xf8dfac, 0.58);
-          for (let index = 0; index < 24; index += 1) {
-            const starX = ((index * 137) % Math.max(100, width - 30)) + 15;
-            const starY = 24 + ((index * 73) % Math.max(60, horizon * 0.55));
-            this.backdrop.fillRect(starX, starY, index % 5 === 0 ? 4 : 2, index % 5 === 0 ? 4 : 2);
-          }
+          this.backdrop.fillStyle(0x031824, 0.08);
+          this.backdrop.fillRect(
+            0,
+            horizon + (height - horizon) * 0.62,
+            width,
+            height,
+          );
+          this.backdrop.fillStyle(0x9ee6dc, 0.035);
+          this.backdrop.fillTriangle(
+            width * 0.14,
+            horizon,
+            width * 0.31,
+            horizon,
+            width * 0.48,
+            height,
+          );
 
           this.waterGlints.forEach((glint, index) => {
             glint.setPosition(
@@ -279,24 +306,35 @@ export default function FishingQuestScene({
           });
 
           const displayWidth = isCompact
-            ? Math.max(235, Math.min(285, width * 0.72))
-            : Math.max(330, Math.min(500, width * 0.44, height * 0.78));
+            ? Math.max(225, Math.min(280, width * 0.7))
+            : Math.max(320, Math.min(440, width * 0.38, height * 0.72));
           const displayHeight = displayWidth * (430 / 520);
-          const anglerX = Math.min(
-            width - displayWidth * 0.45,
-            Math.max(displayWidth * 0.5 - 20, dockWidth - displayWidth * 0.06),
-          );
-          const anglerY = dockY - displayHeight * 0.453;
+          const bobberTarget = this.mapLakePoint(0.455, 0.63);
+          const anglerX = bobberTarget.x - displayWidth * 0.112;
+          const anglerY = bobberTarget.y - displayHeight * 0.316;
           this.angler.setPosition(anglerX, anglerY);
           this.angler.setDisplaySize(displayWidth, displayHeight);
 
-          const bobberX = anglerX + displayWidth * 0.112;
-          const bobberY = anglerY + displayHeight * 0.39;
-          this.goldenCatch.setPosition(bobberX + 18 * unit, bobberY - 56 * unit);
-          this.goldenCatch.setScale(unit);
+          this.bobberX = bobberTarget.x;
+          this.bobberY = bobberTarget.y;
+          this.bobberRipples.forEach((ripple) => {
+            ripple.setPosition(this.bobberX, this.bobberY + 3 * unit);
+            ripple.setScale(unit);
+          });
+
+          const catchSize = isCompact
+            ? Math.min(220, width * 0.58)
+            : Math.min(310, width * 0.23);
+          this.goldenCatch.setPosition(
+            this.bobberX,
+            this.bobberY + 74 * unit,
+          );
+          this.goldenCatch.setDisplaySize(catchSize, catchSize);
+          this.catchSplash.setPosition(this.bobberX, this.bobberY);
+          this.catchSplash.setScale(unit);
           this.successLabel.setPosition(
-            Math.min(width - 155, Math.max(155, bobberX + 48 * unit)),
-            Math.max(54, bobberY - 145 * unit),
+            Math.min(width - 155, Math.max(155, this.bobberX + 36 * unit)),
+            Math.max(54, this.bobberY - 176 * unit),
           );
         }
 
@@ -323,38 +361,74 @@ export default function FishingQuestScene({
           this.isCelebrating = value;
 
           if (!value) {
-            this.goldenCatch.setVisible(false);
+            this.tweens.killTweensOf(this.goldenCatch);
+            this.tweens.killTweensOf(this.catchSplash);
+            this.tweens.killTweensOf(this.successLabel);
+            this.goldenCatch
+              .setVisible(false)
+              .setAlpha(0)
+              .setAngle(10)
+              .setPosition(
+                this.bobberX,
+                this.bobberY + 74 * this.sceneUnit,
+              );
+            this.catchSplash.setVisible(false).setAlpha(0);
             this.successLabel.setVisible(false);
             if (!this.angler.anims.isPlaying) this.angler.play("bori-cast-loop");
             return;
           }
 
-          this.angler.anims.stop();
-          this.angler.setFrame(2);
-          this.goldenCatch.setVisible(true);
+          this.angler.play("bori-catch");
+          this.goldenCatch
+            .setVisible(true)
+            .setPosition(
+              this.bobberX,
+              this.bobberY + 74 * this.sceneUnit,
+            );
+          this.catchSplash
+            .setVisible(true)
+            .setAlpha(1)
+            .setScale(this.sceneUnit * 0.45);
           this.successLabel.setVisible(true);
           this.goldenCatch.setAlpha(0);
-          this.goldenCatch.setAngle(-16);
+          this.goldenCatch.setAngle(12);
           this.successLabel.setAlpha(0);
 
           this.tweens.add({
+            targets: this.catchSplash,
+            scale: this.sceneUnit * 1.35,
+            alpha: 0,
+            duration: 680,
+            ease: "Cubic.Out",
+          });
+          this.tweens.add({
             targets: this.goldenCatch,
-            y: "-=74",
-            angle: 12,
+            x: this.bobberX - 52 * this.sceneUnit,
+            y: this.bobberY - 158 * this.sceneUnit,
+            angle: -10,
             alpha: 1,
-            duration: 720,
+            duration: 820,
             ease: "Back.Out",
-            yoyo: true,
-            hold: 1900,
+            onComplete: () => {
+              this.tweens.add({
+                targets: this.goldenCatch,
+                y: "-=9",
+                angle: -4,
+                duration: 420,
+                yoyo: true,
+                repeat: 2,
+                ease: "Sine.InOut",
+              });
+            },
           });
           this.tweens.add({
             targets: this.successLabel,
             alpha: 1,
             y: "-=8",
             duration: 320,
-            delay: 320,
+            delay: 720,
             yoyo: true,
-            hold: 2600,
+            hold: 2450,
           });
         }
       }
