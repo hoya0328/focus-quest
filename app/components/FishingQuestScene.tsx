@@ -228,12 +228,12 @@ export default function FishingQuestScene({
             this.backdrop.fillRect(lineX, lineY, 42 + (index % 5) * 18, 3 * unit);
           }
 
+          const dockWidth = isCompact ? width * 0.78 : Math.max(340, width * 0.35);
           this.backdrop.fillStyle(0x39291f, 1);
-          this.backdrop.fillRect(0, dockY, Math.max(330, width * 0.34), Math.max(44, height * 0.075));
+          this.backdrop.fillRect(0, dockY, dockWidth, Math.max(44, height * 0.075));
           this.backdrop.fillStyle(0x8e6037, 1);
-          this.backdrop.fillRect(0, dockY - 12 * unit, Math.max(340, width * 0.35), 15 * unit);
+          this.backdrop.fillRect(0, dockY - 12 * unit, dockWidth, 15 * unit);
           this.backdrop.lineStyle(Math.max(3, 5 * unit), 0x5e432c, 1);
-          const dockWidth = Math.max(340, width * 0.35);
           for (let x = 20; x < dockWidth; x += 42 * unit) {
             this.backdrop.lineBetween(x, dockY - 10 * unit, x, dockY + height * 0.07);
           }
@@ -282,7 +282,10 @@ export default function FishingQuestScene({
             ? Math.max(235, Math.min(285, width * 0.72))
             : Math.max(330, Math.min(500, width * 0.44, height * 0.78));
           const displayHeight = displayWidth * (430 / 520);
-          const anglerX = Math.max(displayWidth * 0.5 - 22, Math.min(width * 0.2, width - displayWidth * 0.5));
+          const anglerX = Math.min(
+            width - displayWidth * 0.45,
+            Math.max(displayWidth * 0.5 - 20, dockWidth - displayWidth * 0.06),
+          );
           const anglerY = dockY - displayHeight * 0.453;
           this.angler.setPosition(anglerX, anglerY);
           this.angler.setDisplaySize(displayWidth, displayHeight);

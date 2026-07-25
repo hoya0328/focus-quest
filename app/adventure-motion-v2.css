@@ -5,7 +5,8 @@
   isolation: isolate;
 }
 
-.phaser-fishing-scene {
+.phaser-fishing-scene,
+.phaser-adventure-scene {
   position: absolute;
   z-index: 4;
   inset: 0;
@@ -13,18 +14,19 @@
   background: #082f43;
 }
 
-.phaser-fishing-scene canvas {
+.phaser-fishing-scene canvas,
+.phaser-adventure-scene canvas {
   display: block;
   width: 100% !important;
   height: 100% !important;
   image-rendering: pixelated;
 }
 
-.focus-fish.session-focus .scene-sky,
-.focus-fish.session-focus .mountain-layer,
-.focus-fish.session-focus .water-layer,
-.focus-fish.session-focus .lake-shore,
-.focus-fish.session-focus .reeds {
+.session-focus .scene-sky,
+.session-focus .mountain-layer,
+.session-focus .water-layer,
+.session-focus .lake-shore,
+.session-focus .reeds {
   display: none;
 }
 

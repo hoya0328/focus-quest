@@ -4,6 +4,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AdventureQuestScene from "@/app/components/AdventureQuestScene";
 import FishingQuestScene from "@/app/components/FishingQuestScene";
 import {
   ACTIVE_SESSION_KEY,
@@ -89,12 +90,6 @@ const adventures: Adventure[] = [
     icon: "◌",
   },
 ];
-
-const adventureSprites: Record<AdventureId, string> = {
-  hike: `${publicBasePath}/sprites/momo-walk-sheet.png`,
-  fish: `${publicBasePath}/sprites/bori-fish-sheet.png`,
-  swim: `${publicBasePath}/sprites/podo-swim-sheet.png`,
-};
 
 const bgms: { id: BgmId; name: string; note: string; icon: string }[] = [
   { id: "forest", name: "숲의 숨", note: "포근한 화음", icon: "♬" },
@@ -922,6 +917,15 @@ export default function Home() {
               assetBasePath={publicBasePath}
             />
           )}
+          {selected.id !== "fish" && sessionMode === "focus" && (
+            <AdventureQuestScene
+              kind={selected.id}
+              progress={progress}
+              paused={paused}
+              celebrating={isCelebrating}
+              assetBasePath={publicBasePath}
+            />
+          )}
 
           <div className="scene-sky">
             <div className="scene-sun" />
@@ -938,49 +942,6 @@ export default function Home() {
           <div className="reeds reeds-left">╿╿ ╿</div>
           <div className="reeds reeds-right">╿ ╿╿</div>
 
-          {sessionMode === "focus" && selected.id !== "fish" && (
-            <div
-              className={`adventure-world adventure-world-${selected.id}`}
-              aria-hidden="true"
-            >
-              {selected.id === "hike" && (
-                <>
-                  <div className="forest-depth forest-depth-back">
-                    <i /><i /><i /><i /><i /><i />
-                  </div>
-                  <div className="forest-depth forest-depth-front">
-                    <i /><i /><i /><i />
-                  </div>
-                  <div className="hike-ridge hike-ridge-back" />
-                  <div className="hike-ridge hike-ridge-front" />
-                  <div className="hiking-trail">
-                    <span /><span /><span /><span /><span />
-                  </div>
-                  <div className="summit-station">
-                    <i className="summit-flag" />
-                    <span>정상</span>
-                  </div>
-                  <div className="walking-dust"><i /><i /><i /></div>
-                </>
-              )}
-
-              {selected.id === "swim" && (
-                <>
-                  <div className="underwater-rays"><i /><i /><i /></div>
-                  <div className="swim-current current-one" />
-                  <div className="swim-current current-two" />
-                  <div className="bubble-stream">
-                    <i /><i /><i /><i /><i />
-                  </div>
-                  <div className="coral coral-left" />
-                  <div className="coral coral-right" />
-                  <div className="sea-ruins"><i /><i /><i /></div>
-                  <div className="sunken-chest"><i /><span /></div>
-                </>
-              )}
-            </div>
-          )}
-
           {sessionMode === "break" && (
             <div className="break-scene" aria-hidden="true">
               <div className="break-moon" />
@@ -996,7 +957,7 @@ export default function Home() {
             <div style={{ width: `${progress * 100}%` }} />
           </div>
 
-          {(selected.id !== "fish" || sessionMode === "break") && (
+          {sessionMode === "break" && (
             <div
               className={`focus-character-rig focus-character-rig-${selected.id} ${sessionMode === "break" ? "is-resting" : ""}`}
               style={
@@ -1005,36 +966,11 @@ export default function Home() {
                 } as React.CSSProperties
               }
             >
-              {sessionMode === "focus" ? (
-                <span
-                  className={`adventure-sprite adventure-sprite-${selected.id}`}
-                  style={{ backgroundImage: `url("${adventureSprites[selected.id]}")` }}
-                  role="img"
-                  aria-label={`${selected.friend}의 움직이는 ${selected.name} 모험`}
-                />
-              ) : (
-                <img
-                  src={selected.image}
-                  alt={`${selected.friend}의 휴식 시간`}
-                  className="focus-character"
-                />
-              )}
-            </div>
-          )}
-
-          {isCelebrating && selected.id !== "fish" && (
-            <div
-              className={`scene-success scene-success-${selected.id}`}
-              role="status"
-              aria-live="assertive"
-            >
-              {selected.id === "hike" && <div className="summit-sunburst" />}
-              {selected.id === "swim" && <div className="treasure-pearl" />}
-              <strong>
-                {selected.id === "hike"
-                  ? "정상에 도착했어요!"
-                  : "빛나는 진주를 발견했어요!"}
-              </strong>
+              <img
+                src={selected.image}
+                alt={`${selected.friend}의 휴식 시간`}
+                className="focus-character"
+              />
             </div>
           )}
 
