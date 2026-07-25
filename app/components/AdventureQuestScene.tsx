@@ -42,10 +42,12 @@ export default function AdventureQuestScene({
         private swimBackdrop?: import("phaser").GameObjects.Image;
         private backdrop!: import("phaser").GameObjects.Graphics;
         private hero!: import("phaser").GameObjects.Sprite;
+        private swimChest?: import("phaser").GameObjects.Sprite;
         private goal!: import("phaser").GameObjects.Container;
         private reward!: import("phaser").GameObjects.Arc;
         private successLabel!: import("phaser").GameObjects.Text;
         private ambient: import("phaser").GameObjects.Arc[] = [];
+        private swimRewardBaseScale = 1;
         private currentProgress = 0;
         private isPaused = false;
         private isCelebrating = false;
@@ -65,6 +67,14 @@ export default function AdventureQuestScene({
             this.load.image(
               "swim-pixel-depth",
               `${assetBasePath}/backgrounds/swim-pixel-depth.png`,
+            );
+            this.load.spritesheet(
+              "swim-treasure",
+              `${assetBasePath}/sprites/treasure-chest-swim-v2.png`,
+              {
+                frameWidth: 423,
+                frameHeight: 465,
+              },
             );
           }
         }
@@ -107,6 +117,28 @@ export default function AdventureQuestScene({
             frameRate: kind === "hike" ? 8.5 : 7.5,
             repeat: -1,
           });
+          if (kind === "swim") {
+            this.anims.create({
+              key: "swim-chest-bump",
+              frames: [
+                { key: "swim-treasure", frame: 0 },
+                { key: "swim-treasure", frame: 1 },
+                { key: "swim-treasure", frame: 2 },
+                { key: "swim-treasure", frame: 0 },
+              ],
+              frameRate: 7,
+              repeat: 0,
+            });
+            this.anims.create({
+              key: "swim-chest-open",
+              frames: this.anims.generateFrameNumbers("swim-treasure", {
+                start: 3,
+                end: 7,
+              }),
+              frameRate: 7,
+              repeat: 0,
+            });
+          }
 
           this.hero = this.add.sprite(0, 0, "quest-hero", 0);
           this.hero.setDepth(12);
@@ -121,29 +153,46 @@ export default function AdventureQuestScene({
             goalGraphics.fillStyle(0xef784e, 1);
             goalGraphics.fillTriangle(6, -78, 70, -58, 6, -39);
           } else {
-            goalGraphics.fillStyle(0x563623, 1);
-            goalGraphics.fillRect(-54, -12, 108, 60);
-            goalGraphics.fillStyle(0xd49332, 1);
-            goalGraphics.fillRect(-48, -5, 96, 17);
-            goalGraphics.fillStyle(0x7b4a25, 1);
-            goalGraphics.fillRoundedRect(-57, -43, 114, 38, 9);
-            goalGraphics.lineStyle(5, 0xf0ba4c, 1);
-            goalGraphics.strokeRoundedRect(-57, -43, 114, 38, 9);
-            goalGraphics.fillStyle(0xf4cf62, 1);
-            goalGraphics.fillRect(-7, 10, 14, 22);
+            this.swimChest = this.add.sprite(0, 0, "swim-treasure", 0);
           }
 
           this.reward = this.add.circle(
             0,
-            kind === "hike" ? -118 : -68,
-            kind === "hike" ? 34 : 24,
+            kind === "hike" ? -118 : 0,
+            kind === "hike" ? 34 : 76,
             kind === "hike" ? 0xffd35f : 0xf7f0d2,
-            0.96,
+            kind === "hike" ? 0.96 : 0.72,
           );
           this.reward.setStrokeStyle(6, kind === "hike" ? 0xff9b45 : 0x74ddd1);
+          if (kind === "swim") {
+            this.reward.setBlendMode(Phaser.BlendModes.ADD);
+          }
           this.reward.setVisible(false);
-          this.goal = this.add.container(0, 0, [goalGraphics, this.reward]);
+          this.goal = this.add.container(
+            0,
+            0,
+            kind === "hike"
+              ? [goalGraphics, this.reward]
+              : [this.reward, goalGraphics, this.swimChest!],
+          );
           this.goal.setDepth(10);
+
+          if (kind === "swim") {
+            this.time.addEvent({
+              delay: 5200,
+              loop: true,
+              callback: () => {
+                if (
+                  !this.isPaused &&
+                  !this.isCelebrating &&
+                  this.swimChest &&
+                  !this.swimChest.anims.isPlaying
+                ) {
+                  this.swimChest.play("swim-chest-bump");
+                }
+              },
+            });
+          }
 
           this.successLabel = this.add.text(
             0,
@@ -326,7 +375,17 @@ export default function AdventureQuestScene({
             kind === "hike" ? finish.x + 75 * unit : compact ? width * 0.78 : width * 0.54,
             kind === "hike" ? finish.y + 45 * unit : compact ? height * 0.55 : height * 0.62,
           );
-          this.goal.setScale(unit);
+          if (kind === "hike") {
+            this.goal.setScale(unit);
+          } else {
+            this.goal.setScale(1);
+            const chestWidth = compact
+              ? Math.min(238, width * 0.61)
+              : Math.min(330, width * 0.2);
+            this.swimChest?.setDisplaySize(chestWidth, chestWidth * (465 / 423));
+            this.swimRewardBaseScale = chestWidth / 250;
+            this.reward.setScale(this.swimRewardBaseScale);
+          }
           this.successLabel.setPosition(
             Math.min(width - 130, Math.max(130, this.goal.x)),
             Math.max(48, this.goal.y - (kind === "hike" ? 145 : 100) * unit),
@@ -365,6 +424,13 @@ export default function AdventureQuestScene({
           if (this.isCelebrating === value) return;
           this.isCelebrating = value;
           if (!value) {
+            this.tweens.killTweensOf(this.reward);
+            if (this.swimChest) {
+              this.swimChest.anims.stop();
+              this.swimChest.setFrame(0);
+              this.reward.setPosition(0, 0);
+              this.reward.setScale(this.swimRewardBaseScale);
+            }
             this.reward.setVisible(false);
             this.successLabel.setVisible(false);
             if (!this.hero.anims.isPlaying) this.hero.play(`${kind}-motion`);
@@ -374,18 +440,28 @@ export default function AdventureQuestScene({
           this.hero.anims.stop();
           this.hero.setFrame(kind === "hike" ? 4 : 2);
           this.setProgress(1);
+          this.swimChest?.play("swim-chest-open");
           this.reward.setVisible(true);
           this.reward.setAlpha(0);
+          if (kind === "swim") {
+            this.reward.setScale(this.swimRewardBaseScale);
+          }
           this.successLabel.setVisible(true);
           this.successLabel.setAlpha(0);
           this.tweens.add({
             targets: this.reward,
-            y: `-=${kind === "hike" ? 18 : 48}`,
-            scale: { from: 0.45, to: 1.2 },
-            alpha: 1,
-            duration: 650,
+            y: kind === "hike" ? "-=18" : 0,
+            scale: kind === "hike"
+              ? { from: 0.45, to: 1.2 }
+              : {
+                  from: this.swimRewardBaseScale * 0.35,
+                  to: this.swimRewardBaseScale * 1.65,
+                },
+            alpha: kind === "hike" ? 1 : 0.9,
+            duration: kind === "hike" ? 650 : 720,
             yoyo: true,
-            hold: 1900,
+            hold: kind === "hike" ? 1900 : 900,
+            repeat: kind === "hike" ? 0 : 1,
             ease: "Back.Out",
           });
           this.tweens.add({
