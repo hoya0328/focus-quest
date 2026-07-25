@@ -39,6 +39,7 @@ export default function AdventureQuestScene({
       if (disposed || !mountRef.current) return;
 
       class AdventureScene extends Phaser.Scene implements SceneController {
+        private swimBackdrop?: import("phaser").GameObjects.Image;
         private backdrop!: import("phaser").GameObjects.Graphics;
         private hero!: import("phaser").GameObjects.Sprite;
         private goal!: import("phaser").GameObjects.Container;
@@ -60,10 +61,22 @@ export default function AdventureQuestScene({
             frameWidth: kind === "hike" ? 360 : 420,
             frameHeight: kind === "hike" ? 360 : 340,
           });
+          if (kind === "swim") {
+            this.load.image(
+              "swim-pixel-depth",
+              `${assetBasePath}/backgrounds/swim-pixel-depth.png`,
+            );
+          }
         }
 
         create() {
-          this.backdrop = this.add.graphics().setDepth(0);
+          if (kind === "swim") {
+            this.swimBackdrop = this.add
+              .image(0, 0, "swim-pixel-depth")
+              .setOrigin(0.5)
+              .setDepth(0);
+          }
+          this.backdrop = this.add.graphics().setDepth(1);
 
           for (let index = 0; index < (kind === "hike" ? 13 : 16); index += 1) {
             const particle = this.add.circle(
@@ -242,43 +255,48 @@ export default function AdventureQuestScene({
               this.backdrop.lineBetween(point.x - 17, point.y + 38 * unit, point.x + 17, point.y + 34 * unit);
             }
           } else {
-            const waterColors = [0x1490a3, 0x0c718c, 0x095574, 0x073a5e, 0x052b4d];
-            waterColors.forEach((color, index) => {
-              this.backdrop.fillStyle(color, 1);
-              this.backdrop.fillRect(0, (height * index) / 5, width, height / 5 + 1);
+            const image = this.swimBackdrop;
+            if (image) {
+              const frameWidth = image.frame.realWidth;
+              const frameHeight = image.frame.realHeight;
+              const coverScale =
+                Math.max(width / frameWidth, height / frameHeight) * 1.04;
+              image.setScale(coverScale);
+              image.setPosition(width / 2, height / 2);
+            }
+
+            // The painted image supplies the far and middle depths. These quiet,
+            // translucent foreground shapes keep the live swimmer inside the world.
+            this.backdrop.fillStyle(0x062e50, 0.12);
+            this.backdrop.fillRect(0, height * 0.78, width, height * 0.22);
+            for (let index = 0; index < 4; index += 1) {
+              const rayX = width * (0.12 + index * 0.22);
+              this.backdrop.fillStyle(0xb9f2e2, 0.035);
+              this.backdrop.fillTriangle(
+                rayX,
+                0,
+                rayX + width * 0.05,
+                0,
+                rayX + width * 0.13,
+                height * 0.7,
+              );
+            }
+
+            const kelpXs = compact
+              ? [width * 0.03, width * 0.94]
+              : [width * 0.025, width * 0.08, width * 0.91, width * 0.97];
+            kelpXs.forEach((kelpX, index) => {
+              const kelpHeight = height * (0.13 + (index % 3) * 0.035);
+              this.backdrop.lineStyle(7 * unit, 0x073b4c, 0.72);
+              this.backdrop.beginPath();
+              this.backdrop.moveTo(kelpX, height);
+              this.backdrop.lineTo(
+                kelpX + (index % 2 ? -10 : 10) * unit,
+                height - kelpHeight * 0.55,
+              );
+              this.backdrop.lineTo(kelpX, height - kelpHeight);
+              this.backdrop.strokePath();
             });
-            for (let index = 0; index < 6; index += 1) {
-              const rayX = width * (0.04 + index * 0.18);
-              this.backdrop.fillStyle(0xb9f2e2, 0.075);
-              this.backdrop.fillTriangle(rayX, 0, rayX + width * 0.08, 0, rayX + width * 0.2, height * 0.72);
-            }
-            this.backdrop.fillStyle(0x083a49, 1);
-            this.backdrop.fillPoints([
-              { x: 0, y: height },
-              { x: 0, y: height * 0.82 },
-              { x: width * 0.14, y: height * 0.75 },
-              { x: width * 0.3, y: height * 0.84 },
-              { x: width * 0.46, y: height * 0.72 },
-              { x: width * 0.64, y: height * 0.81 },
-              { x: width * 0.82, y: height * 0.7 },
-              { x: width, y: height * 0.78 },
-              { x: width, y: height },
-            ], true);
-
-            for (let index = 0; index < 11; index += 1) {
-              const coralX = ((index * 173) % Math.max(100, width));
-              const coralY = height * (0.75 + (index % 3) * 0.07);
-              this.backdrop.fillStyle(index % 2 ? 0xd26769 : 0xdf9a4b, 0.68);
-              this.backdrop.fillRect(coralX, coralY, 8 * unit, height - coralY);
-              this.backdrop.fillCircle(coralX - 7 * unit, coralY + 8 * unit, 8 * unit);
-              this.backdrop.fillCircle(coralX + 12 * unit, coralY - 4 * unit, 7 * unit);
-            }
-
-            this.backdrop.fillStyle(0x154c58, 0.72);
-            this.backdrop.fillRect(width * 0.72, height * 0.54, 34 * unit, height * 0.3);
-            this.backdrop.fillRect(width * 0.88, height * 0.49, 42 * unit, height * 0.36);
-            this.backdrop.fillStyle(0x2c6c70, 0.5);
-            this.backdrop.fillRect(width * 0.7, height * 0.52, width * 0.24, 13 * unit);
           }
 
           this.ambient.forEach((particle, index) => {
@@ -320,6 +338,15 @@ export default function AdventureQuestScene({
           if (!this.hero) return;
           const point = this.getRoute(this.currentProgress);
           this.hero.setPosition(point.x, point.y);
+          if (this.swimBackdrop) {
+            const width = this.scale.width;
+            const frameWidth =
+              this.swimBackdrop.frame.realWidth * this.swimBackdrop.scaleX;
+            const availablePan = Math.max(0, frameWidth - width);
+            const travel = Math.min(width * 0.025, availablePan * 0.18);
+            this.swimBackdrop.x =
+              width / 2 - (this.currentProgress - 0.5) * travel * 2;
+          }
         }
 
         setPaused(value: boolean) {
