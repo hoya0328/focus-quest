@@ -374,7 +374,7 @@ export default function AdventureQuestScene({
       }
 
       game = new Phaser.Game({
-        type: Phaser.AUTO,
+        type: Phaser.CANVAS,
         parent: mountRef.current,
         width: mountRef.current.clientWidth || 1200,
         height: mountRef.current.clientHeight || 700,
