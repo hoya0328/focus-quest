@@ -1,7 +1,10 @@
 {
   "explorer.compactFolders": false,
+  "explorer.autoReveal": true,
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.expand": false,
+  "git.autorefresh": true,
+  "workbench.editor.enablePreview": false,
   "explorer.fileNesting.patterns": {
     "package.json": "package-lock.json, eslint.config.mjs, postcss.config.mjs, next.config.ts, vite.config.ts, drizzle.config.ts"
   },
