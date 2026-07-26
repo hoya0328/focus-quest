@@ -3,9 +3,13 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  CLOUD_LOCAL_OWNER_KEY,
   CLOUD_SYNC_DISABLED_KEY,
+  createEmptyCloudState,
+  isCloudSyncDisabledForAccount,
   mergeCloudStates,
   parseCloudStateData,
+  resolveLocalStateForAccount,
   type CloudAccount,
   type CloudStateData,
   type CloudStateRecord,
@@ -228,6 +232,9 @@ export function useCloudSync({
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
   const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
+  const [authInitializationError, setAuthInitializationError] = useState<
+    string | null
+  >(null);
   const [account, setAccount] = useState<CloudAccount | null>(null);
   const [status, setStatus] = useState<CloudSyncStatus>("checking");
   const [message, setMessage] = useState("계정 확인 중");
@@ -239,6 +246,8 @@ export function useCloudSync({
   const pullingRef = useRef(false);
   const queuedSaveRef = useRef<CloudStateData | null>(null);
   const lastSyncedRef = useRef("");
+  const activeSavePromiseRef = useRef<Promise<void>>(Promise.resolve());
+  const lastSaveFailedRef = useRef(false);
 
   useEffect(() => {
     dataRef.current = data;
@@ -247,15 +256,38 @@ export function useCloudSync({
   useEffect(() => {
     if (!supabase) return;
     let cancelled = false;
-
-    void supabase.auth.getSession().then(({ data: sessionData }) => {
+    const initializationTimeout = window.setTimeout(() => {
       if (cancelled) return;
-      setSupabaseUser(sessionData.session?.user ?? null);
+      setAuthInitializationError(
+        "계정 확인이 지연되고 있어요. 로그인으로 다시 연결해 주세요",
+      );
       setAuthReady(true);
-    });
+    }, 10_000);
+
+    void supabase.auth
+      .getSession()
+      .then(({ data: sessionData, error }) => {
+        if (cancelled) return;
+        window.clearTimeout(initializationTimeout);
+        setAuthInitializationError(
+          error ? "계정 정보를 확인하지 못했어요. 다시 로그인해 주세요" : null,
+        );
+        setSupabaseUser(sessionData.session?.user ?? null);
+        setAuthReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        window.clearTimeout(initializationTimeout);
+        setAuthInitializationError(
+          "계정 정보를 확인하지 못했어요. 다시 로그인해 주세요",
+        );
+        setAuthReady(true);
+      });
     const { data: listener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (cancelled) return;
+        window.clearTimeout(initializationTimeout);
+        setAuthInitializationError(null);
         if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
         setSupabaseUser(session?.user ?? null);
         setAuthReady(true);
@@ -263,24 +295,27 @@ export function useCloudSync({
     );
     return () => {
       cancelled = true;
+      window.clearTimeout(initializationTimeout);
       listener.subscription.unsubscribe();
     };
   }, [supabase]);
 
   const save = useCallback(
-    async (nextData: CloudStateData, retryOnConflict = true) => {
+    (nextData: CloudStateData, retryOnConflict = true): Promise<void> => {
       const backend = backendRef.current;
-      if (!readyRef.current || !backend) return;
+      if (!readyRef.current || !backend) return Promise.resolve();
       if (syncingRef.current || pullingRef.current) {
         queuedSaveRef.current = nextData;
-        return;
+        return syncingRef.current
+          ? activeSavePromiseRef.current
+          : Promise.resolve();
       }
       queuedSaveRef.current = null;
       syncingRef.current = true;
       setStatus("saving");
       setMessage("클라우드 저장 중");
 
-      try {
+      const operation = (async () => {
         const attempt = async (
           payload: CloudStateData,
           baseVersion: number,
@@ -302,21 +337,39 @@ export function useCloudSync({
           return result.cloudState;
         };
 
-        const saved = await attempt(
-          nextData,
-          versionRef.current,
-          retryOnConflict,
-        );
-        versionRef.current = saved.version;
-        lastSyncedRef.current = JSON.stringify(saved.data);
-        setStatus("saved");
-        setMessage("클라우드 저장됨");
-      } catch {
-        setStatus("error");
-        setMessage("저장 연결을 확인해 주세요");
-      } finally {
-        syncingRef.current = false;
-      }
+        let pending: CloudStateData | null = nextData;
+        let allowConflictRetry = retryOnConflict;
+        try {
+          while (pending) {
+            const saved = await attempt(
+              pending,
+              versionRef.current,
+              allowConflictRetry,
+            );
+            versionRef.current = saved.version;
+            lastSyncedRef.current = JSON.stringify(saved.data);
+            allowConflictRetry = true;
+
+            const queued = queuedSaveRef.current;
+            queuedSaveRef.current = null;
+            pending =
+              queued && JSON.stringify(queued) !== lastSyncedRef.current
+                ? queued
+                : null;
+          }
+          lastSaveFailedRef.current = false;
+          setStatus("saved");
+          setMessage("클라우드 저장됨");
+        } catch {
+          lastSaveFailedRef.current = true;
+          setStatus("error");
+          setMessage("저장 연결을 확인해 주세요");
+        } finally {
+          syncingRef.current = false;
+        }
+      })();
+      activeSavePromiseRef.current = operation;
+      return operation;
     },
     [applyCloudState],
   );
@@ -380,10 +433,22 @@ export function useCloudSync({
       backendRef.current = null;
       versionRef.current = 0;
       lastSyncedRef.current = "";
+      lastSaveFailedRef.current = false;
       setStatus("checking");
       setMessage("계정 확인 중");
 
+      if (supabase && authInitializationError) {
+        setAccount(null);
+        setStatus("error");
+        setMessage(authInitializationError);
+        return;
+      }
+
       if (supabase && !supabaseUser) {
+        if (window.localStorage.getItem(CLOUD_LOCAL_OWNER_KEY)) {
+          window.localStorage.removeItem(CLOUD_LOCAL_OWNER_KEY);
+          applyCloudState(createEmptyCloudState());
+        }
         setAccount(null);
         setStatus("guest");
         setMessage("이 기기에 저장 중");
@@ -397,6 +462,18 @@ export function useCloudSync({
       backendRef.current = backend;
 
       try {
+        const localResolution =
+          supabase && supabaseUser
+            ? resolveLocalStateForAccount(
+                dataRef.current,
+                window.localStorage.getItem(CLOUD_LOCAL_OWNER_KEY),
+                supabaseUser.id,
+              )
+            : null;
+        if (localResolution?.source === "empty-for-account-switch") {
+          applyCloudState(localResolution.data);
+        }
+
         const response = await backend.get();
         const result = response.body;
         if (response.status === 401) {
@@ -412,15 +489,28 @@ export function useCloudSync({
         if (cancelled) return;
 
         setAccount(result.account);
-        if (
-          window.localStorage.getItem(CLOUD_SYNC_DISABLED_KEY) === "true"
-        ) {
+        if (supabaseUser) {
+          window.localStorage.setItem(
+            CLOUD_LOCAL_OWNER_KEY,
+            supabaseUser.id,
+          );
+        }
+        const disabledOwnerId = window.localStorage.getItem(
+          CLOUD_SYNC_DISABLED_KEY,
+        );
+        const syncDisabledForCurrentAccount =
+          isCloudSyncDisabledForAccount(
+            disabledOwnerId,
+            supabaseUser?.id ?? null,
+            localResolution?.source ?? null,
+          );
+        if (syncDisabledForCurrentAccount) {
           setStatus("disabled");
           setMessage("클라우드 저장 꺼짐");
           return;
         }
 
-        const local = dataRef.current;
+        const local = localResolution?.data ?? dataRef.current;
         readyRef.current = true;
         if (result.cloudState) {
           const merged = mergeCloudStates(local, result.cloudState.data);
@@ -458,6 +548,7 @@ export function useCloudSync({
     };
   }, [
     applyCloudState,
+    authInitializationError,
     authReady,
     hydrated,
     save,
@@ -502,7 +593,10 @@ export function useCloudSync({
     try {
       const response = await backendRef.current.delete();
       if (response.status >= 400) throw new Error("delete failed");
-      window.localStorage.setItem(CLOUD_SYNC_DISABLED_KEY, "true");
+      window.localStorage.setItem(
+        CLOUD_SYNC_DISABLED_KEY,
+        supabaseUser?.id ?? "true",
+      );
       readyRef.current = false;
       versionRef.current = 0;
       lastSyncedRef.current = "";
@@ -512,7 +606,7 @@ export function useCloudSync({
       setStatus("error");
       setMessage("클라우드 기록을 삭제하지 못했어요");
     }
-  }, []);
+  }, [supabaseUser]);
 
   const resumeCloudSync = useCallback(() => {
     window.localStorage.removeItem(CLOUD_SYNC_DISABLED_KEY);
@@ -592,10 +686,37 @@ export function useCloudSync({
 
   const signOut = useCallback(async () => {
     if (!supabase) return;
+    for (
+      let attempt = 0;
+      pullingRef.current && attempt < 60;
+      attempt += 1
+    ) {
+      await new Promise((resolve) => window.setTimeout(resolve, 50));
+    }
+    if (pullingRef.current) {
+      setStatus("error");
+      setMessage("동기화를 마무리하고 있어요. 잠시 후 다시 로그아웃해 주세요");
+      return;
+    }
+    if (readyRef.current && backendRef.current) {
+      await save(dataRef.current);
+      if (lastSaveFailedRef.current) {
+        setStatus("error");
+        setMessage("최신 기록을 저장하지 못해 로그아웃을 멈췄어요");
+        return;
+      }
+    }
     readyRef.current = false;
     backendRef.current = null;
-    await supabase.auth.signOut();
-  }, [supabase]);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setStatus("error");
+      setMessage("로그아웃하지 못했어요. 다시 시도해 주세요");
+      return;
+    }
+    window.localStorage.removeItem(CLOUD_LOCAL_OWNER_KEY);
+    applyCloudState(createEmptyCloudState());
+  }, [applyCloudState, save, supabase]);
 
   const updatePassword = useCallback(
     async (password: string): Promise<AuthActionResult> => {

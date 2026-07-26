@@ -10,6 +10,7 @@ import {
 
 export const CLOUD_STATE_SCHEMA_VERSION = 2;
 export const CLOUD_SYNC_DISABLED_KEY = "focus-quest-cloud-sync-disabled";
+export const CLOUD_LOCAL_OWNER_KEY = "focus-quest-cloud-local-owner";
 export const ACTIVE_SESSION_UPDATED_AT_KEY =
   "focus-quest-active-session-updated-at";
 export const EMPTY_SESSION_UPDATED_AT = "1970-01-01T00:00:00.000Z";
@@ -41,8 +42,59 @@ export type CloudAccount = {
   email: string;
 };
 
+export type AccountLocalStateResolution = {
+  data: CloudStateData;
+  source: "guest" | "same-account" | "empty-for-account-switch";
+};
+
 const adventureIds = new Set<AdventureId>(["hike", "swim", "fish"]);
 const bgmIds = new Set<BgmId>(["forest", "waves", "lake", "quiet"]);
+
+export function createEmptyCloudState(): CloudStateData {
+  return {
+    schemaVersion: CLOUD_STATE_SCHEMA_VERSION,
+    preferences: {
+      focusMinutes: 25,
+      breakMinutes: 5,
+      bgm: "forest",
+      selectedId: "hike",
+      soundOn: true,
+    },
+    history: [],
+    activeSession: null,
+    sessionUpdatedAt: EMPTY_SESSION_UPDATED_AT,
+  };
+}
+
+export function resolveLocalStateForAccount(
+  local: CloudStateData,
+  storedOwnerId: string | null,
+  nextOwnerId: string,
+): AccountLocalStateResolution {
+  if (!storedOwnerId) {
+    return { data: local, source: "guest" };
+  }
+  if (storedOwnerId === nextOwnerId) {
+    return { data: local, source: "same-account" };
+  }
+  return {
+    data: createEmptyCloudState(),
+    source: "empty-for-account-switch",
+  };
+}
+
+export function isCloudSyncDisabledForAccount(
+  disabledOwnerId: string | null,
+  currentOwnerId: string | null,
+  localSource: AccountLocalStateResolution["source"] | null,
+) {
+  if (!disabledOwnerId) return false;
+  if (currentOwnerId && disabledOwnerId === currentOwnerId) return true;
+  return (
+    disabledOwnerId === "true" &&
+    localSource !== "empty-for-account-switch"
+  );
+}
 
 function isIntegerInRange(
   value: unknown,

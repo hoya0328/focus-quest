@@ -2,8 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  createEmptyCloudState,
+  isCloudSyncDisabledForAccount,
   mergeCloudStates,
   parseCloudStateData,
+  resolveLocalStateForAccount,
 } from "../lib/cloud-state.ts";
 
 const preferences = {
@@ -133,4 +136,134 @@ test("corrupt history prevents the full cloud payload from being accepted", () =
   ]);
 
   assert.equal(parseCloudStateData(invalid), null);
+});
+
+test("guest records are eligible for exactly the first account migration", () => {
+  const guestRecord = {
+    id: "guest-session",
+    completedAt: "2026-07-26T08:00:00.000Z",
+    durationMinutes: 25,
+    adventureId: "hike",
+  };
+  const guest = state([guestRecord]);
+  const resolution = resolveLocalStateForAccount(
+    guest,
+    null,
+    "account-a",
+  );
+
+  assert.equal(resolution.source, "guest");
+  assert.deepEqual(resolution.data.history, [guestRecord]);
+
+  const existingCloudRecord = {
+    id: "existing-cloud-session",
+    completedAt: "2026-07-26T08:30:00.000Z",
+    durationMinutes: 35,
+    adventureId: "swim",
+  };
+  const migrated = mergeCloudStates(
+    resolution.data,
+    state([existingCloudRecord], { focusMinutes: 35 }),
+  );
+  assert.deepEqual(
+    migrated.history.map((record) => record.id),
+    ["existing-cloud-session", "guest-session"],
+  );
+  assert.equal(migrated.preferences.focusMinutes, 35);
+});
+
+test("the same account can restore its local cache before cloud reconciliation", () => {
+  const cachedRecord = {
+    id: "account-a-session",
+    completedAt: "2026-07-26T09:00:00.000Z",
+    durationMinutes: 40,
+    adventureId: "swim",
+  };
+  const cached = state([cachedRecord]);
+  const resolution = resolveLocalStateForAccount(
+    cached,
+    "account-a",
+    "account-a",
+  );
+
+  assert.equal(resolution.source, "same-account");
+  assert.deepEqual(resolution.data.history, [cachedRecord]);
+});
+
+test("switching accounts never migrates the previous account local records", () => {
+  const accountARecord = {
+    id: "private-account-a-session",
+    completedAt: "2026-07-26T10:00:00.000Z",
+    durationMinutes: 50,
+    adventureId: "fish",
+  };
+  const accountA = state(
+    [accountARecord],
+    { focusMinutes: 50, selectedId: "fish" },
+  );
+  const resolution = resolveLocalStateForAccount(
+    accountA,
+    "account-a",
+    "account-b",
+  );
+
+  assert.equal(resolution.source, "empty-for-account-switch");
+  assert.deepEqual(resolution.data, createEmptyCloudState());
+  assert.equal(resolution.data.history.length, 0);
+  assert.equal(resolution.data.activeSession, null);
+});
+
+test("a relogged account recovers cloud history without an account-local cache", () => {
+  const cloudRecord = {
+    id: "cloud-session",
+    completedAt: "2026-07-26T11:00:00.000Z",
+    durationMinutes: 35,
+    adventureId: "hike",
+  };
+  const cloud = state([cloudRecord], { focusMinutes: 35 });
+  const restored = mergeCloudStates(createEmptyCloudState(), cloud);
+
+  assert.deepEqual(restored.history, [cloudRecord]);
+  assert.equal(restored.preferences.focusMinutes, 35);
+});
+
+test("two devices converge without duplicating the same completed session", () => {
+  const sharedRecord = {
+    id: "shared-session",
+    completedAt: "2026-07-26T12:00:00.000Z",
+    durationMinutes: 25,
+    adventureId: "hike",
+  };
+  const deviceA = state([sharedRecord]);
+  const deviceB = state([sharedRecord]);
+  const converged = mergeCloudStates(deviceB, deviceA);
+
+  assert.deepEqual(converged.history, [sharedRecord]);
+});
+
+test("deleting one account cloud data never disables another account sync", () => {
+  assert.equal(
+    isCloudSyncDisabledForAccount(
+      "account-a",
+      "account-a",
+      "same-account",
+    ),
+    true,
+  );
+  assert.equal(
+    isCloudSyncDisabledForAccount(
+      "account-a",
+      "account-b",
+      "empty-for-account-switch",
+    ),
+    false,
+  );
+  assert.equal(
+    isCloudSyncDisabledForAccount(
+      "true",
+      "account-b",
+      "empty-for-account-switch",
+    ),
+    false,
+  );
 });
