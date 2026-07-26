@@ -2,7 +2,7 @@
 
 ## 계정과 클라우드 저장
 
-상태: 공개 계정 코드 구현 완료, 외부 서비스 설정과 공개 배포 대기
+상태: 공개 계정 코드와 Supabase 데이터베이스 설정 완료, 공개 배포 및 최종 리디렉션 등록 진행 중
 
 ### 완료
 
@@ -29,15 +29,18 @@
 - Supabase 이메일 회원가입·로그인·로그아웃·비밀번호 재설정 UI
 - Supabase 세션을 사용하는 다기기 동기화 어댑터
 - 사용자별 RLS SQL 마이그레이션
+- 서울 리전 Supabase 프로젝트 생성 및 RLS SQL 적용
+- Supabase 이메일 가입 활성화와 Auth API 연결 확인
 - 선택형 Google OAuth와 공개 Cloudflare Worker 배포 구성
 - Supabase가 설정되지 않은 기존 Sites 환경의 ChatGPT+D1 호환
 - 기존 Phaser 이미지 태그 관련 ESLint 경고 5개는 이번 기능과 무관해 유지
+- Cloudflare OAuth를 일반 Windows 터미널과 외부 브라우저에서만 진행하는 충돌 방지 절차
 
 ### 다음 작업
 
-1. Supabase 프로젝트를 만들고 `supabase/migrations`의 SQL을 적용한다.
-2. 공개 URL과 이메일 리디렉션을 등록한다.
-3. Cloudflare에 로그인해 공개 Worker를 배포한다.
+1. 일반 브라우저에서 Cloudflare OAuth 승인을 완료하고 `wrangler whoami`를 확인한다.
+2. 공개 Worker를 배포한다.
+3. 공개 URL을 Supabase Site URL과 이메일 리디렉션 허용 목록에 등록한다.
 4. 서로 다른 두 계정과 같은 계정의 두 기기로 RLS·동기화를 확인한다.
 5. 과목·퀘스트 데이터 모델을 만든 뒤 사용자 소유 데이터로 확장한다.
 
@@ -47,3 +50,4 @@
 - 공개 로그인은 Supabase 공개 환경 변수가 설정된 빌드에서만 노출된다.
 - Google 로그인은 Supabase와 Google OAuth 설정 후 별도로 활성화해야 한다.
 - 이번 단계에서는 타이머 설정·완료 기록·진행 중 세션을 저장하며, 과목·퀘스트·PDF는 아직 포함하지 않는다.
+- Codex 내장 브라우저에서는 Cloudflare OAuth를 다시 실행하지 않는다.

@@ -1,5 +1,22 @@
 # Focus Quest 제품·기술 결정
 
+## 2026-07-26 — 공개 배포 인증 안정화
+
+### 결정
+
+- Cloudflare OAuth는 Codex 내장 브라우저에서 열지 않는다.
+- `wrangler login`은 일반 Windows 터미널에서 실행하고 운영체제 기본 브라우저로 승인한다.
+- OAuth 콜백은 한 번에 하나만 실행하며, 60초 이상 진전이 없으면 해당 Wrangler 프로세스와 콜백 포트만 확인해 종료한 뒤 다시 시도한다.
+- 인증이 끝난 뒤에는 `wrangler whoami`로 계정을 먼저 확인하고, 배포 명령은 별도 비대화형 프로세스로 실행한다.
+- 기존 Sites 프로젝트 ID와 Git 이력은 유지하며, 공개판은 Supabase Auth와 별도 Cloudflare Worker 주소를 사용한다.
+
+### 이유
+
+- 2026-07-26 Cloudflare OAuth 화면을 Codex 내장 브라우저로 여는 동안 내장 Chromium의 GPU 프로세스가 종료되고 재실행에도 실패해 Codex 앱이 복구됐다.
+- 같은 시도에서 Wrangler OAuth 대기가 만료된 뒤 Windows 비동기 핸들 오류도 발생했다.
+- Focus Quest 빌드, Supabase 연결, Git 상태 및 시스템 메모리에서는 앱 종료를 설명할 오류가 발견되지 않았다.
+- Sites의 현재 접근 정책은 소유자 또는 워크스페이스 사용자 범위이므로, 일반 사용자에게 공개하려면 별도 공개 배포가 필요하다.
+
 ## 2026-07-26 — 공개 사용자 인증과 저장소
 
 ### 결정
