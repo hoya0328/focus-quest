@@ -13,6 +13,7 @@
     "start": "vinext start",
     "test": "npm run test:logic && npm run build && node --test tests/rendered-html.test.mjs",
     "test:logic": "node --test tests/pomodoro.test.mjs tests/pwa.test.mjs tests/cloud-state.test.mjs tests/public-auth.test.mjs",
+    "test:account-sync": "node --test tests/cloud-state.test.mjs tests/public-auth.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },
