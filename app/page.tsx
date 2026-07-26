@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdventureQuestScene from "@/app/components/AdventureQuestScene";
+import AuthDialog from "@/app/components/AuthDialog";
 import FishingQuestScene from "@/app/components/FishingQuestScene";
 import { useCloudSync } from "@/app/hooks/useCloudSync";
 import {
@@ -273,6 +274,7 @@ export default function Home() {
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [showIosInstallHint, setShowIosInstallHint] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const audioRef = useRef<AudioContext | null>(null);
   const activeSessionRef = useRef<ActiveSession | null>(null);
   const completionLockRef = useRef(false);
@@ -873,9 +875,28 @@ export default function Home() {
                       클라우드 기록 삭제
                     </button>
                   )}
-                  <a href="/signout-with-chatgpt?return_to=%2F">로그아웃</a>
+                  {cloudSync.authProvider === "supabase" ? (
+                    <button type="button" onClick={cloudSync.signOut}>
+                      로그아웃
+                    </button>
+                  ) : (
+                    <a href="/signout-with-chatgpt?return_to=%2F">로그아웃</a>
+                  )}
                 </div>
               </details>
+            ) : cloudSync.authProvider === "supabase" ? (
+              <button
+                className={`account-chip account-signin sync-${cloudSync.status}`}
+                onClick={() => setShowAuthDialog(true)}
+                type="button"
+                aria-label="로그인하고 클라우드에 집중 기록 저장"
+              >
+                <span className="cloud-icon" aria-hidden="true">☁</span>
+                <span className="account-chip-copy">
+                  <strong>기록 이어하기</strong>
+                  <small>{cloudSync.message}</small>
+                </span>
+              </button>
             ) : (
               <a
                 className={`account-chip account-signin sync-${cloudSync.status}`}
@@ -1408,6 +1429,17 @@ export default function Home() {
           </div>
         </section>
       )}
+      <AuthDialog
+        googleEnabled={cloudSync.googleAuthEnabled}
+        onClose={() => setShowAuthDialog(false)}
+        onGoogle={cloudSync.signInWithGoogle}
+        onResetPassword={cloudSync.resetPassword}
+        onSignIn={cloudSync.signIn}
+        onSignUp={cloudSync.signUp}
+        onUpdatePassword={cloudSync.updatePassword}
+        open={showAuthDialog || cloudSync.passwordRecovery}
+        passwordRecovery={cloudSync.passwordRecovery}
+      />
     </main>
   );
 }

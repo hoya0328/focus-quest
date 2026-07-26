@@ -8,13 +8,16 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
+    "build:public": "vinext build",
+    "deploy:public": "npm run build:public && wrangler deploy --config wrangler.public.jsonc",
     "start": "vinext start",
     "test": "npm run test:logic && npm run build && node --test tests/rendered-html.test.mjs",
-    "test:logic": "node --test tests/pomodoro.test.mjs tests/pwa.test.mjs tests/cloud-state.test.mjs",
+    "test:logic": "node --test tests/pomodoro.test.mjs tests/pwa.test.mjs tests/cloud-state.test.mjs tests/public-auth.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.8",
     "drizzle-orm": "0.45.2",
     "next": "16.2.6",
     "phaser": "^3.90.0",
