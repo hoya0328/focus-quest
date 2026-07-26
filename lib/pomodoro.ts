@@ -12,6 +12,7 @@ export type ActiveSession = {
   startedAt: string;
   adventureId: AdventureId;
   bgm: BgmId;
+  questId?: string;
 };
 
 export type FocusRecord = {
@@ -19,6 +20,7 @@ export type FocusRecord = {
   completedAt: string;
   durationMinutes: number;
   adventureId: AdventureId;
+  questId?: string;
 };
 
 export type WeeklyDay = {
@@ -62,12 +64,14 @@ export function createActiveSession({
   durationMinutes,
   adventureId,
   bgm,
+  questId,
   now = Date.now(),
 }: {
   mode: SessionMode;
   durationMinutes: number;
   adventureId: AdventureId;
   bgm: BgmId;
+  questId?: string;
   now?: number;
 }): ActiveSession {
   const seconds = Math.max(1, Math.round(durationMinutes * 60));
@@ -81,6 +85,7 @@ export function createActiveSession({
     startedAt: new Date(now).toISOString(),
     adventureId,
     bgm,
+    ...(questId ? { questId } : {}),
   };
 }
 
@@ -132,6 +137,8 @@ export function parseActiveSession(raw: string | null, now = Date.now()) {
       !adventureIds.has(value.adventureId) ||
       !value.bgm ||
       !bgmIds.has(value.bgm) ||
+      (value.questId !== undefined &&
+        (typeof value.questId !== "string" || value.questId.length === 0)) ||
       (!value.paused && !isFinitePositive(value.endAt))
     ) {
       return null;
@@ -161,7 +168,9 @@ export function parseHistory(raw: string | null): FocusRecord[] {
           typeof record.completedAt === "string" &&
           !Number.isNaN(Date.parse(record.completedAt)) &&
           isFinitePositive(record.durationMinutes) &&
-          adventureIds.has(record.adventureId),
+          adventureIds.has(record.adventureId) &&
+          (record.questId === undefined ||
+            (typeof record.questId === "string" && record.questId.length > 0)),
       )
       .slice(0, MAX_HISTORY_RECORDS);
   } catch {
@@ -172,10 +181,12 @@ export function parseHistory(raw: string | null): FocusRecord[] {
 export function createFocusRecord({
   durationMinutes,
   adventureId,
+  questId,
   completedAt = new Date(),
 }: {
   durationMinutes: number;
   adventureId: AdventureId;
+  questId?: string;
   completedAt?: Date;
 }): FocusRecord {
   const iso = completedAt.toISOString();
@@ -184,6 +195,7 @@ export function createFocusRecord({
     completedAt: iso,
     durationMinutes,
     adventureId,
+    ...(questId ? { questId } : {}),
   };
 }
 

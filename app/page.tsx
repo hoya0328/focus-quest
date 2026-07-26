@@ -7,7 +7,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdventureQuestScene from "@/app/components/AdventureQuestScene";
 import AuthDialog from "@/app/components/AuthDialog";
 import FishingQuestScene from "@/app/components/FishingQuestScene";
+import QuestBoard from "@/app/components/QuestBoard";
 import { useCloudSync } from "@/app/hooks/useCloudSync";
+import { useStudyQuests } from "@/app/hooks/useStudyQuests";
 import {
   ACTIVE_SESSION_UPDATED_AT_KEY,
   CLOUD_STATE_SCHEMA_VERSION,
@@ -32,6 +34,7 @@ import {
   type FocusRecord,
   type SessionMode,
 } from "@/lib/pomodoro";
+import type { StudyQuest } from "@/lib/study-quests";
 
 type Screen = "select" | "setup" | "focus" | "complete";
 
@@ -275,9 +278,13 @@ export default function Home() {
     useState<BeforeInstallPromptEvent | null>(null);
   const [showIosInstallHint, setShowIosInstallHint] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const activeSessionRef = useRef<ActiveSession | null>(null);
   const completionLockRef = useRef(false);
+  const completeQuestSetRef = useRef<
+    ((questId: string, sessionId: string, durationMinutes: number) => void) | null
+  >(null);
 
   const selected = useMemo(
     () => adventures.find((item) => item.id === selectedId) ?? adventures[0],
@@ -357,6 +364,7 @@ export default function Home() {
           JSON.stringify(session),
         );
         setSelectedId(session.adventureId);
+        setActiveQuestId(session.questId ?? null);
         setBgm(session.bgm);
         setSessionMode(session.mode);
         setSessionDurationMinutes(session.durationMinutes);
@@ -377,6 +385,7 @@ export default function Home() {
             ...createFocusRecord({
               durationMinutes: session.durationMinutes,
               adventureId: session.adventureId,
+              questId: session.questId,
               completedAt: new Date(session.endAt ?? Date.now()),
             }),
             id: `${session.startedAt}-${session.adventureId}`,
@@ -388,6 +397,13 @@ export default function Home() {
             HISTORY_KEY,
             JSON.stringify(nextHistory),
           );
+          if (session.questId) {
+            completeQuestSetRef.current?.(
+              session.questId,
+              `${session.startedAt}-${session.adventureId}`,
+              session.durationMinutes,
+            );
+          }
         }
         activeSessionRef.current = null;
         setCloudActiveSession(null);
@@ -409,6 +425,7 @@ export default function Home() {
     }
 
     activeSessionRef.current = null;
+    setActiveQuestId(null);
     window.localStorage.removeItem(ACTIVE_SESSION_KEY);
     setEndAt(null);
     setPaused(false);
@@ -441,6 +458,19 @@ export default function Home() {
     data: cloudData,
     hydrated,
   });
+  const questLoggedIn =
+    cloudSync.authProvider === "supabase" && Boolean(cloudSync.account);
+  const questStore = useStudyQuests(questLoggedIn);
+  const completeQuestSet = questStore.completeSet;
+
+  useEffect(() => {
+    completeQuestSetRef.current = (questId, sessionId, durationMinutes) => {
+      void completeQuestSet(questId, sessionId, durationMinutes)
+        .then((quest) => {
+          if (quest?.status === "completed") setActiveQuestId(null);
+        });
+    };
+  }, [completeQuestSet]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("haru-focus-preferences");
@@ -526,6 +556,7 @@ export default function Home() {
         restoredUpdatedAt,
       );
       setSelectedId(session.adventureId);
+      setActiveQuestId(session.questId ?? null);
       setBgm(session.bgm);
       setSessionMode(session.mode);
       setSessionDurationMinutes(session.durationMinutes);
@@ -554,6 +585,7 @@ export default function Home() {
             ...createFocusRecord({
               durationMinutes: session.durationMinutes,
               adventureId: session.adventureId,
+              questId: session.questId,
               completedAt,
             }),
             id: `${session.startedAt}-${session.adventureId}`,
@@ -565,6 +597,13 @@ export default function Home() {
             HISTORY_KEY,
             JSON.stringify(loadedHistory),
           );
+          if (session.questId) {
+            completeQuestSetRef.current?.(
+              session.questId,
+              `${session.startedAt}-${session.adventureId}`,
+              session.durationMinutes,
+            );
+          }
         }
       } else {
         setScreen("focus");
@@ -683,6 +722,7 @@ export default function Home() {
         ...createFocusRecord({
           durationMinutes: session.durationMinutes,
           adventureId: session.adventureId,
+          questId: session.questId,
           completedAt: new Date(),
         }),
         id: `${session.startedAt}-${session.adventureId}`,
@@ -699,6 +739,13 @@ export default function Home() {
         );
         return nextHistory;
       });
+      if (session.questId) {
+        completeQuestSetRef.current?.(
+          session.questId,
+          `${session.startedAt}-${session.adventureId}`,
+          session.durationMinutes,
+        );
+      }
     }
 
     setCompletionMode(session.mode);
@@ -742,6 +789,7 @@ export default function Home() {
 
   const chooseAdventure = (id: AdventureId) => {
     persistSession(null);
+    setActiveQuestId(null);
     setSelectedId(id);
     const defaultBgm: Record<AdventureId, BgmId> = {
       hike: "forest",
@@ -764,6 +812,7 @@ export default function Home() {
       durationMinutes,
       adventureId: selectedId,
       bgm: theme,
+      questId: activeQuestId ?? undefined,
     });
 
     completionLockRef.current = false;
@@ -781,6 +830,27 @@ export default function Home() {
 
   const beginFocus = () => beginSession("focus");
   const beginBreak = () => beginSession("break");
+
+  const launchQuest = async (quest: StudyQuest) => {
+    const started = await questStore.startQuest(quest.id);
+    if (!started) return;
+    const defaultBgm: Record<AdventureId, BgmId> = {
+      hike: "forest",
+      swim: "waves",
+      fish: "lake",
+    };
+    persistSession(null);
+    setActiveQuestId(quest.id);
+    setSelectedId(quest.adventureId);
+    setBgm(defaultBgm[quest.adventureId]);
+    setFocusMinutes(quest.focusMinutes);
+    setBreakMinutes(quest.breakMinutes);
+    setSessionMode("focus");
+    setSessionDurationMinutes(quest.focusMinutes);
+    setRemaining(quest.focusMinutes * 60);
+    setScreen("setup");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const togglePause = () => {
     const session = activeSessionRef.current;
@@ -982,6 +1052,21 @@ export default function Home() {
               )}
             </aside>
           )}
+
+          <QuestBoard
+            loggedIn={questLoggedIn}
+            status={questStore.status}
+            message={questStore.message}
+            subjects={questStore.subjects}
+            quests={questStore.quests}
+            onLogin={() => setShowAuthDialog(true)}
+            onCreateSubject={questStore.createSubject}
+            onDeleteSubject={questStore.deleteSubject}
+            onCreateQuest={questStore.createQuest}
+            onUpdateQuest={questStore.updateQuest}
+            onDeleteQuest={questStore.deleteQuest}
+            onStartQuest={launchQuest}
+          />
 
           <section className="weekly-summary" aria-labelledby="weekly-title">
             <div className="weekly-heading">
