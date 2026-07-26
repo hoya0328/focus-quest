@@ -2,7 +2,7 @@
 
 ## 계정과 클라우드 저장
 
-상태: 공개 계정·Supabase 데이터베이스·공개 Worker 배포 완료, Supabase 최종 리디렉션 등록 대기
+상태: 공개 계정·Supabase 데이터베이스·공개 Worker 배포·운영 리디렉션 등록 완료
 
 ### 완료
 
@@ -37,12 +37,13 @@
 - Cloudflare OAuth를 일반 Windows 터미널과 외부 브라우저에서만 진행하는 충돌 방지 절차
 - Cloudflare 이메일 인증 및 계정 `workers.dev` 하위 주소 등록
 - 공개 Worker 배포: `https://focus-quest.hoya0328.workers.dev`
+- Supabase Site URL과 이메일 리디렉션 허용 목록에 공개 주소 등록
+- 공개 주소 `200 OK`, Focus Quest 화면과 Supabase 로그인 UI 응답 확인
 
 ### 다음 작업
 
-1. 공개 URL을 Supabase Site URL과 이메일 리디렉션 허용 목록에 등록한다.
-2. 서로 다른 두 계정과 같은 계정의 두 기기로 RLS·동기화를 확인한다.
-3. 과목·퀘스트 데이터 모델을 만든 뒤 사용자 소유 데이터로 확장한다.
+1. 서로 다른 두 계정과 같은 계정의 두 기기로 RLS·동기화를 사용자 시나리오로 확인한다.
+2. 과목·퀘스트 데이터 모델을 만든 뒤 사용자 소유 데이터로 확장한다.
 
 ### 알려진 제한
 
