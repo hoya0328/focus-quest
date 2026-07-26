@@ -6,6 +6,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdventureQuestScene from "@/app/components/AdventureQuestScene";
 import FishingQuestScene from "@/app/components/FishingQuestScene";
+import { useCloudSync } from "@/app/hooks/useCloudSync";
+import {
+  ACTIVE_SESSION_UPDATED_AT_KEY,
+  CLOUD_STATE_SCHEMA_VERSION,
+  EMPTY_SESSION_UPDATED_AT,
+  type CloudStateData,
+} from "@/lib/cloud-state";
 import {
   ACTIVE_SESSION_KEY,
   HISTORY_KEY,
@@ -255,6 +262,11 @@ export default function Home() {
   const [soundOn, setSoundOn] = useState(true);
   const [completedToday, setCompletedToday] = useState(0);
   const [history, setHistory] = useState<FocusRecord[]>([]);
+  const [cloudActiveSession, setCloudActiveSession] =
+    useState<ActiveSession | null>(null);
+  const [sessionUpdatedAt, setSessionUpdatedAt] = useState(
+    EMPTY_SESSION_UPDATED_AT,
+  );
   const [showExit, setShowExit] = useState(false);
   const [isCelebrating, setIsCelebrating] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -285,12 +297,157 @@ export default function Home() {
     1,
     ...weeklySummary.days.map((day) => day.minutes),
   );
+  const cloudData = useMemo<CloudStateData>(
+    () => ({
+      schemaVersion: CLOUD_STATE_SCHEMA_VERSION,
+      preferences: {
+        focusMinutes,
+        breakMinutes,
+        bgm,
+        selectedId,
+        soundOn,
+      },
+      history,
+      activeSession: cloudActiveSession,
+      sessionUpdatedAt,
+    }),
+    [
+      bgm,
+      breakMinutes,
+      cloudActiveSession,
+      focusMinutes,
+      history,
+      selectedId,
+      sessionUpdatedAt,
+      soundOn,
+    ],
+  );
+  const applyCloudState = useCallback((data: CloudStateData) => {
+    const { preferences } = data;
+    const previousSession = activeSessionRef.current;
+    setFocusMinutes(preferences.focusMinutes);
+    setBreakMinutes(preferences.breakMinutes);
+    setBgm(preferences.bgm);
+    setSelectedId(preferences.selectedId);
+    setSoundOn(preferences.soundOn);
+    setHistory(data.history);
+    setCompletedToday(getDailyCount(data.history));
+    window.localStorage.setItem(
+      "haru-focus-preferences",
+      JSON.stringify(preferences),
+    );
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(data.history));
+    setCloudActiveSession(data.activeSession);
+    setSessionUpdatedAt(data.sessionUpdatedAt);
+    window.localStorage.setItem(
+      ACTIVE_SESSION_UPDATED_AT_KEY,
+      data.sessionUpdatedAt,
+    );
+
+    if (data.activeSession) {
+      const restored = parseActiveSession(JSON.stringify(data.activeSession));
+      if (restored && !restored.expired) {
+        const { session, remainingSeconds } = restored;
+        completionLockRef.current = false;
+        activeSessionRef.current = session;
+        window.localStorage.setItem(
+          ACTIVE_SESSION_KEY,
+          JSON.stringify(session),
+        );
+        setSelectedId(session.adventureId);
+        setBgm(session.bgm);
+        setSessionMode(session.mode);
+        setSessionDurationMinutes(session.durationMinutes);
+        setRemaining(remainingSeconds);
+        setEndAt(session.endAt);
+        setPaused(session.paused);
+        setShowExit(false);
+        setIsCelebrating(false);
+        setScreen("focus");
+        return;
+      }
+      if (restored?.expired) {
+        const { session } = restored;
+        const clearedAt = new Date().toISOString();
+        let nextHistory = data.history;
+        if (session.mode === "focus") {
+          const record = {
+            ...createFocusRecord({
+              durationMinutes: session.durationMinutes,
+              adventureId: session.adventureId,
+              completedAt: new Date(session.endAt ?? Date.now()),
+            }),
+            id: `${session.startedAt}-${session.adventureId}`,
+          };
+          nextHistory = addFocusRecord(nextHistory, record);
+          setHistory(nextHistory);
+          setCompletedToday(getDailyCount(nextHistory));
+          window.localStorage.setItem(
+            HISTORY_KEY,
+            JSON.stringify(nextHistory),
+          );
+        }
+        activeSessionRef.current = null;
+        setCloudActiveSession(null);
+        setSessionUpdatedAt(clearedAt);
+        window.localStorage.removeItem(ACTIVE_SESSION_KEY);
+        window.localStorage.setItem(
+          ACTIVE_SESSION_UPDATED_AT_KEY,
+          clearedAt,
+        );
+        setCompletionMode(session.mode);
+        setEndAt(null);
+        setPaused(false);
+        setRemaining(0);
+        setShowExit(false);
+        setIsCelebrating(false);
+        setScreen("complete");
+        return;
+      }
+    }
+
+    activeSessionRef.current = null;
+    window.localStorage.removeItem(ACTIVE_SESSION_KEY);
+    setEndAt(null);
+    setPaused(false);
+    setShowExit(false);
+    setIsCelebrating(false);
+    if (audioRef.current) {
+      void audioRef.current.close();
+      audioRef.current = null;
+    }
+
+    if (previousSession) {
+      const completedId = `${previousSession.startedAt}-${previousSession.adventureId}`;
+      const completedElsewhere = data.history.some(
+        (record) => record.id === completedId,
+      );
+      if (completedElsewhere) {
+        setCompletionMode(previousSession.mode);
+        setRemaining(0);
+        setScreen("complete");
+      } else {
+        setSessionMode("focus");
+        setSessionDurationMinutes(preferences.focusMinutes);
+        setRemaining(preferences.focusMinutes * 60);
+        setScreen("setup");
+      }
+    }
+  }, []);
+  const cloudSync = useCloudSync({
+    applyCloudState,
+    data: cloudData,
+    hydrated,
+  });
 
   useEffect(() => {
     const stored = window.localStorage.getItem("haru-focus-preferences");
     const stats = window.localStorage.getItem("haru-focus-stats");
     const storedHistory = window.localStorage.getItem(HISTORY_KEY);
     const storedSession = window.localStorage.getItem(ACTIVE_SESSION_KEY);
+    const storedSessionUpdatedAt = window.localStorage.getItem(
+      ACTIVE_SESSION_UPDATED_AT_KEY,
+    );
     let loadedFocusMinutes = 25;
     let loadedSelectedId: AdventureId = "hike";
 
@@ -355,6 +512,17 @@ export default function Home() {
     if (restored) {
       const { session, remainingSeconds, expired } = restored;
       activeSessionRef.current = session;
+      setCloudActiveSession(session);
+      const restoredUpdatedAt =
+        storedSessionUpdatedAt &&
+        !Number.isNaN(Date.parse(storedSessionUpdatedAt))
+          ? storedSessionUpdatedAt
+          : session.startedAt;
+      setSessionUpdatedAt(restoredUpdatedAt);
+      window.localStorage.setItem(
+        ACTIVE_SESSION_UPDATED_AT_KEY,
+        restoredUpdatedAt,
+      );
       setSelectedId(session.adventureId);
       setBgm(session.bgm);
       setSessionMode(session.mode);
@@ -366,6 +534,13 @@ export default function Home() {
       if (expired) {
         window.localStorage.removeItem(ACTIVE_SESSION_KEY);
         activeSessionRef.current = null;
+        setCloudActiveSession(null);
+        const completedAt = new Date().toISOString();
+        setSessionUpdatedAt(completedAt);
+        window.localStorage.setItem(
+          ACTIVE_SESSION_UPDATED_AT_KEY,
+          completedAt,
+        );
         setCompletionMode(session.mode);
         setEndAt(null);
         setPaused(false);
@@ -392,8 +567,18 @@ export default function Home() {
       } else {
         setScreen("focus");
       }
-    } else if (storedSession) {
-      window.localStorage.removeItem(ACTIVE_SESSION_KEY);
+    } else {
+      if (storedSession) window.localStorage.removeItem(ACTIVE_SESSION_KEY);
+      const hasValidStoredUpdate =
+        storedSessionUpdatedAt &&
+        !Number.isNaN(Date.parse(storedSessionUpdatedAt));
+      const clearedAt = hasValidStoredUpdate
+        ? storedSessionUpdatedAt
+        : storedSession
+          ? new Date().toISOString()
+          : EMPTY_SESSION_UPDATED_AT;
+      setSessionUpdatedAt(clearedAt);
+      window.localStorage.setItem(ACTIVE_SESSION_UPDATED_AT_KEY, clearedAt);
     }
 
     if ("serviceWorker" in navigator) {
@@ -463,14 +648,23 @@ export default function Home() {
     [soundOn, stopAudio],
   );
 
-  const persistSession = useCallback((session: ActiveSession | null) => {
-    activeSessionRef.current = session;
-    if (session) {
-      window.localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(session));
-    } else {
-      window.localStorage.removeItem(ACTIVE_SESSION_KEY);
-    }
-  }, []);
+  const persistSession = useCallback(
+    (session: ActiveSession | null, updatedAt = new Date().toISOString()) => {
+      activeSessionRef.current = session;
+      setCloudActiveSession(session);
+      setSessionUpdatedAt(updatedAt);
+      window.localStorage.setItem(ACTIVE_SESSION_UPDATED_AT_KEY, updatedAt);
+      if (session) {
+        window.localStorage.setItem(
+          ACTIVE_SESSION_KEY,
+          JSON.stringify(session),
+        );
+      } else {
+        window.localStorage.removeItem(ACTIVE_SESSION_KEY);
+      }
+    },
+    [],
+  );
 
   const completeSession = useCallback(() => {
     const session = activeSessionRef.current;
@@ -644,9 +838,55 @@ export default function Home() {
             <span className="brand-mark">●</span>
             <span>Focus Quest</span>
           </button>
-          <div className="today-chip" aria-label={`오늘 ${completedToday}번 집중 완료`}>
-            <span>✦</span>
-            오늘 {completedToday}칸
+          <div className="topbar-actions">
+            <div className="today-chip" aria-label={`오늘 ${completedToday}번 집중 완료`}>
+              <span>✦</span>
+              오늘 {completedToday}칸
+            </div>
+            {cloudSync.account ? (
+              <details className="account-menu">
+                <summary
+                  className={`account-chip sync-${cloudSync.status}`}
+                  aria-label={`계정 메뉴, ${cloudSync.message}`}
+                >
+                  <span className="account-avatar" aria-hidden="true">
+                    {cloudSync.account.displayName.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="account-chip-copy">
+                    <strong>{cloudSync.account.displayName}</strong>
+                    <small>{cloudSync.message}</small>
+                  </span>
+                </summary>
+                <div className="account-popover">
+                  <div>
+                    <strong>{cloudSync.account.displayName}</strong>
+                    <small>{cloudSync.account.email}</small>
+                  </div>
+                  {cloudSync.status === "disabled" ? (
+                    <button type="button" onClick={cloudSync.resumeCloudSync}>
+                      클라우드 저장 다시 켜기
+                    </button>
+                  ) : (
+                    <button type="button" onClick={cloudSync.deleteCloudData}>
+                      클라우드 기록 삭제
+                    </button>
+                  )}
+                  <a href="/signout-with-chatgpt?return_to=%2F">로그아웃</a>
+                </div>
+              </details>
+            ) : (
+              <a
+                className={`account-chip account-signin sync-${cloudSync.status}`}
+                href="/signin-with-chatgpt?return_to=%2F"
+                aria-label="로그인하고 클라우드에 집중 기록 저장"
+              >
+                <span className="cloud-icon" aria-hidden="true">☁</span>
+                <span className="account-chip-copy">
+                  <strong>기록 이어하기</strong>
+                  <small>{cloudSync.message}</small>
+                </span>
+              </a>
+            )}
           </div>
         </header>
       )}
@@ -726,7 +966,11 @@ export default function Home() {
                 <span className="eyebrow">이번 주의 발자국</span>
                 <h2 id="weekly-title">집중 모험 기록</h2>
               </div>
-              <p>이 기기에만 안전하게 저장돼요.</p>
+              <p>
+                {cloudSync.account && cloudSync.status !== "disabled"
+                  ? cloudSync.message
+                  : "로그인하면 다른 기기에서도 기록이 이어져요."}
+              </p>
             </div>
 
             <div className="weekly-metrics">

@@ -110,6 +110,155 @@ input:focus-visible {
   color: #e29b40;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.account-menu {
+  position: relative;
+}
+
+.account-menu > summary {
+  list-style: none;
+}
+
+.account-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-chip {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
+  border: 2px solid #345766;
+  border-radius: 3px;
+  background: #0b2234;
+  color: #f6dfb2;
+  box-shadow: 3px 3px 0 #020b13;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.account-chip-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.account-chip-copy strong,
+.account-chip-copy small {
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-chip-copy strong {
+  font-family: "Courier New", "Malgun Gothic", monospace;
+  font-size: 12px;
+}
+
+.account-chip-copy small {
+  color: #89aeb2;
+  font-size: 10px;
+}
+
+.account-avatar,
+.cloud-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #65cad0;
+  background: #0f3b4c;
+  color: #8ee9dc;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.cloud-icon {
+  font-size: 16px;
+}
+
+.account-chip.sync-saving .account-avatar,
+.account-chip.sync-saving .cloud-icon,
+.account-chip.sync-checking .account-avatar,
+.account-chip.sync-checking .cloud-icon {
+  animation: account-pulse 1.1s steps(2, end) infinite;
+}
+
+.account-chip.sync-error {
+  border-color: #d9785d;
+}
+
+.account-chip.sync-disabled {
+  opacity: 0.72;
+}
+
+.account-popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(280px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 2px solid #4c7681;
+  background: #071a2d;
+  box-shadow: 6px 6px 0 #020b13;
+}
+
+.account-popover div {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #294a58;
+}
+
+.account-popover strong {
+  color: #f6dfb2;
+  font-size: 13px;
+}
+
+.account-popover small {
+  overflow: hidden;
+  color: #89aeb2;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.account-popover button,
+.account-popover a {
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid #345766;
+  background: #0c293b;
+  color: #c8dcda;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.account-popover button:hover,
+.account-popover a:hover {
+  border-color: #65cad0;
+  color: #fff0c7;
+}
+
+@keyframes account-pulse {
+  50% {
+    filter: brightness(1.45);
+  }
+}
+
 .select-screen,
 .setup-screen {
   width: min(1240px, calc(100% - 44px));
@@ -1457,6 +1606,25 @@ input[type="range"] {
   .today-chip {
     padding: 8px 11px;
     font-size: 11px;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+  }
+
+  .account-chip {
+    width: 42px;
+    min-height: 40px;
+    justify-content: center;
+    padding: 5px;
+  }
+
+  .account-chip-copy {
+    display: none;
+  }
+
+  .account-popover {
+    right: -1px;
   }
 
   .select-screen {
