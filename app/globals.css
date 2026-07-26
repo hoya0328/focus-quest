@@ -2500,6 +2500,329 @@ input[type="range"] {
   }
 }
 
+/* Study quest workspace */
+.quest-board {
+  width: min(1180px, calc(100% - 32px));
+  margin: 28px auto;
+  padding: 24px;
+  color: #eaf8f1;
+  background: #082b32;
+  border: 2px solid #315963;
+  border-radius: 20px;
+  box-shadow: 8px 8px 0 #041a20;
+}
+
+.quest-board-heading,
+.quest-list-heading,
+.quest-editor-heading,
+.quest-card-top,
+.quest-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quest-board h2,
+.quest-board h3,
+.quest-board h4,
+.quest-board p {
+  margin: 0;
+}
+
+.quest-board-heading {
+  margin-bottom: 20px;
+}
+
+.quest-board-heading h2 {
+  margin-top: 6px;
+  font-size: clamp(24px, 4vw, 38px);
+}
+
+.quest-sync {
+  color: #a9c8c5;
+}
+
+.quest-sync-error {
+  color: #ffb29d;
+}
+
+.quest-workspace {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.32fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.subject-panel,
+.quest-main {
+  min-width: 0;
+}
+
+.subject-tabs {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.subject-tabs button {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 14px;
+  color: #d8ebe6;
+  text-align: left;
+  background: #0c3a42;
+  border: 1px solid #315963;
+  border-radius: 10px;
+}
+
+.subject-tabs button.is-active {
+  color: #082b32;
+  background: #f4c96b;
+  border-color: #ffe2a1;
+}
+
+.subject-tabs small {
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.quest-form-card {
+  padding: 16px;
+  background: #0c3540;
+  border: 1px solid #315963;
+  border-radius: 12px;
+}
+
+.quest-form-card summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.quest-form-card form,
+form.quest-form-card {
+  display: grid;
+  gap: 12px;
+}
+
+.quest-form-card summary + form {
+  margin-top: 14px;
+}
+
+.quest-form-card label {
+  display: grid;
+  gap: 6px;
+  color: #bcd5d0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.quest-form-card input,
+.quest-form-card textarea,
+.quest-form-card select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 11px;
+  color: #f4fbf8;
+  background: #061f27;
+  border: 1px solid #426a72;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.quest-form-card textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.quest-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quest-form-row-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.quest-primary,
+.quest-danger,
+.quest-actions button,
+.quest-editor-heading button {
+  min-height: 38px;
+  padding: 8px 13px;
+  color: #d8ebe6;
+  background: #123e48;
+  border: 1px solid #4a747a;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.quest-primary {
+  color: #10282c;
+  background: #f4c96b;
+  border-color: #ffe2a1;
+}
+
+.quest-primary:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.2);
+  opacity: 0.65;
+}
+
+.quest-danger {
+  color: #ffb29d;
+}
+
+.quest-list-heading {
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.quest-list-heading p {
+  margin-top: 5px;
+  color: #a9c8c5;
+}
+
+.quest-list {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.quest-card {
+  padding: 16px;
+  background: #0b3943;
+  border: 1px solid #38636b;
+  border-left: 5px solid #ef8b47;
+  border-radius: 12px;
+}
+
+.quest-card.status-completed {
+  border-left-color: #49cab6;
+}
+
+.quest-card-top,
+.quest-meta {
+  color: #9fc4c0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.quest-card h4 {
+  margin-top: 8px;
+  font-size: 19px;
+}
+
+.quest-card p {
+  margin-top: 6px;
+  color: #bed5d1;
+}
+
+.quest-progress {
+  height: 8px;
+  margin: 14px 0 8px;
+  overflow: hidden;
+  background: #061f27;
+  border-radius: 999px;
+}
+
+.quest-progress i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ef8b47, #f4c96b);
+  transition: width 240ms ease;
+}
+
+.quest-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.quest-actions {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.quest-empty {
+  padding: 22px;
+  color: #a9c8c5;
+  text-align: center;
+  background: #092f38;
+  border: 1px dashed #4a747a;
+  border-radius: 12px;
+}
+
+.quest-empty-large {
+  display: grid;
+  place-content: center;
+  min-height: 260px;
+}
+
+.quest-board-guest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.quest-board-guest p {
+  margin-top: 8px;
+  color: #b9d4cf;
+}
+
+@media (max-width: 820px) {
+  .quest-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .subject-tabs {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .subject-tabs button {
+    min-width: 170px;
+  }
+
+  .quest-form-row-four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .quest-board {
+    width: calc(100% - 20px);
+    padding: 16px;
+    border-radius: 14px;
+    box-shadow: 4px 4px 0 #041a20;
+  }
+
+  .quest-board-heading,
+  .quest-list-heading,
+  .quest-board-guest {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .quest-form-row,
+  .quest-form-row-four {
+    grid-template-columns: 1fr;
+  }
+
+  .quest-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quest-actions .quest-primary {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
