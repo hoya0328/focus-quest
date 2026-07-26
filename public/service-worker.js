@@ -1,7 +1,7 @@
-const CACHE_NAME = "focus-quest-v1";
+const CACHE_NAME = "focus-quest-v2";
 const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
+const OFFLINE_PAGE_KEY = `${BASE_PATH}/__focus-quest-offline`;
 const CORE_ASSETS = [
-  `${BASE_PATH}/`,
   `${BASE_PATH}/manifest.webmanifest`,
   `${BASE_PATH}/characters/momo-hiking.png`,
   `${BASE_PATH}/characters/podo-swimming.png`,
@@ -17,13 +17,21 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
-      )
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((key) => key.startsWith("focus-quest-") && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      );
+      await self.clients.claim();
+
+      const windows = await self.clients.matchAll({ type: "window" });
+      await Promise.all(
+        windows.map((client) => client.navigate(client.url).catch(() => undefined))
+      );
+    })()
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -34,18 +42,19 @@ self.addEventListener("fetch", (event) => {
 
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request)
+      fetch(new Request(event.request, { cache: "no-store" }))
         .then((response) => {
-          const copy = response.clone();
-          event.waitUntil(
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy))
-          );
+          if (response.ok) {
+            const copy = response.clone();
+            event.waitUntil(
+              caches.open(CACHE_NAME).then((cache) => cache.put(OFFLINE_PAGE_KEY, copy))
+            );
+          }
           return response;
         })
         .catch(async () => {
           return (
-            (await caches.match(event.request)) ||
-            (await caches.match(`${BASE_PATH}/`)) ||
+            (await caches.match(OFFLINE_PAGE_KEY)) ||
             Response.error()
           );
         })
@@ -54,19 +63,15 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
-        .then((response) => {
-          if (!response || response.status !== 200) return response;
-          const copy = response.clone();
-          event.waitUntil(
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy))
-          );
-          return response;
-        })
-        .catch(() => cached || Response.error());
-
-      return cached || network;
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (!response || response.status !== 200) return response;
+        const copy = response.clone();
+        event.waitUntil(
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy))
+        );
+        return response;
+      })
+      .catch(async () => (await caches.match(event.request)) || Response.error())
   );
 });

@@ -582,10 +582,12 @@ export default function Home() {
     }
 
     if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.register(
-        `${publicBasePath}/service-worker.js`,
-        { scope: `${publicBasePath}/` },
-      );
+      void navigator.serviceWorker
+        .register(`${publicBasePath}/service-worker.js`, {
+          scope: `${publicBasePath}/`,
+          updateViaCache: "none",
+        })
+        .then((registration) => registration.update());
     }
 
     const standalone =

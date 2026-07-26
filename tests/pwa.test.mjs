@@ -20,7 +20,13 @@ test("the service worker provides an offline navigation fallback", async () => {
   const serviceWorker = await readFile(serviceWorkerPath, "utf8");
 
   assert.match(serviceWorker, /event\.request\.mode === "navigate"/);
-  assert.match(serviceWorker, /caches\.match\(`\$\{BASE_PATH\}\/`\)/);
+  assert.match(serviceWorker, /caches\.match\(OFFLINE_PAGE_KEY\)/);
   assert.match(serviceWorker, /requestUrl\.origin !== self\.location\.origin/);
-  assert.match(serviceWorker, /focus-quest-v1/);
+  assert.match(serviceWorker, /focus-quest-v2/);
+  assert.match(serviceWorker, /cache: "no-store"/);
+  assert.match(serviceWorker, /client\.navigate\(client\.url\)/);
+  assert.doesNotMatch(
+    serviceWorker,
+    /const CORE_ASSETS = \[\s*`\$\{BASE_PATH\}\/`,/
+  );
 });
