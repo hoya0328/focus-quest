@@ -41,7 +41,7 @@
 - **전체 화면 집중** — 진행률에 따라 움직이는 픽셀 캐릭터와 배경
 - **저작권 걱정 없는 사운드** — 브라우저가 실시간 생성하는 앰비언트 BGM
 - **부드러운 중단 경험** — 강제 차단 대신 일시정지와 모험 포기 확인
-- **주간 모험 기록** — 로그인 없이 기기에 집중 시간과 완료 이력 저장
+- **주간 모험 기록** — 게스트는 기기에 저장하고, 계정 사용자는 여러 기기에서 동기화
 - **반응형 PWA** — PC와 모바일에서 사용하고 홈 화면에 설치
 
 ## 캐릭터
@@ -76,9 +76,10 @@
 - TypeScript
 - CSS 기반 반응형 픽셀 UI
 - Web Audio API 기반 실시간 앰비언트 사운드
-- LocalStorage 기반 개인 설정·완료 기록
+- LocalStorage 기반 게스트 기록과 Supabase 기반 계정 동기화
+- 이메일 인증 및 사용자별 Row Level Security
 - Service Worker 및 Web App Manifest
-- GitHub Actions + GitHub Pages
+- Cloudflare Worker + Static Assets 공개 배포 구성
 
 ## 로컬 실행
 
