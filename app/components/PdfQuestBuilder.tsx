@@ -180,7 +180,9 @@ export default function PdfQuestBuilder({
 
       {(busy || message) && (
         <div className={`pdf-status phase-${phase}`} aria-live="polite">
-          <strong>{phaseLabels[phase] || message}</strong>
+          <strong>
+            {phaseLabels[phase] || (phase === "error" ? "PDF 처리 실패" : message)}
+          </strong>
           {phase === "extracting" && pageProgress.total > 0 && (
             <span>{pageProgress.completed}/{pageProgress.total}쪽</span>
           )}

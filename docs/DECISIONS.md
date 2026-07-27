@@ -1,5 +1,12 @@
 # Focus Quest 제품·기술 결정
 
+## 2026-07-28 - Safe PDF storage object keys
+
+- Keep the user's original PDF file name only in `study_materials.file_name`.
+- Store every PDF under the ASCII-only key `<user UUID>/<material UUID>/source.pdf`.
+- This preserves per-user RLS folder isolation while avoiding object-key failures caused by Unicode or special characters.
+- Convert Supabase Storage status and policy failures into actionable user messages without exposing credentials or internal response bodies.
+
 ## 2026-07-26 — 계정 전환 시 로컬 기록 격리
 
 ### 결정

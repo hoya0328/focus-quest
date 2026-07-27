@@ -1,5 +1,13 @@
 # Focus Quest 작업 인계
 
+## 2026-07-28 PDF upload repair
+
+- Diagnosis: the bucket, PDF MIME limit, and Storage policies existed, while the object key still included the original Unicode file name.
+- Repair: uploads now use `<user UUID>/<material UUID>/source.pdf`; the original name remains available in the database and UI.
+- Recovery: Storage authentication, policy, bucket, and status failures now produce distinct user-facing guidance.
+- UX: the error status has a stable heading and no longer repeats the same generic sentence.
+- Focused validation: PDF/quest tests, TypeScript, and changed-file ESLint passed.
+
 ## 계정과 클라우드 저장
 
 상태: 공개 계정·Supabase 데이터베이스·공개 Worker 배포·운영 리디렉션 등록 완료

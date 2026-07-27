@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { extractPdfText } from "@/lib/pdf-client";
 import {
+  createStudyMaterialStoragePath,
   materialFromRow,
   parsePdfAnalysis,
   type MaterialRow,
@@ -19,6 +20,32 @@ export type MaterialPhase =
   | "analyzing"
   | "saving"
   | "error";
+
+function storageUploadErrorMessage(error: unknown) {
+  const failure = (error ?? {}) as {
+    error?: string;
+    message?: string;
+    statusCode?: number | string;
+  };
+  const detail = `${failure.error ?? ""} ${failure.message ?? ""}`.trim();
+  const status = Number(failure.statusCode);
+
+  if (status === 401) {
+    return "로그인 정보가 만료됐어요. 다시 로그인한 뒤 PDF를 올려 주세요.";
+  }
+  if (status === 403 || /row.level|policy|permission|unauthorized/i.test(detail)) {
+    return "PDF 저장 권한을 확인하지 못했어요. 다시 로그인한 뒤 시도해 주세요.";
+  }
+  if (/bucket/i.test(detail)) {
+    return "PDF 저장소를 찾지 못했어요. 관리자 설정을 확인해 주세요.";
+  }
+  if (/invalid.*key|invalid.*name|resource.*name/i.test(detail)) {
+    return "PDF 저장 경로가 올바르지 않아요.";
+  }
+  return status
+    ? `PDF를 저장하지 못했어요. (Storage ${status})`
+    : "PDF를 저장하지 못했어요.";
+}
 
 export function useStudyMaterials(enabled: boolean) {
   const client = getSupabaseBrowserClient();
@@ -73,12 +100,7 @@ export function useStudyMaterials(enabled: boolean) {
         if (!session || !user) throw new Error("로그인이 필요해요.");
 
         materialId = crypto.randomUUID();
-        const safeName =
-          file.name
-            .normalize("NFKC")
-            .replace(/[^\p{L}\p{N}._-]+/gu, "-")
-            .slice(-120) || "study.pdf";
-        storagePath = `${user.id}/${materialId}/${safeName}`;
+        storagePath = createStudyMaterialStoragePath(user.id, materialId);
 
         setPhase("uploading");
         const upload = await client.storage
@@ -88,7 +110,9 @@ export function useStudyMaterials(enabled: boolean) {
             contentType: "application/pdf",
             upsert: false,
           });
-        if (upload.error) throw new Error("PDF를 저장하지 못했어요.");
+        if (upload.error) {
+          throw new Error(storageUploadErrorMessage(upload.error));
+        }
 
         const inserted = await client
           .from("study_materials")
