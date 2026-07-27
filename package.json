@@ -15,13 +15,15 @@
     "test:logic": "node --test tests/pomodoro.test.mjs tests/pwa.test.mjs tests/cloud-state.test.mjs tests/public-auth.test.mjs",
     "test:account-sync": "node --test tests/cloud-state.test.mjs tests/public-auth.test.mjs",
     "test:quests": "node --test tests/study-quests.test.mjs tests/pomodoro.test.mjs",
+    "test:pdf": "node --test tests/pdf-analysis.test.mjs tests/study-quests.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
     "drizzle-orm": "0.45.2",
-    "next": "16.2.6",
+    "next": "16.2.12",
+    "pdfjs-dist": "^5.4.296",
     "phaser": "^3.90.0",
     "react": "19.2.6",
     "react-dom": "19.2.6"

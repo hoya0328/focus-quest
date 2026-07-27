@@ -134,6 +134,12 @@ export function useStudyQuests(enabled: boolean) {
           focus_minutes: input.focusMinutes,
           break_minutes: input.breakMinutes,
           target_sets: input.targetSets,
+          material_id: input.materialId,
+          source_pages: input.sourcePages,
+          study_method: input.studyMethod,
+          estimated_minutes_min: input.estimatedMinutesMin,
+          estimated_minutes_max: input.estimatedMinutesMax,
+          quest_contract: input.questContract ?? {},
         })
         .select()
         .single();
@@ -167,6 +173,12 @@ export function useStudyQuests(enabled: boolean) {
           focus_minutes: input.focusMinutes,
           break_minutes: input.breakMinutes,
           target_sets: Math.max(input.targetSets, currentQuest?.completedSets ?? 0),
+          material_id: input.materialId,
+          source_pages: input.sourcePages,
+          study_method: input.studyMethod,
+          estimated_minutes_min: input.estimatedMinutesMin,
+          estimated_minutes_max: input.estimatedMinutesMax,
+          quest_contract: input.questContract ?? {},
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
