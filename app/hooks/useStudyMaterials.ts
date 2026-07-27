@@ -1,0 +1,263 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { extractPdfText } from "@/lib/pdf-client";
+import {
+  materialFromRow,
+  parsePdfAnalysis,
+  type MaterialRow,
+  type PdfAnalysis,
+  type StudyMaterial,
+} from "@/lib/pdf-analysis";
+import type { StudySubject } from "@/lib/study-quests";
+import { getSupabaseBrowserClient } from "@/lib/supabase-client";
+
+export type MaterialPhase =
+  | "idle"
+  | "extracting"
+  | "uploading"
+  | "analyzing"
+  | "saving"
+  | "error";
+
+export function useStudyMaterials(enabled: boolean) {
+  const client = getSupabaseBrowserClient();
+  const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+  const [phase, setPhase] = useState<MaterialPhase>("idle");
+  const [message, setMessage] = useState("");
+  const [pageProgress, setPageProgress] = useState({ completed: 0, total: 0 });
+
+  const refresh = useCallback(async () => {
+    if (!client || !enabled) {
+      setMaterials([]);
+      return;
+    }
+    const { data, error } = await client
+      .from("study_materials")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      setMessage(
+        error.code === "42P01"
+          ? "PDF 데이터베이스 설정이 필요해요."
+          : "자료 목록을 불러오지 못했어요.",
+      );
+      return;
+    }
+    setMaterials((data as MaterialRow[]).map(materialFromRow));
+  }, [client, enabled]);
+
+  useEffect(() => {
+    // Initial remote hydration intentionally updates query state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
+  }, [refresh]);
+
+  const analyzePdf = useCallback(
+    async (file: File, subject: StudySubject) => {
+      if (!client) return null;
+      setMessage("");
+      setPhase("extracting");
+      setPageProgress({ completed: 0, total: 0 });
+
+      let storagePath = "";
+      let materialId = "";
+      try {
+        const extracted = await extractPdfText(file, (completed, total) => {
+          setPageProgress({ completed, total });
+        });
+        const {
+          data: { session },
+        } = await client.auth.getSession();
+        const user = session?.user;
+        if (!session || !user) throw new Error("로그인이 필요해요.");
+
+        materialId = crypto.randomUUID();
+        const safeName =
+          file.name
+            .normalize("NFKC")
+            .replace(/[^\p{L}\p{N}._-]+/gu, "-")
+            .slice(-120) || "study.pdf";
+        storagePath = `${user.id}/${materialId}/${safeName}`;
+
+        setPhase("uploading");
+        const upload = await client.storage
+          .from("study-materials")
+          .upload(storagePath, file, {
+            cacheControl: "3600",
+            contentType: "application/pdf",
+            upsert: false,
+          });
+        if (upload.error) throw new Error("PDF를 저장하지 못했어요.");
+
+        const inserted = await client
+          .from("study_materials")
+          .insert({
+            id: materialId,
+            user_id: user.id,
+            subject_id: subject.id,
+            file_name: file.name.slice(0, 180),
+            storage_path: storagePath,
+            file_size_bytes: file.size,
+            page_count: extracted.pageCount,
+            status: "analyzing",
+          })
+          .select()
+          .single();
+        if (inserted.error) {
+          await client.storage.from("study-materials").remove([storagePath]);
+          throw new Error("자료 정보를 저장하지 못했어요.");
+        }
+        const pending = materialFromRow(inserted.data as MaterialRow);
+        setMaterials((current) => [pending, ...current]);
+
+        setPhase("analyzing");
+        const response = await fetch("/api/analyze-pdf", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            pageCount: extracted.pageCount,
+            pages: extracted.pages,
+            subjectGoal: subject.goal,
+            subjectName: subject.name,
+          }),
+        });
+        const payload = (await response.json()) as {
+          analysis?: unknown;
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(payload.error || "PDF 분석에 실패했어요.");
+        }
+        const analysis = parsePdfAnalysis(payload.analysis);
+        if (!analysis) throw new Error("분석 결과 형식이 올바르지 않아요.");
+
+        setPhase("saving");
+        const updated = await client
+          .from("study_materials")
+          .update({
+            status: "ready",
+            summary: analysis.summary,
+            analysis,
+            analysis_provider: analysis.provider,
+            error_message: "",
+            analyzed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", materialId)
+          .select()
+          .single();
+        if (updated.error) throw new Error("분석 결과를 저장하지 못했어요.");
+        const ready = materialFromRow(updated.data as MaterialRow);
+        setMaterials((current) =>
+          current.map((item) => (item.id === ready.id ? ready : item)),
+        );
+        setPhase("idle");
+        setMessage(
+          analysis.provider === "openai"
+            ? "AI가 퀘스트 초안을 만들었어요."
+            : "기본 분석으로 퀘스트 초안을 만들었어요.",
+        );
+        return ready;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "PDF 분석에 실패했어요.";
+        if (materialId) {
+          const failedAt = new Date().toISOString();
+          const { data } = await client
+            .from("study_materials")
+            .update({
+              status: "failed",
+              error_message: errorMessage.slice(0, 500),
+              updated_at: failedAt,
+            })
+            .eq("id", materialId)
+            .select()
+            .maybeSingle();
+          if (data) {
+            const failed = materialFromRow(data as MaterialRow);
+            setMaterials((current) =>
+              current.map((item) => (item.id === failed.id ? failed : item)),
+            );
+          }
+        }
+        setPhase("error");
+        setMessage(errorMessage);
+        return null;
+      }
+    },
+    [client],
+  );
+
+  const updateAnalysis = useCallback(
+    async (materialId: string, analysis: PdfAnalysis) => {
+      if (!client) return false;
+      setPhase("saving");
+      const { data, error } = await client
+        .from("study_materials")
+        .update({
+          analysis,
+          summary: analysis.summary,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", materialId)
+        .select()
+        .single();
+      if (error) {
+        setPhase("error");
+        setMessage("수정한 분석을 저장하지 못했어요.");
+        return false;
+      }
+      const updated = materialFromRow(data as MaterialRow);
+      setMaterials((current) =>
+        current.map((item) => (item.id === materialId ? updated : item)),
+      );
+      setPhase("idle");
+      return true;
+    },
+    [client],
+  );
+
+  const deleteMaterial = useCallback(
+    async (material: StudyMaterial) => {
+      if (!client) return false;
+      setPhase("saving");
+      const removedFile = await client.storage
+        .from("study-materials")
+        .remove([material.storagePath]);
+      if (removedFile.error) {
+        setPhase("error");
+        setMessage("PDF 파일을 삭제하지 못했어요.");
+        return false;
+      }
+      const removedRow = await client
+        .from("study_materials")
+        .delete()
+        .eq("id", material.id);
+      if (removedRow.error) {
+        setPhase("error");
+        setMessage("자료 기록을 삭제하지 못했어요.");
+        return false;
+      }
+      setMaterials((current) => current.filter((item) => item.id !== material.id));
+      setPhase("idle");
+      return true;
+    },
+    [client],
+  );
+
+  return {
+    analyzePdf,
+    deleteMaterial,
+    materials,
+    message,
+    pageProgress,
+    phase,
+    refresh,
+    updateAnalysis,
+  };
+}

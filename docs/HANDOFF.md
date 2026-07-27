@@ -60,3 +60,27 @@
 - Google 로그인은 Supabase와 Google OAuth 설정 후 별도로 활성화해야 한다.
 - 이번 단계에서는 타이머 설정·완료 기록·진행 중 세션을 저장하며, 과목·퀘스트·PDF는 아직 포함하지 않는다.
 - Codex 내장 브라우저에서는 Cloudflare OAuth를 다시 실행하지 않는다.
+
+## 2026-07-28 — PDF 분석 MVP
+
+### 완료
+
+- PDF 형식·15MB·120쪽 제한과 오류 안내
+- PDF.js 기반 페이지별 브라우저 텍스트 추출
+- 사용자 전용 Supabase Storage 및 `study_materials` 데이터 모델
+- 로그인 토큰을 검증하는 `/api/analyze-pdf`
+- OpenAI 구조화 분석과 키·연결 실패 시 기본 분석
+- 자료 요약, 개념, 페이지, 시간 범위, 공부법, Quest Contract가 있는 3~7개 제안
+- 제안 전체 수정, 선택 등록, 등록 상태 중복 방지
+- 등록 퀘스트와 기존 모험 타이머 연결
+
+### 운영 전 필요
+
+1. `supabase/migrations/202607280001_study_materials.sql`을 적용한다.
+2. 실제 AI 분석이 필요하면 `OPENAI_API_KEY`를 공개 Worker와 Sites의 서버 비밀 값으로 등록한다.
+3. 키가 없으면 기본 분석이 사용되며 PDF 업로드부터 퀘스트 등록까지의 흐름은 유지된다.
+
+### 다음 작업
+
+- 1-4 Camp Log: 완료 직후 회상, 자신감, 실제 범위와 체감 난도 수집
+- 실제 소요 시간으로 PDF 퀘스트 예상 범위를 보정

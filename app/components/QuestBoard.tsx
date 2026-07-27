@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
+import PdfQuestBuilder from "@/app/components/PdfQuestBuilder";
+import { useStudyMaterials } from "@/app/hooks/useStudyMaterials";
 import {
   questProgress,
   type QuestDraft,
@@ -65,6 +67,7 @@ export default function QuestBoard({
   const [subjectDraft, setSubjectDraft] = useState(emptySubject);
   const [questDraft, setQuestDraft] = useState(emptyQuest());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const materialStore = useStudyMaterials(loggedIn);
 
   const effectiveSubjectId = subjects.some(
     (subject) => subject.id === selectedSubjectId,
@@ -107,6 +110,12 @@ export default function QuestBoard({
       focusMinutes: quest.focusMinutes,
       breakMinutes: quest.breakMinutes,
       targetSets: quest.targetSets,
+      materialId: quest.materialId,
+      sourcePages: quest.sourcePages,
+      studyMethod: quest.studyMethod,
+      estimatedMinutesMin: quest.estimatedMinutesMin,
+      estimatedMinutesMax: quest.estimatedMinutesMax,
+      questContract: quest.questContract,
     });
   };
 
@@ -228,6 +237,18 @@ export default function QuestBoard({
                 </button>
               </div>
 
+              <PdfQuestBuilder
+                subject={subjects.find((subject) => subject.id === effectiveSubjectId)!}
+                materials={materialStore.materials}
+                message={materialStore.message}
+                pageProgress={materialStore.pageProgress}
+                phase={materialStore.phase}
+                onAnalyze={materialStore.analyzePdf}
+                onCreateQuest={onCreateQuest}
+                onDeleteMaterial={materialStore.deleteMaterial}
+                onUpdateAnalysis={materialStore.updateAnalysis}
+              />
+
               <div className="quest-list">
                 {visibleQuests.map((quest) => (
                   <article className={`quest-card status-${quest.status}`} key={quest.id}>
@@ -237,6 +258,12 @@ export default function QuestBoard({
                     </div>
                     <h4>{quest.title}</h4>
                     {quest.objective && <p>{quest.objective}</p>}
+                    {(quest.sourcePages || quest.studyMethod) && (
+                      <div className="quest-source">
+                        {quest.sourcePages && <span>{quest.sourcePages}</span>}
+                        {quest.studyMethod && <small>{quest.studyMethod}</small>}
+                      </div>
+                    )}
                     <div className="quest-progress" aria-label={`${Math.round(questProgress(quest) * 100)}% 완료`}>
                       <i style={{ width: `${questProgress(quest) * 100}%` }} />
                     </div>
