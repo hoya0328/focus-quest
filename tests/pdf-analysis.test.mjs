@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 import {
+  createStudyMaterialStoragePath,
   createGuidedPdfAnalysis,
   parsePdfAnalysis,
 } from "../lib/pdf-analysis.ts";
@@ -49,6 +50,19 @@ test("analysis parser constrains unsafe model values and preserves review state"
   assert.equal(parsed.quests[0].focusMinutes, 120);
   assert.equal(parsed.quests[0].registered, true);
   assert.equal(parsed.provider, "guided");
+});
+
+test("PDF storage path never includes the original Unicode file name", () => {
+  const userId = "123e4567-e89b-12d3-a456-426614174000";
+  const materialId = "123e4567-e89b-42d3-a456-426614174001";
+
+  assert.equal(
+    createStudyMaterialStoragePath(userId, materialId),
+    `${userId}/${materialId}/source.pdf`,
+  );
+  assert.throws(() =>
+    createStudyMaterialStoragePath("../user", materialId),
+  );
 });
 
 test("PDF migration creates private user-owned storage and material relations", async () => {

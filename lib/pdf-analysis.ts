@@ -4,6 +4,19 @@ export const MAX_PDF_BYTES = 15 * 1024 * 1024;
 export const MAX_PDF_PAGES = 120;
 export const MAX_ANALYSIS_CHARACTERS = 160_000;
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function createStudyMaterialStoragePath(
+  userId: string,
+  materialId: string,
+) {
+  if (!UUID_PATTERN.test(userId) || !UUID_PATTERN.test(materialId)) {
+    throw new Error("PDF 저장 경로를 만들 수 없어요.");
+  }
+  return `${userId}/${materialId}/source.pdf`;
+}
+
 export type PdfPageText = {
   pageNumber: number;
   text: string;
