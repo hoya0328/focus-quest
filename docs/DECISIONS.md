@@ -6,6 +6,8 @@
 - Store every PDF under the ASCII-only key `<user UUID>/<material UUID>/source.pdf`.
 - This preserves per-user RLS folder isolation while avoiding object-key failures caused by Unicode or special characters.
 - Convert Supabase Storage status and policy failures into actionable user messages without exposing credentials or internal response bodies.
+- Treat a successful analysis update as complete without requiring PostgREST to return the full JSON row.
+- Remove NUL characters before writing PDF-derived analysis to PostgreSQL JSONB.
 
 ## 2026-07-26 — 계정 전환 시 로컬 기록 격리
 

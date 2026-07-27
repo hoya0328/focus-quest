@@ -6,7 +6,8 @@
 - Repair: uploads now use `<user UUID>/<material UUID>/source.pdf`; the original name remains available in the database and UI.
 - Recovery: Storage authentication, policy, bucket, and status failures now produce distinct user-facing guidance.
 - UX: the error status has a stable heading and no longer repeats the same generic sentence.
-- Focused validation: PDF/quest tests, TypeScript, and changed-file ESLint passed.
+- Analysis save repair: sanitize NUL characters and stop requiring a full returned row after a successful update.
+- Focused validation: 9 PDF/quest tests, TypeScript, and changed-file ESLint passed.
 
 ## 계정과 클라우드 저장
 

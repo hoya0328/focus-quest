@@ -6,6 +6,7 @@ import {
   createStudyMaterialStoragePath,
   materialFromRow,
   parsePdfAnalysis,
+  sanitizePdfAnalysisForStorage,
   type MaterialRow,
   type PdfAnalysis,
   type StudyMaterial,
@@ -45,6 +46,22 @@ function storageUploadErrorMessage(error: unknown) {
   return status
     ? `PDF를 저장하지 못했어요. (Storage ${status})`
     : "PDF를 저장하지 못했어요.";
+}
+
+function analysisSaveErrorMessage(error: unknown) {
+  const failure = (error ?? {}) as {
+    code?: string;
+    message?: string;
+  };
+  if (failure.code === "23514") {
+    return "분석 결과가 저장 범위를 벗어났어요. 내용을 줄여서 다시 시도해 주세요.";
+  }
+  if (failure.code === "22P05" || failure.code === "22021") {
+    return "PDF에서 저장할 수 없는 문자를 발견했어요.";
+  }
+  return failure.code
+    ? `분석 결과를 저장하지 못했어요. (DB ${failure.code})`
+    : "분석 결과를 저장하지 못했어요.";
 }
 
 export function useStudyMaterials(enabled: boolean) {
@@ -161,22 +178,34 @@ export function useStudyMaterials(enabled: boolean) {
         if (!analysis) throw new Error("분석 결과 형식이 올바르지 않아요.");
 
         setPhase("saving");
+        const analyzedAt = new Date().toISOString();
+        const persistedAnalysis = sanitizePdfAnalysisForStorage(analysis);
         const updated = await client
           .from("study_materials")
           .update({
             status: "ready",
-            summary: analysis.summary,
-            analysis,
-            analysis_provider: analysis.provider,
+            summary: persistedAnalysis.summary,
+            analysis: persistedAnalysis,
+            analysis_provider: persistedAnalysis.provider,
             error_message: "",
-            analyzed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            analyzed_at: analyzedAt,
+            updated_at: analyzedAt,
           })
           .eq("id", materialId)
-          .select()
-          .single();
-        if (updated.error) throw new Error("분석 결과를 저장하지 못했어요.");
-        const ready = materialFromRow(updated.data as MaterialRow);
+          .eq("user_id", user.id);
+        if (updated.error) {
+          throw new Error(analysisSaveErrorMessage(updated.error));
+        }
+        const ready: StudyMaterial = {
+          ...pending,
+          status: "ready",
+          summary: persistedAnalysis.summary,
+          analysis: persistedAnalysis,
+          analysisProvider: persistedAnalysis.provider,
+          errorMessage: "",
+          updatedAt: analyzedAt,
+          analyzedAt,
+        };
         setMaterials((current) =>
           current.map((item) => (item.id === ready.id ? ready : item)),
         );
