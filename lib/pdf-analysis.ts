@@ -196,6 +196,14 @@ export function parsePdfAnalysis(
   };
 }
 
+export function sanitizePdfAnalysisForStorage(analysis: PdfAnalysis): PdfAnalysis {
+  return JSON.parse(
+    JSON.stringify(analysis, (_key, value) =>
+      typeof value === "string" ? value.replace(/\u0000/g, "") : value,
+    ),
+  ) as PdfAnalysis;
+}
+
 export function materialFromRow(row: MaterialRow): StudyMaterial {
   return {
     id: row.id,

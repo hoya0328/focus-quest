@@ -6,6 +6,7 @@ import {
   createStudyMaterialStoragePath,
   createGuidedPdfAnalysis,
   parsePdfAnalysis,
+  sanitizePdfAnalysisForStorage,
 } from "../lib/pdf-analysis.ts";
 
 const pages = Array.from({ length: 36 }, (_, index) => ({
@@ -63,6 +64,22 @@ test("PDF storage path never includes the original Unicode file name", () => {
   assert.throws(() =>
     createStudyMaterialStoragePath("../user", materialId),
   );
+});
+
+test("PDF analysis storage removes PostgreSQL-incompatible NUL characters", () => {
+  const analysis = createGuidedPdfAnalysis({
+    pages,
+    subjectName: "운영\u0000체제",
+    subjectGoal: "",
+  });
+  analysis.summary += "\u0000";
+  analysis.quests[0].objective += "\u0000";
+
+  const sanitized = sanitizePdfAnalysisForStorage(analysis);
+
+  assert.equal(JSON.stringify(sanitized).includes("\\u0000"), false);
+  assert.equal(sanitized.provider, analysis.provider);
+  assert.equal(sanitized.quests.length, analysis.quests.length);
 });
 
 test("PDF migration creates private user-owned storage and material relations", async () => {
