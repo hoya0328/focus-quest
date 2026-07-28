@@ -29,7 +29,7 @@ const phaseLabels: Record<MaterialPhase, string> = {
   idle: "",
   extracting: "PDF에서 글자를 읽고 있어요.",
   uploading: "PDF를 계정에 안전하게 저장하고 있어요.",
-  analyzing: "자료를 학습 퀘스트로 나누고 있어요.",
+  analyzing: "과목 성격과 학습 구간을 해석하고 있어요.",
   saving: "분석 결과를 저장하고 있어요.",
   error: "",
 };
@@ -208,7 +208,7 @@ export default function PdfQuestBuilder({
                 {material.status === "ready"
                   ? material.analysisProvider === "openai"
                     ? "AI 분석"
-                    : "기본 분석"
+                    : "자료 기반 초안"
                   : material.status === "failed"
                     ? "분석 실패"
                     : "처리 중"}
@@ -234,7 +234,7 @@ export default function PdfQuestBuilder({
         <div className="analysis-review">
           <div className="analysis-summary">
             <div>
-              <span>{analysis.provider === "openai" ? "AI 분석" : "기본 분석"}</span>
+              <span>{analysis.provider === "openai" ? "AI 분석" : "자료 기반 초안"}</span>
               <h4>{selectedMaterial.fileName}</h4>
             </div>
             <button
@@ -258,12 +258,48 @@ export default function PdfQuestBuilder({
                 value={analysis.summary}
               />
             </label>
+            <div className="analysis-insights">
+              <section>
+                <strong>과목 이해</strong>
+                <p>
+                  {analysis.courseProfile.subjectArea} ·{" "}
+                  {analysis.courseProfile.materialType}
+                </p>
+                <small>{analysis.courseProfile.learningGoal}</small>
+              </section>
+              <section>
+                <strong>추천 학습 방식</strong>
+                <p>{analysis.courseProfile.recommendedApproach}</p>
+              </section>
+              <section>
+                <strong>퀘스트 분할 기준</strong>
+                <p>{analysis.divisionStrategy}</p>
+              </section>
+            </div>
             {analysis.keyConcepts.length > 0 && (
               <div className="concept-chips">
                 {analysis.keyConcepts.map((concept) => (
                   <span key={concept}>{concept}</span>
                 ))}
               </div>
+            )}
+            <p className={`analysis-confidence confidence-${analysis.confidence}`}>
+              분석 근거{" "}
+              {analysis.confidence === "high"
+                ? "충분"
+                : analysis.confidence === "medium"
+                  ? "보통"
+                  : "제한적"}
+            </p>
+            {analysis.missingEvidence.length > 0 && (
+              <details className="analysis-missing">
+                <summary>확인이 필요한 정보</summary>
+                <ul>
+                  {analysis.missingEvidence.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </details>
             )}
             {analysis.warning && <p className="analysis-warning">{analysis.warning}</p>}
           </div>

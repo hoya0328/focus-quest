@@ -213,7 +213,7 @@ export function useStudyMaterials(enabled: boolean) {
         setMessage(
           analysis.provider === "openai"
             ? "AI가 퀘스트 초안을 만들었어요."
-            : "기본 분석으로 퀘스트 초안을 만들었어요.",
+            : "자료의 제목과 핵심어를 바탕으로 퀘스트 초안을 만들었어요.",
         );
         return ready;
       } catch (error) {

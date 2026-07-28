@@ -26,6 +26,10 @@ test("guided PDF analysis creates an editable 3-7 quest route with page evidence
   assert.ok(result.quests.length >= 3 && result.quests.length <= 7);
   assert.equal(result.quests[0].startPage, 1);
   assert.equal(result.quests.at(-1).endPage, 36);
+  assert.equal(result.courseProfile.subjectArea, "컴퓨터공학·소프트웨어");
+  assert.match(result.courseProfile.materialType, /시험/);
+  assert.match(result.divisionStrategy, /36쪽/);
+  assert.equal(result.confidence, "medium");
   for (const quest of result.quests) {
     assert.ok(quest.sourcePages.includes("쪽"));
     assert.ok(quest.estimatedMinutesMin <= quest.estimatedMinutesMax);
@@ -33,6 +37,7 @@ test("guided PDF analysis creates an editable 3-7 quest route with page evidence
     assert.ok(quest.contract.base);
     assert.ok(quest.contract.stretch);
     assert.equal(quest.registered, false);
+    assert.equal(JSON.stringify(quest).includes("을(를)"), false);
   }
 });
 
@@ -51,6 +56,28 @@ test("analysis parser constrains unsafe model values and preserves review state"
   assert.equal(parsed.quests[0].focusMinutes, 120);
   assert.equal(parsed.quests[0].registered, true);
   assert.equal(parsed.provider, "guided");
+  assert.equal(parsed.courseProfile.subjectArea, "컴퓨터공학·소프트웨어");
+});
+
+test("legacy stored analyses receive safe defaults for the richer review fields", () => {
+  const guided = createGuidedPdfAnalysis({
+    pages,
+    subjectName: "운영체제",
+    subjectGoal: "",
+  });
+  const legacy = structuredClone(guided);
+  delete legacy.courseProfile;
+  delete legacy.divisionStrategy;
+  delete legacy.confidence;
+  delete legacy.missingEvidence;
+
+  const parsed = parsePdfAnalysis(legacy);
+
+  assert.ok(parsed);
+  assert.equal(parsed.courseProfile.materialType, "학습 자료");
+  assert.ok(parsed.divisionStrategy);
+  assert.equal(parsed.confidence, "low");
+  assert.deepEqual(parsed.missingEvidence, []);
 });
 
 test("PDF storage path never includes the original Unicode file name", () => {
