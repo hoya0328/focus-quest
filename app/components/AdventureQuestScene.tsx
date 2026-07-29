@@ -640,8 +640,8 @@ export default function AdventureQuestScene({
 
   const label =
     kind === "hike"
-      ? "모모가 숲길을 따라 정상으로 올라가는 애니메이션"
-      : "포도가 산호 사이를 헤엄쳐 보물상자로 향하는 애니메이션";
+      ? "모리가 노을숲 능선을 따라 해오름 봉우리로 올라가는 애니메이션"
+      : "나루가 유리산호 유적을 헤엄쳐 보물상자로 향하는 애니메이션";
 
   return <div ref={mountRef} className="phaser-adventure-scene" role="img" aria-label={label} />;
 }

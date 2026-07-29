@@ -37,7 +37,10 @@ test("server-renders the adventure focus app", async () => {
   assert.match(html, /10분 시작/);
   assert.match(html, /25분 시작/);
   assert.match(html, /45분 시작/);
-  assert.match(html, /모험 친구 바꾸기/);
+  assert.match(html, /모험 지도/);
+  assert.match(html, /해오름 봉우리/);
+  assert.match(html, /유리산호 유적/);
+  assert.match(html, /달비늘 호수/);
   assert.match(html, /이번 주의 발자국/);
   assert.match(html, /집중 모험 기록/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/);

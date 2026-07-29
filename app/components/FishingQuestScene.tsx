@@ -485,7 +485,7 @@ export default function FishingQuestScene({
       ref={mountRef}
       className="phaser-fishing-scene"
       role="img"
-      aria-label="보리가 낚싯대를 던지고 찌를 기다리는 별빛 호숫가 애니메이션"
+      aria-label="보리가 낚싯대를 던지고 황금 잉어를 기다리는 달비늘 호수 애니메이션"
     />
   );
 }

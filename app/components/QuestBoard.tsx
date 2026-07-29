@@ -44,9 +44,9 @@ const emptyQuest = (subjectId = ""): QuestDraft => ({
 });
 
 const adventureNames = {
-  hike: "등산 · 모모",
-  swim: "수영 · 포도",
-  fish: "낚시 · 보리",
+  hike: "해오름 봉우리 · 모리",
+  swim: "유리산호 유적 · 나루",
+  fish: "달비늘 호수 · 보리",
 } as const;
 
 export default function QuestBoard({
@@ -332,9 +332,9 @@ export default function QuestBoard({
                       value={questDraft.adventureId}
                       onChange={(event) => setQuestDraft({ ...questDraft, adventureId: event.target.value as QuestDraft["adventureId"] })}
                     >
-                      <option value="hike">등산</option>
-                      <option value="swim">수영</option>
-                      <option value="fish">낚시</option>
+                      <option value="hike">해오름 봉우리 · 등산</option>
+                      <option value="swim">유리산호 유적 · 수영</option>
+                      <option value="fish">달비늘 호수 · 낚시</option>
                     </select>
                   </label>
                   <label>
