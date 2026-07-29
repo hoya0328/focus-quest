@@ -13,6 +13,7 @@ export type ActiveSession = {
   adventureId: AdventureId;
   bgm: BgmId;
   questId?: string;
+  focusIntent?: string;
 };
 
 export type FocusRecord = {
@@ -21,6 +22,7 @@ export type FocusRecord = {
   durationMinutes: number;
   adventureId: AdventureId;
   questId?: string;
+  focusIntent?: string;
 };
 
 export type WeeklyDay = {
@@ -40,6 +42,7 @@ export type WeeklySummary = {
 export const ACTIVE_SESSION_KEY = "haru-focus-active-session";
 export const HISTORY_KEY = "haru-focus-history";
 export const MAX_HISTORY_RECORDS = 400;
+export const MAX_FOCUS_INTENT_LENGTH = 80;
 
 const adventureIds = new Set<AdventureId>(["hike", "swim", "fish"]);
 const bgmIds = new Set<BgmId>(["forest", "waves", "lake", "quiet"]);
@@ -48,6 +51,11 @@ const dayLabels = ["일", "월", "화", "수", "목", "금", "토"];
 
 function isFinitePositive(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+export function normalizeFocusIntent(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value.replace(/\s+/g, " ").trim().slice(0, MAX_FOCUS_INTENT_LENGTH);
 }
 
 export function localDateKey(input: Date | number | string = new Date()) {
@@ -65,6 +73,7 @@ export function createActiveSession({
   adventureId,
   bgm,
   questId,
+  focusIntent,
   now = Date.now(),
 }: {
   mode: SessionMode;
@@ -72,9 +81,11 @@ export function createActiveSession({
   adventureId: AdventureId;
   bgm: BgmId;
   questId?: string;
+  focusIntent?: string;
   now?: number;
 }): ActiveSession {
   const seconds = Math.max(1, Math.round(durationMinutes * 60));
+  const normalizedIntent = normalizeFocusIntent(focusIntent);
   return {
     version: 1,
     mode,
@@ -86,6 +97,7 @@ export function createActiveSession({
     adventureId,
     bgm,
     ...(questId ? { questId } : {}),
+    ...(normalizedIntent ? { focusIntent: normalizedIntent } : {}),
   };
 }
 
@@ -139,6 +151,9 @@ export function parseActiveSession(raw: string | null, now = Date.now()) {
       !bgmIds.has(value.bgm) ||
       (value.questId !== undefined &&
         (typeof value.questId !== "string" || value.questId.length === 0)) ||
+      (value.focusIntent !== undefined &&
+        (normalizeFocusIntent(value.focusIntent) !== value.focusIntent ||
+          value.focusIntent.length === 0)) ||
       (!value.paused && !isFinitePositive(value.endAt))
     ) {
       return null;
@@ -170,7 +185,11 @@ export function parseHistory(raw: string | null): FocusRecord[] {
           isFinitePositive(record.durationMinutes) &&
           adventureIds.has(record.adventureId) &&
           (record.questId === undefined ||
-            (typeof record.questId === "string" && record.questId.length > 0)),
+            (typeof record.questId === "string" && record.questId.length > 0)) &&
+          (record.focusIntent === undefined ||
+            (typeof record.focusIntent === "string" &&
+              normalizeFocusIntent(record.focusIntent) === record.focusIntent &&
+              record.focusIntent.length > 0)),
       )
       .slice(0, MAX_HISTORY_RECORDS);
   } catch {
@@ -182,20 +201,24 @@ export function createFocusRecord({
   durationMinutes,
   adventureId,
   questId,
+  focusIntent,
   completedAt = new Date(),
 }: {
   durationMinutes: number;
   adventureId: AdventureId;
   questId?: string;
+  focusIntent?: string;
   completedAt?: Date;
 }): FocusRecord {
   const iso = completedAt.toISOString();
+  const normalizedIntent = normalizeFocusIntent(focusIntent);
   return {
     id: `${completedAt.getTime()}-${adventureId}`,
     completedAt: iso,
     durationMinutes,
     adventureId,
     ...(questId ? { questId } : {}),
+    ...(normalizedIntent ? { focusIntent: normalizedIntent } : {}),
   };
 }
 

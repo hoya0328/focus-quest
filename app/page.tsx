@@ -24,6 +24,7 @@ import {
   createFocusRecord,
   getDailyCount,
   getWeeklySummary,
+  normalizeFocusIntent,
   parseActiveSession,
   parseHistory,
   pauseActiveSession,
@@ -39,6 +40,12 @@ import type { StudyQuest } from "@/lib/study-quests";
 type Screen = "select" | "setup" | "focus" | "complete";
 
 const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const FOCUS_INTENT_KEY = "focus-quest-focus-intent";
+const quickFocusOptions = [
+  { minutes: 10, label: "몸풀기", note: "가볍게 시작" },
+  { minutes: 25, label: "기본 집중", note: "한 칸 완주" },
+  { minutes: 45, label: "깊은 집중", note: "긴 호흡 몰입" },
+] as const;
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -108,6 +115,12 @@ const bgms: { id: BgmId; name: string; note: string; icon: string }[] = [
   { id: "lake", name: "호숫가 오후", note: "느린 종소리", icon: "◌" },
   { id: "quiet", name: "고요히", note: "음악 없이", icon: "—" },
 ];
+
+const adventureBgms: Record<AdventureId, BgmId> = {
+  hike: "forest",
+  swim: "waves",
+  fish: "lake",
+};
 
 function padTime(value: number) {
   return value.toString().padStart(2, "0");
@@ -279,6 +292,7 @@ export default function Home() {
   const [showIosInstallHint, setShowIosInstallHint] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
+  const [focusIntent, setFocusIntent] = useState("");
   const audioRef = useRef<AudioContext | null>(null);
   const activeSessionRef = useRef<ActiveSession | null>(null);
   const completionLockRef = useRef(false);
@@ -365,6 +379,7 @@ export default function Home() {
         );
         setSelectedId(session.adventureId);
         setActiveQuestId(session.questId ?? null);
+        setFocusIntent(session.focusIntent ?? "");
         setBgm(session.bgm);
         setSessionMode(session.mode);
         setSessionDurationMinutes(session.durationMinutes);
@@ -386,6 +401,7 @@ export default function Home() {
               durationMinutes: session.durationMinutes,
               adventureId: session.adventureId,
               questId: session.questId,
+              focusIntent: session.focusIntent,
               completedAt: new Date(session.endAt ?? Date.now()),
             }),
             id: `${session.startedAt}-${session.adventureId}`,
@@ -414,6 +430,7 @@ export default function Home() {
           clearedAt,
         );
         setCompletionMode(session.mode);
+        setFocusIntent(session.focusIntent ?? "");
         setEndAt(null);
         setPaused(false);
         setRemaining(0);
@@ -449,7 +466,7 @@ export default function Home() {
         setSessionMode("focus");
         setSessionDurationMinutes(preferences.focusMinutes);
         setRemaining(preferences.focusMinutes * 60);
-        setScreen("setup");
+        setScreen("select");
       }
     }
   }, []);
@@ -474,6 +491,7 @@ export default function Home() {
 
   useEffect(() => {
     const stored = window.localStorage.getItem("haru-focus-preferences");
+    const storedFocusIntent = window.localStorage.getItem(FOCUS_INTENT_KEY);
     const stats = window.localStorage.getItem("haru-focus-stats");
     const storedHistory = window.localStorage.getItem(HISTORY_KEY);
     const storedSession = window.localStorage.getItem(ACTIVE_SESSION_KEY);
@@ -539,6 +557,11 @@ export default function Home() {
     }
     setHistory(loadedHistory);
     setCompletedToday(getDailyCount(loadedHistory));
+    setFocusIntent(
+      normalizeFocusIntent(storedFocusIntent) ||
+        loadedHistory.find((record) => record.focusIntent)?.focusIntent ||
+        "",
+    );
 
     const restored = parseActiveSession(storedSession);
     if (restored) {
@@ -557,6 +580,7 @@ export default function Home() {
       );
       setSelectedId(session.adventureId);
       setActiveQuestId(session.questId ?? null);
+      setFocusIntent(session.focusIntent ?? "");
       setBgm(session.bgm);
       setSessionMode(session.mode);
       setSessionDurationMinutes(session.durationMinutes);
@@ -586,6 +610,7 @@ export default function Home() {
               durationMinutes: session.durationMinutes,
               adventureId: session.adventureId,
               questId: session.questId,
+              focusIntent: session.focusIntent,
               completedAt,
             }),
             id: `${session.startedAt}-${session.adventureId}`,
@@ -657,6 +682,14 @@ export default function Home() {
   }, [bgm, breakMinutes, focusMinutes, hydrated, selectedId, soundOn]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(
+      FOCUS_INTENT_KEY,
+      normalizeFocusIntent(focusIntent),
+    );
+  }, [focusIntent, hydrated]);
+
+  useEffect(() => {
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
@@ -723,6 +756,7 @@ export default function Home() {
           durationMinutes: session.durationMinutes,
           adventureId: session.adventureId,
           questId: session.questId,
+          focusIntent: session.focusIntent,
           completedAt: new Date(),
         }),
         id: `${session.startedAt}-${session.adventureId}`,
@@ -788,35 +822,44 @@ export default function Home() {
   useEffect(() => () => stopAudio(), [stopAudio]);
 
   const chooseAdventure = (id: AdventureId) => {
-    persistSession(null);
     setActiveQuestId(null);
     setSelectedId(id);
-    const defaultBgm: Record<AdventureId, BgmId> = {
-      hike: "forest",
-      swim: "waves",
-      fish: "lake",
-    };
-    setBgm(defaultBgm[id]);
+    setBgm(adventureBgms[id]);
     setSessionMode("focus");
     setSessionDurationMinutes(focusMinutes);
     setRemaining(focusMinutes * 60);
-    setScreen("setup");
   };
 
-  const beginSession = (mode: SessionMode) => {
-    const durationMinutes = mode === "focus" ? focusMinutes : breakMinutes;
+  const beginSession = (
+    mode: SessionMode,
+    options?: { durationMinutes?: number; questId?: string | null },
+  ) => {
+    const durationMinutes =
+      options?.durationMinutes ??
+      (mode === "focus" ? focusMinutes : breakMinutes);
     const seconds = durationMinutes * 60;
     const theme = mode === "focus" ? bgm : "quiet";
+    const intent =
+      mode === "focus"
+        ? normalizeFocusIntent(focusIntent) || "자유 집중"
+        : undefined;
+    const sessionQuestId =
+      options?.questId === undefined ? activeQuestId : options.questId;
     const session = createActiveSession({
       mode,
       durationMinutes,
       adventureId: selectedId,
       bgm: theme,
-      questId: activeQuestId ?? undefined,
+      questId: sessionQuestId ?? undefined,
+      focusIntent: intent,
     });
 
     completionLockRef.current = false;
     setIsCelebrating(false);
+    if (mode === "focus") {
+      setFocusMinutes(durationMinutes);
+      setFocusIntent(intent ?? "");
+    }
     persistSession(session);
     setSessionMode(mode);
     setSessionDurationMinutes(durationMinutes);
@@ -830,19 +873,19 @@ export default function Home() {
 
   const beginFocus = () => beginSession("focus");
   const beginBreak = () => beginSession("break");
+  const beginQuickFocus = (durationMinutes: number) => {
+    setActiveQuestId(null);
+    beginSession("focus", { durationMinutes, questId: null });
+  };
 
   const launchQuest = async (quest: StudyQuest) => {
     const started = await questStore.startQuest(quest.id);
     if (!started) return;
-    const defaultBgm: Record<AdventureId, BgmId> = {
-      hike: "forest",
-      swim: "waves",
-      fish: "lake",
-    };
     persistSession(null);
     setActiveQuestId(quest.id);
+    setFocusIntent(quest.title);
     setSelectedId(quest.adventureId);
-    setBgm(defaultBgm[quest.adventureId]);
+    setBgm(adventureBgms[quest.adventureId]);
     setFocusMinutes(quest.focusMinutes);
     setBreakMinutes(quest.breakMinutes);
     setSessionMode("focus");
@@ -884,6 +927,7 @@ export default function Home() {
   };
 
   const exitSession = () => {
+    const returnScreen: Screen = sessionMode === "focus" ? "select" : "setup";
     stopAudio();
     persistSession(null);
     setShowExit(false);
@@ -893,7 +937,7 @@ export default function Home() {
     setSessionMode("focus");
     setSessionDurationMinutes(focusMinutes);
     setRemaining(focusMinutes * 60);
-    setScreen("setup");
+    setScreen(returnScreen);
     leaveFullscreen();
   };
 
@@ -986,53 +1030,126 @@ export default function Home() {
 
       {screen === "select" && (
         <section className="select-screen">
-          <div className="intro-copy">
-            <span className="eyebrow">오늘의 집중 친구</span>
-            <h1>
-              누구와 함께
-              <br />
-              모험을 떠날까요?
-            </h1>
-            <p>집중하는 동안 작은 친구의 하루가 한 칸씩 앞으로 나아가요.</p>
-          </div>
+          <section className="quick-start-hero" aria-labelledby="quick-start-title">
+            <div className="quick-start-copy">
+              <span className="eyebrow">오늘의 한 가지</span>
+              <h1 id="quick-start-title">
+                지금 끝낼 일을 적고
+                <br />
+                바로 출발해요.
+              </h1>
+              <p>
+                복잡한 계획은 잠시 내려두고, 이번 모험에서 집중할 한 가지만
+                정해 보세요.
+              </p>
 
-          <div className="starter-grid">
-            {adventures.map((adventure, index) => (
-              <article
-                className="starter-card"
-                style={
-                  {
-                    "--card-accent": adventure.color,
-                    "--card-soft": adventure.soft,
-                    "--delay": `${index * 90}ms`,
-                  } as React.CSSProperties
-                }
-                key={adventure.id}
+              <label className="focus-intent-field">
+                <span>이번에 집중할 일</span>
+                <input
+                  autoComplete="off"
+                  maxLength={80}
+                  onChange={(event) => setFocusIntent(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+                      event.preventDefault();
+                      beginQuickFocus(25);
+                    }
+                  }}
+                  placeholder="예: 운영체제 3장 복습"
+                  value={focusIntent}
+                />
+                <small>
+                  비워도 괜찮아요. 그럴 땐 자유 집중으로 기록할게요.
+                </small>
+              </label>
+
+              <div className="quick-focus-options" aria-label="빠른 집중 시간">
+                {quickFocusOptions.map((option) => (
+                  <button
+                    key={option.minutes}
+                    onClick={() => beginQuickFocus(option.minutes)}
+                    type="button"
+                  >
+                    <span>{option.label}</span>
+                    <strong>{option.minutes}분 시작</strong>
+                    <small>{option.note}</small>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                className="detail-settings-button"
+                onClick={() => {
+                  setActiveQuestId(null);
+                  setScreen("setup");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                type="button"
               >
-                <button type="button" onClick={() => chooseAdventure(adventure.id)} aria-label={`${adventure.friend}와 ${adventure.name} 선택`}>
-                  <div className="card-number">0{index + 1}</div>
-                  <div className="character-stage">
-                    <div className="stage-orbit" />
-                    <img src={adventure.image} alt={`${adventure.name} 친구 ${adventure.friend}`} />
-                  </div>
-                  <div className="card-copy">
-                    <span className="adventure-icon">{adventure.icon}</span>
-                    <div>
-                      <span className="friend-name">{adventure.friend}</span>
-                      <h2>{adventure.name}</h2>
-                      <p>{adventure.tagline}</p>
-                    </div>
-                    <span className="pick-arrow">→</span>
-                  </div>
-                </button>
-              </article>
-            ))}
-          </div>
+                시간·휴식·집중 소리 자세히 설정
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
 
-          <div className="select-note">
-            <span>FULL SCREEN FOCUS</span>
+            <aside
+              className={`quick-companion theme-${selected.id}`}
+              style={
+                {
+                  "--companion-accent": selected.color,
+                  "--companion-soft": selected.soft,
+                } as React.CSSProperties
+              }
+              aria-label={`현재 모험 친구 ${selected.friend}`}
+            >
+              <div className="quick-companion-status">
+                <span>READY</span>
+                <i />
+                지난 모험 이어가기
+              </div>
+              <div className="quick-companion-stage">
+                <div className="companion-pixel-sun" />
+                <div className="companion-route" />
+                <img
+                  src={selected.image}
+                  alt={`${selected.name} 친구 ${selected.friend}`}
+                />
+              </div>
+              <div className="quick-companion-copy">
+                <span>{selected.icon} 오늘의 동행</span>
+                <h2>{selected.friend}와 {selected.name}</h2>
+                <p>
+                  {selected.tagline} ·{" "}
+                  {bgms.find((item) => item.id === bgm)?.name ?? "고요히"}
+                </p>
+              </div>
+
+              <details className="adventure-switcher">
+                <summary>모험 친구 바꾸기</summary>
+                <div className="adventure-options">
+                  {adventures.map((adventure) => (
+                    <button
+                      aria-pressed={selectedId === adventure.id}
+                      className={selectedId === adventure.id ? "is-active" : ""}
+                      key={adventure.id}
+                      onClick={() => chooseAdventure(adventure.id)}
+                      type="button"
+                    >
+                      <img src={adventure.image} alt="" />
+                      <span>
+                        <strong>{adventure.friend}</strong>
+                        <small>{adventure.name}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </details>
+            </aside>
+          </section>
+
+          <div className="select-note quick-start-note">
+            <span>ONE TASK · ONE ADVENTURE</span>
             <i />
-            <p>알림 대신 모험을 바라보는 부드러운 집중</p>
+            <p>{selected.friend}가 준비됐어요. 시간만 고르면 바로 시작해요.</p>
           </div>
 
           {(installPrompt || showIosInstallHint) && (
@@ -1132,8 +1249,9 @@ export default function Home() {
                       <li key={record.id}>
                         <span>{adventure.icon}</span>
                         <div>
-                          <strong>{adventure.name}</strong>
+                          <strong>{record.focusIntent || adventure.name}</strong>
                           <small>
+                            {record.focusIntent ? `${adventure.name} · ` : ""}
                             {completedAt.toLocaleDateString("ko-KR", {
                               month: "short",
                               day: "numeric",
@@ -1154,7 +1272,7 @@ export default function Home() {
       {screen === "setup" && (
         <section className="setup-screen">
           <button className="back-button" type="button" onClick={() => setScreen("select")}>
-            ← 다른 친구 고르기
+            ← 오늘의 한 가지로
           </button>
 
           <div className="setup-layout">
@@ -1176,6 +1294,18 @@ export default function Home() {
                 <span className="eyebrow">모험 준비</span>
                 <h1>나만의 집중 시간을 만들어요.</h1>
               </div>
+
+              <label className="setup-intent-field">
+                <span>이번에 집중할 일</span>
+                <input
+                  autoComplete="off"
+                  maxLength={80}
+                  onChange={(event) => setFocusIntent(event.target.value)}
+                  placeholder="예: 운영체제 3장 복습"
+                  value={focusIntent}
+                />
+                <small>완료 기록에서 무엇에 집중했는지 바로 확인할 수 있어요.</small>
+              </label>
 
               <fieldset>
                 <legend>
@@ -1361,7 +1491,12 @@ export default function Home() {
           </div>
 
           <div className="timer-card">
-            <span>
+            {sessionMode === "focus" && (
+              <span className="active-focus-intent">
+                {focusIntent || "자유 집중"}
+              </span>
+            )}
+            <span className="timer-adventure-label">
               {sessionMode === "focus" ? selected.name : "모닥불 옆 휴식"}
             </span>
             <strong>{formatTime(remaining)}</strong>
@@ -1456,6 +1591,11 @@ export default function Home() {
                 ? `${selected.friend}와 한 칸 완성!`
                 : "충전 완료, 다시 출발!"}
             </h1>
+            {completionMode === "focus" && (
+              <strong className="completed-focus-intent">
+                “{focusIntent || "자유 집중"}”
+              </strong>
+            )}
             <p>
               {completionMode === "focus"
                 ? `${sessionDurationMinutes}분 동안 온전히 집중했어요. 정말 멋진 모험이었어요.`
@@ -1509,7 +1649,7 @@ export default function Home() {
                 setScreen(completionMode === "focus" ? "select" : "setup");
               }}
             >
-              {completionMode === "focus" ? "새 모험 고르기" : "시간 다시 설정하기"}
+              {completionMode === "focus" ? "홈으로 돌아가기" : "시간 다시 설정하기"}
             </button>
           </div>
         </section>

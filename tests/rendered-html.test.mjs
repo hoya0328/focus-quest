@@ -32,10 +32,12 @@ test("server-renders the adventure focus app", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>Focus Quest \| 픽셀 모험 집중 타이머<\/title>/);
-  assert.match(html, /누구와 함께/);
-  assert.match(html, /모모와 구름산 등산 선택/);
-  assert.match(html, /포도와 산호빛 수영 선택/);
-  assert.match(html, /보리와 별빛 낚시 선택/);
+  assert.match(html, /오늘의 한 가지/);
+  assert.match(html, /지금 끝낼 일을 적고/);
+  assert.match(html, /10분 시작/);
+  assert.match(html, /25분 시작/);
+  assert.match(html, /45분 시작/);
+  assert.match(html, /모험 친구 바꾸기/);
   assert.match(html, /이번 주의 발자국/);
   assert.match(html, /집중 모험 기록/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/);
