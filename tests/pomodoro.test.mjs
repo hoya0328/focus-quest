@@ -7,6 +7,7 @@ import {
   createFocusRecord,
   getDailyCount,
   getWeeklySummary,
+  normalizeFocusIntent,
   parseActiveSession,
   parseHistory,
   pauseActiveSession,
@@ -21,6 +22,7 @@ test("a running focus session survives reload with the correct remaining time", 
     durationMinutes: 25,
     adventureId: "hike",
     bgm: "forest",
+    focusIntent: "  운영체제   3장 복습  ",
     now: startedAt,
   });
 
@@ -33,6 +35,7 @@ test("a running focus session survives reload with the correct remaining time", 
   assert.equal(restored.expired, false);
   assert.equal(restored.remainingSeconds, 21 * 60);
   assert.equal(restored.session.mode, "focus");
+  assert.equal(restored.session.focusIntent, "운영체제 3장 복습");
 });
 
 test("pause and resume preserve the remaining duration", () => {
@@ -75,6 +78,7 @@ test("focus records are deduplicated and summarized by week", () => {
     ...createFocusRecord({
       durationMinutes: 25,
       adventureId: "hike",
+      focusIntent: "운영체제 3장 복습",
       completedAt: new Date("2026-07-20T12:00:00.000Z"),
     }),
     id: "focus-1",
@@ -97,12 +101,36 @@ test("focus records are deduplicated and summarized by week", () => {
   );
 
   assert.equal(history.length, 2);
+  assert.equal(parseHistory(JSON.stringify(history))[0].focusIntent, undefined);
+  assert.equal(
+    parseHistory(JSON.stringify(history))[1].focusIntent,
+    "운영체제 3장 복습",
+  );
   assert.equal(summary.minutes, 65);
   assert.equal(summary.sessions, 2);
   assert.equal(summary.activeDays, 2);
   assert.equal(
     getDailyCount(history, new Date("2026-07-20T12:30:00.000Z")),
     1,
+  );
+});
+
+test("focus intent is normalized and bounded for safe persistence", () => {
+  assert.equal(normalizeFocusIntent("  자료구조   복습  "), "자료구조 복습");
+  assert.equal(normalizeFocusIntent("가".repeat(100)).length, 80);
+  assert.deepEqual(
+    parseHistory(
+      JSON.stringify([
+        {
+          id: "bad-intent",
+          completedAt: "2026-07-20T12:00:00.000Z",
+          durationMinutes: 10,
+          adventureId: "hike",
+          focusIntent: "  정리되지 않은 목표  ",
+        },
+      ]),
+    ),
+    [],
   );
 });
 
