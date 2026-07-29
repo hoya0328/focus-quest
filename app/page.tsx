@@ -63,11 +63,14 @@ type FullscreenElement = HTMLElement & {
 
 type Adventure = {
   id: AdventureId;
+  chapter: string;
   name: string;
   friend: string;
+  role: string;
   tagline: string;
   description: string;
   image: string;
+  background: string;
   color: string;
   soft: string;
   icon: string;
@@ -76,33 +79,45 @@ type Adventure = {
 const adventures: Adventure[] = [
   {
     id: "hike",
-    name: "구름산 등산",
-    friend: "모모",
-    tagline: "한 걸음씩 정상까지",
-    description: "숲길을 지나 노을빛 정상에 도착해요.",
+    chapter: "ROUTE 01",
+    name: "해오름 봉우리",
+    friend: "모리",
+    role: "씩씩한 산길잡이",
+    tagline: "노을숲 능선을 올라 정상에 깃발을 세워요.",
+    description:
+      "한 걸음씩 오를수록 숲이 걷히고, 마지막엔 바람 부는 정상에서 깃발이 펼쳐져요.",
     image: `${publicBasePath}/characters/momo-hiking.png`,
+    background: `${publicBasePath}/backgrounds/hike-pixel-summit-v1.png`,
     color: "#f0b13e",
     soft: "#173d37",
     icon: "⛰",
   },
   {
     id: "swim",
-    name: "산호빛 수영",
-    friend: "포도",
-    tagline: "물결을 따라 첨벙첨벙",
-    description: "맑은 바다를 건너 작은 섬을 찾아가요.",
+    chapter: "DIVE 02",
+    name: "유리산호 유적",
+    friend: "나루",
+    role: "호기심 많은 유적 잠수부",
+    tagline: "산호길 끝의 오래된 보물상자를 깨워요.",
+    description:
+      "햇빛이 스미는 해저 유적을 건너면, 잠들어 있던 보물상자가 황금빛으로 열려요.",
     image: `${publicBasePath}/characters/podo-swimming.png`,
+    background: `${publicBasePath}/backgrounds/swim-pixel-depth.png`,
     color: "#36c4ce",
     soft: "#103b50",
     icon: "≈",
   },
   {
     id: "fish",
-    name: "별빛 낚시",
+    chapter: "CAST 03",
+    name: "달비늘 호수",
     friend: "보리",
-    tagline: "기다림도 멋진 모험",
-    description: "잔잔한 호숫가에서 별 물고기를 기다려요.",
+    role: "느긋한 전설 낚시꾼",
+    tagline: "달빛 부두에서 전설의 황금 잉어를 기다려요.",
+    description:
+      "잔잔한 수면에 낚싯줄을 드리우고 기다리면, 마지막엔 황금 잉어가 힘차게 뛰어올라요.",
     image: `${publicBasePath}/characters/bori-fishing.png`,
+    background: `${publicBasePath}/backgrounds/fish-pixel-lake-v1.png`,
     color: "#ef8b47",
     soft: "#204847",
     icon: "◌",
@@ -949,7 +964,15 @@ export default function Home() {
   };
 
   return (
-    <main className={`app-shell screen-${screen}`} style={{ "--accent": selected.color } as React.CSSProperties}>
+    <main
+      className={`app-shell screen-${screen}`}
+      style={
+        {
+          "--accent": selected.color,
+          "--page-bg": `url("${selected.background}")`,
+        } as React.CSSProperties
+      }
+    >
       {screen !== "focus" && (
         <header className="topbar">
           <button className="brand" type="button" onClick={() => setScreen("select")} aria-label="Focus Quest 홈">
@@ -1097,6 +1120,7 @@ export default function Home() {
                 {
                   "--companion-accent": selected.color,
                   "--companion-soft": selected.soft,
+                  "--companion-bg": `url("${selected.background}")`,
                 } as React.CSSProperties
               }
               aria-label={`현재 모험 친구 ${selected.friend}`}
@@ -1104,45 +1128,59 @@ export default function Home() {
               <div className="quick-companion-status">
                 <span>READY</span>
                 <i />
-                지난 모험 이어가기
+                {selected.chapter} · 모험 준비 완료
               </div>
               <div className="quick-companion-stage">
-                <div className="companion-pixel-sun" />
-                <div className="companion-route" />
+                <div className="companion-stage-hud">
+                  <span>현재 지역</span>
+                  <strong>{selected.name}</strong>
+                </div>
                 <img
                   src={selected.image}
-                  alt={`${selected.name} 친구 ${selected.friend}`}
+                  alt={`${selected.name}의 ${selected.role} ${selected.friend}`}
                 />
               </div>
               <div className="quick-companion-copy">
-                <span>{selected.icon} 오늘의 동행</span>
-                <h2>{selected.friend}와 {selected.name}</h2>
+                <span>{selected.icon} {selected.role}</span>
+                <h2>{selected.friend} · {selected.name}</h2>
                 <p>
                   {selected.tagline} ·{" "}
                   {bgms.find((item) => item.id === bgm)?.name ?? "고요히"}
                 </p>
+                <small>{selected.description}</small>
               </div>
 
-              <details className="adventure-switcher">
-                <summary>모험 친구 바꾸기</summary>
+              <div className="adventure-switcher" aria-label="모험 지역 선택">
+                <div className="adventure-switcher-heading">
+                  <strong>모험 지도</strong>
+                  <span>지역을 고르면 동행과 소리가 함께 바뀌어요</span>
+                </div>
                 <div className="adventure-options">
                   {adventures.map((adventure) => (
                     <button
                       aria-pressed={selectedId === adventure.id}
-                      className={selectedId === adventure.id ? "is-active" : ""}
+                      className={`adventure-option option-${adventure.id} ${
+                        selectedId === adventure.id ? "is-active" : ""
+                      }`}
                       key={adventure.id}
                       onClick={() => chooseAdventure(adventure.id)}
+                      style={
+                        {
+                          "--option-accent": adventure.color,
+                        } as React.CSSProperties
+                      }
                       type="button"
                     >
                       <img src={adventure.image} alt="" />
                       <span>
-                        <strong>{adventure.friend}</strong>
-                        <small>{adventure.name}</small>
+                        <small>{adventure.chapter}</small>
+                        <strong>{adventure.name}</strong>
+                        <em>{adventure.friend} · {adventure.role}</em>
                       </span>
                     </button>
                   ))}
                 </div>
-              </details>
+              </div>
             </aside>
           </section>
 

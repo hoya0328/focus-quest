@@ -368,9 +368,9 @@ export default function PdfQuestBuilder({
                     <label>
                       모험
                       <select value={quest.adventureId} onChange={(event) => updateQuest(index, { adventureId: event.target.value as PdfQuestSuggestion["adventureId"] })}>
-                        <option value="hike">등산</option>
-                        <option value="swim">수영</option>
-                        <option value="fish">낚시</option>
+                        <option value="hike">해오름 봉우리 · 등산</option>
+                        <option value="swim">유리산호 유적 · 수영</option>
+                        <option value="fish">달비늘 호수 · 낚시</option>
                       </select>
                     </label>
                   </div>

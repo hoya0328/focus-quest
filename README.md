@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./public/characters/momo-hiking.png" width="190" alt="등산 친구 모모" />
+  <img src="./public/characters/momo-hiking.png" width="190" alt="해오름 봉우리의 산길잡이 모리" />
 
   # Focus Quest
 
@@ -36,7 +36,7 @@
 
 ## 핵심 경험
 
-- **모험 친구 선택** — 모모, 포도, 보리 중 오늘의 파트너 선택
+- **모험 친구 선택** — 모리, 나루, 보리와 세 지역 중 오늘의 여정 선택
 - **나만의 포모도로** — 1~120분 집중 및 1~30분 휴식 설정
 - **전체 화면 집중** — 진행률에 따라 움직이는 픽셀 캐릭터와 배경
 - **저작권 걱정 없는 사운드** — 브라우저가 실시간 생성하는 앰비언트 BGM
@@ -46,10 +46,10 @@
 
 ## 캐릭터
 
-| 모모 | 포도 | 보리 |
+| 모리 | 나루 | 보리 |
 |---|---|---|
-| <img src="./public/characters/momo-hiking.png" width="180" alt="모모" /> | <img src="./public/characters/podo-swimming.png" width="180" alt="포도" /> | <img src="./public/characters/bori-fishing.png" width="180" alt="보리" /> |
-| 구름산 등산 | 산호빛 수영 | 별빛 낚시 |
+| <img src="./public/characters/momo-hiking.png" width="180" alt="산길잡이 모리" /> | <img src="./public/characters/podo-swimming.png" width="180" alt="유적 잠수부 나루" /> | <img src="./public/characters/bori-fishing.png" width="180" alt="전설 낚시꾼 보리" /> |
+| 해오름 봉우리 | 유리산호 유적 | 달비늘 호수 |
 
 캐릭터와 UI는 기존 게임 에셋을 복제하지 않고 독자적인 고해상도 레트로 픽셀 아트로 제작했습니다.
 
