@@ -2028,7 +2028,7 @@ export default function Home() {
                   : `${selected.friend}와 회복 중`}
             </div>
             <div className="focus-actions">
-              {miniTimerSupported && (
+              {miniTimerSupported && sessionMode === "focus" && (
                 <button type="button" onClick={() => void openMiniTimer()} aria-label="작은 타이머 열기">
                   ▣
                 </button>
