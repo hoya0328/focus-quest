@@ -84,6 +84,26 @@ test("cloud merge deduplicates sessions and keeps the newest records first", () 
   assert.equal(merged.preferences.selectedId, "fish");
 });
 
+test("cloud merge preserves a camp outcome added after session completion", () => {
+  const baseRecord = {
+    id: "camp-session",
+    completedAt: "2026-08-11T12:00:00.000Z",
+    durationMinutes: 25,
+    adventureId: "hike",
+  };
+  const local = state([{ ...baseRecord, campOutcome: "finished" }]);
+  const cloud = state([baseRecord]);
+
+  assert.equal(
+    mergeCloudStates(local, cloud).history[0].campOutcome,
+    "finished",
+  );
+  assert.equal(
+    mergeCloudStates(state([baseRecord]), local).history[0].campOutcome,
+    "finished",
+  );
+});
+
 test("the most recently changed active-session state wins across devices", () => {
   const session = {
     version: 1,

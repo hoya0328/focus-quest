@@ -1,6 +1,7 @@
 export type SessionMode = "focus" | "break";
 export type AdventureId = "hike" | "swim" | "fish";
 export type BgmId = "forest" | "waves" | "lake" | "quiet";
+export type CampOutcome = "finished" | "unfinished" | "split";
 
 export type ActiveSession = {
   version: 1;
@@ -23,6 +24,7 @@ export type FocusRecord = {
   adventureId: AdventureId;
   questId?: string;
   focusIntent?: string;
+  campOutcome?: CampOutcome;
 };
 
 export type WeeklyDay = {
@@ -47,6 +49,11 @@ export const MAX_FOCUS_INTENT_LENGTH = 80;
 const adventureIds = new Set<AdventureId>(["hike", "swim", "fish"]);
 const bgmIds = new Set<BgmId>(["forest", "waves", "lake", "quiet"]);
 const modes = new Set<SessionMode>(["focus", "break"]);
+const campOutcomes = new Set<CampOutcome>([
+  "finished",
+  "unfinished",
+  "split",
+]);
 const dayLabels = ["일", "월", "화", "수", "목", "금", "토"];
 
 function isFinitePositive(value: unknown): value is number {
@@ -189,7 +196,9 @@ export function parseHistory(raw: string | null): FocusRecord[] {
           (record.focusIntent === undefined ||
             (typeof record.focusIntent === "string" &&
               normalizeFocusIntent(record.focusIntent) === record.focusIntent &&
-              record.focusIntent.length > 0)),
+              record.focusIntent.length > 0)) &&
+          (record.campOutcome === undefined ||
+            campOutcomes.has(record.campOutcome)),
       )
       .slice(0, MAX_HISTORY_RECORDS);
   } catch {
@@ -228,6 +237,16 @@ export function addFocusRecord(
 ) {
   if (history.some((item) => item.id === record.id)) return history;
   return [record, ...history].slice(0, MAX_HISTORY_RECORDS);
+}
+
+export function addCampOutcome(
+  history: FocusRecord[],
+  recordId: string,
+  campOutcome: CampOutcome,
+) {
+  return history.map((record) =>
+    record.id === recordId ? { ...record, campOutcome } : record,
+  );
 }
 
 export function getDailyCount(

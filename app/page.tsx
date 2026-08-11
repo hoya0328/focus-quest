@@ -19,6 +19,7 @@ import {
 import {
   ACTIVE_SESSION_KEY,
   HISTORY_KEY,
+  addCampOutcome,
   addFocusRecord,
   createActiveSession,
   createFocusRecord,
@@ -32,6 +33,7 @@ import {
   type ActiveSession,
   type AdventureId,
   type BgmId,
+  type CampOutcome,
   type FocusRecord,
   type SessionMode,
 } from "@/lib/pomodoro";
@@ -308,6 +310,9 @@ export default function Home() {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
   const [focusIntent, setFocusIntent] = useState("");
+  const [campOutcome, setCampOutcome] = useState<CampOutcome | null>(null);
+  const [completedRecordId, setCompletedRecordId] = useState<string | null>(null);
+  const [completedQuestId, setCompletedQuestId] = useState<string | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const activeSessionRef = useRef<ActiveSession | null>(null);
   const completionLockRef = useRef(false);
@@ -422,6 +427,9 @@ export default function Home() {
             id: `${session.startedAt}-${session.adventureId}`,
           };
           nextHistory = addFocusRecord(nextHistory, record);
+          setCompletedRecordId(record.id);
+          setCompletedQuestId(session.questId ?? null);
+          setCampOutcome(record.campOutcome ?? null);
           setHistory(nextHistory);
           setCompletedToday(getDailyCount(nextHistory));
           window.localStorage.setItem(
@@ -474,6 +482,12 @@ export default function Home() {
         (record) => record.id === completedId,
       );
       if (completedElsewhere) {
+        const completedRecord = data.history.find(
+          (record) => record.id === completedId,
+        );
+        setCompletedRecordId(completedId);
+        setCompletedQuestId(previousSession.questId ?? null);
+        setCampOutcome(completedRecord?.campOutcome ?? null);
         setCompletionMode(previousSession.mode);
         setRemaining(0);
         setScreen("complete");
@@ -631,6 +645,9 @@ export default function Home() {
             id: `${session.startedAt}-${session.adventureId}`,
           };
           loadedHistory = addFocusRecord(loadedHistory, record);
+          setCompletedRecordId(record.id);
+          setCompletedQuestId(session.questId ?? null);
+          setCampOutcome(record.campOutcome ?? null);
           setHistory(loadedHistory);
           setCompletedToday(getDailyCount(loadedHistory));
           window.localStorage.setItem(
@@ -776,6 +793,9 @@ export default function Home() {
         }),
         id: `${session.startedAt}-${session.adventureId}`,
       };
+      setCompletedRecordId(record.id);
+      setCompletedQuestId(session.questId ?? null);
+      setCampOutcome(null);
 
       setHistory((current) => {
         const nextHistory = addFocusRecord(current, record);
@@ -847,7 +867,12 @@ export default function Home() {
 
   const beginSession = (
     mode: SessionMode,
-    options?: { durationMinutes?: number; questId?: string | null },
+    options?: {
+      durationMinutes?: number;
+      questId?: string | null;
+      focusIntent?: string;
+      updateFocusPreference?: boolean;
+    },
   ) => {
     const durationMinutes =
       options?.durationMinutes ??
@@ -856,7 +881,7 @@ export default function Home() {
     const theme = mode === "focus" ? bgm : "quiet";
     const intent =
       mode === "focus"
-        ? normalizeFocusIntent(focusIntent) || "자유 집중"
+        ? normalizeFocusIntent(options?.focusIntent ?? focusIntent) || "자유 집중"
         : undefined;
     const sessionQuestId =
       options?.questId === undefined ? activeQuestId : options.questId;
@@ -871,10 +896,11 @@ export default function Home() {
 
     completionLockRef.current = false;
     setIsCelebrating(false);
-    if (mode === "focus") {
+    if (mode === "focus" && options?.updateFocusPreference !== false) {
       setFocusMinutes(durationMinutes);
-      setFocusIntent(intent ?? "");
     }
+    if (mode === "focus") setFocusIntent(intent ?? "");
+    setCampOutcome(null);
     persistSession(session);
     setSessionMode(mode);
     setSessionDurationMinutes(durationMinutes);
@@ -891,6 +917,28 @@ export default function Home() {
   const beginQuickFocus = (durationMinutes: number) => {
     setActiveQuestId(null);
     beginSession("focus", { durationMinutes, questId: null });
+  };
+
+  const recordCampOutcome = (outcome: CampOutcome) => {
+    setCampOutcome(outcome);
+    if (!completedRecordId) return;
+    setHistory((current) => {
+      const nextHistory = addCampOutcome(current, completedRecordId, outcome);
+      window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHistory));
+      return nextHistory;
+    });
+  };
+
+  const beginCampFollowUp = (durationMinutes: number, split = false) => {
+    const nextIntent = split
+      ? normalizeFocusIntent(`${focusIntent || "자유 집중"} · 작은 한 조각`)
+      : focusIntent;
+    beginSession("focus", {
+      durationMinutes,
+      questId: completedQuestId,
+      focusIntent: nextIntent,
+      updateFocusPreference: false,
+    });
   };
 
   const launchQuest = async (quest: StudyQuest) => {
@@ -1295,6 +1343,9 @@ export default function Home() {
                               day: "numeric",
                             })}{" "}
                             · {record.durationMinutes}분
+                            {record.campOutcome === "finished" && " · 완주"}
+                            {record.campOutcome === "unfinished" && " · 조금 남음"}
+                            {record.campOutcome === "split" && " · 나눠서 계속"}
                           </small>
                         </div>
                       </li>
@@ -1667,18 +1718,77 @@ export default function Home() {
                 </span>
               </div>
             </div>
-            <button
-              className="primary-button"
-              type="button"
-              onClick={completionMode === "focus" ? beginBreak : beginFocus}
-            >
-              <span>
-                {completionMode === "focus"
-                  ? `${breakMinutes}분 쉬어가기`
-                  : `${focusMinutes}분 집중 시작`}
-              </span>
-              <strong>→</strong>
-            </button>
+            {completionMode === "focus" ? (
+              <div className="camp-log" aria-labelledby="camp-log-title">
+                <div className="camp-log-heading">
+                  <span>CAMP LOG</span>
+                  <h2 id="camp-log-title">오늘의 목표는 어디까지 왔나요?</h2>
+                  <p>한 번만 고르면, 다음 걸음을 바로 준비해 드려요.</p>
+                </div>
+                <div className="camp-log-choices" role="group" aria-label="집중 결과 선택">
+                  <button
+                    aria-pressed={campOutcome === "finished"}
+                    className={campOutcome === "finished" ? "is-selected" : ""}
+                    onClick={() => recordCampOutcome("finished")}
+                    type="button"
+                  >
+                    <span>✓</span>
+                    <strong>끝냈어요</strong>
+                    <small>이제 편하게 쉬어요</small>
+                  </button>
+                  <button
+                    aria-pressed={campOutcome === "unfinished"}
+                    className={campOutcome === "unfinished" ? "is-selected" : ""}
+                    onClick={() => recordCampOutcome("unfinished")}
+                    type="button"
+                  >
+                    <span>＋</span>
+                    <strong>조금 남았어요</strong>
+                    <small>10분만 더 이어가요</small>
+                  </button>
+                  <button
+                    aria-pressed={campOutcome === "split"}
+                    className={campOutcome === "split" ? "is-selected" : ""}
+                    onClick={() => recordCampOutcome("split")}
+                    type="button"
+                  >
+                    <span>◇</span>
+                    <strong>더 작게 나눌래요</strong>
+                    <small>작은 퀘스트로 바꿔요</small>
+                  </button>
+                </div>
+                {campOutcome && (
+                  <div className="camp-log-next" aria-live="polite">
+                    <p>
+                      {campOutcome === "finished" && "오늘의 한 칸을 잘 닫았어요. 모닥불 옆에서 숨을 돌려요."}
+                      {campOutcome === "unfinished" && "흐름이 남아 있을 때 10분만 더 가볍게 이어가요."}
+                      {campOutcome === "split" && "부담을 낮췄어요. 지금 할 수 있는 한 조각만 골라 출발해요."}
+                    </p>
+                    {campOutcome === "finished" && (
+                      <button className="primary-button" type="button" onClick={beginBreak}>
+                        <span>{breakMinutes}분 쉬어가기</span><strong>→</strong>
+                      </button>
+                    )}
+                    {campOutcome === "unfinished" && (
+                      <button className="primary-button" type="button" onClick={() => beginCampFollowUp(10)}>
+                        <span>같은 목표로 10분 더</span><strong>→</strong>
+                      </button>
+                    )}
+                    {campOutcome === "split" && (
+                      <div className="mini-quest-actions">
+                        <button type="button" onClick={() => beginCampFollowUp(5, true)}>5분 미니 퀘스트</button>
+                        <button type="button" onClick={() => beginCampFollowUp(10, true)}>10분 미니 퀘스트</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button className="primary-button" type="button" onClick={beginFocus}>
+                <span>{focusMinutes}분 집중 시작</span>
+                <strong>→</strong>
+              </button>
+            )}
             <button
               className="text-button"
               type="button"
