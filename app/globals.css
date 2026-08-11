@@ -9,6 +9,410 @@
   --accent: #3f795e;
 }
 
+/* Repeat-use system: expeditions, recovery, memory and lightweight insights. */
+.companion-memory {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--companion-accent);
+  background: rgba(3, 16, 27, 0.58);
+}
+
+.companion-memory span {
+  color: var(--companion-accent);
+  font: 900 9px "Courier New", "Malgun Gothic", monospace;
+  letter-spacing: 0.1em;
+}
+
+.quick-companion-copy .companion-memory p {
+  margin: 3px 0 0;
+  color: #d8e3d9;
+  font-size: 11px;
+}
+
+.recovery-card {
+  width: min(1120px, calc(100% - 40px));
+  margin: 24px auto 0;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border: 3px solid #e49c45;
+  background: linear-gradient(90deg, #3b2630, #0b2a3b 72%);
+  box-shadow: 6px 6px 0 #03101b;
+}
+
+.recovery-card span {
+  color: #f4b858;
+  font: 900 10px "Courier New", monospace;
+  letter-spacing: 0.12em;
+}
+
+.recovery-card h2 {
+  margin: 5px 0;
+  color: #fff0c4;
+  font-size: clamp(18px, 2vw, 25px);
+}
+
+.recovery-card p {
+  margin: 0;
+  color: #a9c4bd;
+  font-size: 12px;
+}
+
+.recovery-card button,
+.restart-adventure {
+  min-height: 44px;
+  border: 2px solid #ffd178;
+  border-radius: 2px;
+  background: #ef913d;
+  color: #071522;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.recovery-card button {
+  flex: 0 0 auto;
+  padding: 0 18px;
+  box-shadow: 4px 4px 0 #020a12;
+}
+
+.silent-camp {
+  width: min(1120px, calc(100% - 40px));
+  margin: 36px auto 0;
+  padding: 22px 24px;
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 20px 28px;
+  border: 3px solid #3c707a;
+  background: linear-gradient(135deg, #0b2939, #102d43);
+  box-shadow: 6px 6px 0 #03101b;
+}
+
+.silent-camp > div:first-child > span {
+  color: #55ccd2;
+  font: 900 10px "Courier New", monospace;
+  letter-spacing: 0.12em;
+}
+
+.silent-camp h2 {
+  margin: 5px 0;
+  color: #fff0c4;
+  font-size: 23px;
+}
+
+.silent-camp p {
+  margin: 0;
+  color: #9eb8b2;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.silent-camp-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.silent-camp-controls label {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 2px solid #315765;
+  color: #8fb0ae;
+  font-size: 10px;
+}
+
+.silent-camp-controls input {
+  min-width: 150px;
+  border: 0;
+  background: transparent;
+  color: #ffe1a0;
+  font: 900 13px monospace;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.silent-camp-controls button {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 2px solid #55ccd2;
+  background: #123d4b;
+  color: #e8f1dc;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.silent-camp-presence {
+  grid-column: 1 / -1;
+  color: #7fa3a7;
+  font-size: 11px;
+}
+
+.silent-camp-presence.status-joined {
+  color: #6fe0ba;
+}
+
+.behavior-report {
+  margin-top: 18px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  border: 2px solid #315765;
+  background: #061f30;
+}
+
+.behavior-report > div {
+  padding: 9px 12px;
+  border-right: 1px solid #315765;
+}
+
+.behavior-report > div:nth-child(3) {
+  border-right: 0;
+}
+
+.behavior-report span,
+.behavior-report strong {
+  display: block;
+}
+
+.behavior-report span {
+  color: #7fa3a7;
+  font-size: 10px;
+}
+
+.behavior-report strong {
+  margin-top: 4px;
+  color: #f5cf78;
+  font-size: 17px;
+}
+
+.behavior-report > p {
+  grid-column: 1 / -1;
+  margin: 8px 4px 0;
+  padding-top: 10px;
+  border-top: 1px dashed #315765;
+  color: #a9c4bd;
+  font-size: 11px;
+}
+
+.recent-history li > div {
+  flex: 1 1 auto;
+}
+
+.restart-adventure {
+  min-height: 34px;
+  padding: 0 9px;
+  flex: 0 0 auto;
+  font-size: 10px;
+}
+
+.expedition-set-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.expedition-set-options button,
+.focus-tool-settings > button {
+  min-height: 44px;
+  border: 2px solid #315765;
+  border-radius: 2px;
+  background: #0a2839;
+  color: #c5d7cf;
+  cursor: pointer;
+}
+
+.expedition-set-options button.active,
+.focus-tool-settings > button.active {
+  border-color: #f4bd58;
+  background: #164653;
+  color: #ffe7aa;
+}
+
+.setting-help {
+  display: block;
+  margin-top: 8px;
+  color: #789da1;
+  font-size: 10px;
+}
+
+.focus-tool-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.focus-tool-settings label {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+  border: 2px solid #315765;
+  color: #a9c4bd;
+  font-size: 10px;
+}
+
+.focus-tool-settings input {
+  min-width: 94px;
+  border: 0;
+  background: transparent;
+  color: #ffe1a0;
+  font: 800 13px monospace;
+}
+
+.expedition-route {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.expedition-route > span {
+  color: #55ccd2;
+  font: 900 9px "Courier New", monospace;
+  letter-spacing: 0.12em;
+}
+
+.expedition-route > div,
+.checkpoint-path {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.expedition-route i,
+.checkpoint-path i {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #416974;
+  border-radius: 50%;
+  color: #76989a;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.expedition-route i.is-reached,
+.checkpoint-path i.is-reached {
+  border-color: #ffd178;
+  background: #e8963f;
+  color: #071522;
+}
+
+.checkpoint-next {
+  margin-top: 18px;
+}
+
+.checkpoint-path {
+  margin-bottom: 15px;
+}
+
+.world-growth-markers {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.world-growth-markers i {
+  position: absolute;
+  left: calc(12% + var(--marker) * 16%);
+  animation: growth-pulse 3s ease-in-out infinite;
+  animation-delay: calc(var(--marker) * -0.4s);
+}
+
+.growth-hike i {
+  bottom: calc(10% + var(--marker) * 3%);
+  width: 4px;
+  height: 34px;
+  background: #f2d495;
+  box-shadow: 4px 0 0 #071522;
+}
+
+.growth-hike i::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 4px;
+  border-top: 8px solid #f0a241;
+  border-right: 14px solid transparent;
+}
+
+.growth-swim i {
+  bottom: calc(8% + var(--marker) * 5%);
+  width: 18px;
+  height: 42px;
+  border-radius: 50% 50% 20% 20%;
+  background: #45d9d3;
+  box-shadow: 0 0 18px #57e1cf;
+}
+
+.growth-fish i {
+  top: calc(13% + var(--marker) * 7%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffe191;
+  box-shadow: 0 0 14px #ffbd55;
+}
+
+@keyframes growth-pulse {
+  50% { transform: translateY(-5px); filter: brightness(1.25); }
+}
+
+@media (max-width: 700px) {
+  .recovery-card {
+    width: min(100% - 24px, 1120px);
+    align-items: stretch;
+    flex-direction: column;
+    padding: 18px;
+  }
+
+  .silent-camp {
+    width: min(100% - 24px, 1120px);
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .behavior-report {
+    grid-template-columns: 1fr;
+  }
+
+  .behavior-report > div {
+    border-right: 0;
+    border-bottom: 1px solid #315765;
+  }
+
+  .behavior-report > p {
+    grid-column: 1;
+  }
+
+  .recent-history li {
+    flex-wrap: wrap;
+  }
+
+  .restart-adventure {
+    width: 100%;
+  }
+
+  .expedition-set-options,
+  .focus-tool-settings {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

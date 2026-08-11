@@ -7,10 +7,12 @@ import {
   createActiveSession,
   createFocusRecord,
   getDailyCount,
+  getBehaviorInsights,
   getWeeklySummary,
   normalizeFocusIntent,
   parseActiveSession,
   parseHistory,
+  parseRecoveryQuest,
   pauseActiveSession,
   remainingForSession,
   resumeActiveSession,
@@ -153,4 +155,52 @@ test("corrupt persisted data is ignored", () => {
     parseHistory('[{"id":"x","durationMinutes":0,"adventureId":"hike"}]'),
     [],
   );
+});
+
+test("multi-set expedition progress survives active session and history parsing", () => {
+  const expedition = {
+    id: "expedition-1",
+    currentSet: 2,
+    totalSets: 3,
+    focusMinutes: 25,
+    breakMinutes: 5,
+  };
+  const session = createActiveSession({
+    mode: "focus",
+    durationMinutes: 25,
+    adventureId: "swim",
+    bgm: "waves",
+    expedition,
+    now: 1_000,
+  });
+  const record = createFocusRecord({
+    durationMinutes: 25,
+    adventureId: "swim",
+    expedition,
+  });
+
+  assert.deepEqual(parseActiveSession(JSON.stringify(session), 2_000).session.expedition, expedition);
+  assert.equal(parseHistory(JSON.stringify([record]))[0].expeditionSet, 2);
+});
+
+test("recovery quests and behavior insights are derived without AI", () => {
+  const recovery = {
+    createdAt: "2026-08-11T08:00:00.000Z",
+    focusIntent: "운영체제 복습",
+    durationMinutes: 10,
+    adventureId: "hike",
+    bgm: "forest",
+  };
+  assert.deepEqual(parseRecoveryQuest(JSON.stringify(recovery)), recovery);
+  assert.equal(parseRecoveryQuest(JSON.stringify({ ...recovery, durationMinutes: 7 })), null);
+
+  const history = [
+    createFocusRecord({ durationMinutes: 25, adventureId: "hike", focusIntent: "운영체제", completedAt: new Date("2026-08-11T09:00:00") }),
+    createFocusRecord({ durationMinutes: 25, adventureId: "fish", completedAt: new Date("2026-08-10T09:00:00") }),
+  ];
+  assert.deepEqual(getBehaviorInsights(history), {
+    favoriteMinutes: 25,
+    favoriteHour: 9,
+    namedRate: 50,
+  });
 });
