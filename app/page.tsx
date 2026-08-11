@@ -4,6 +4,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import AdventureQuestScene from "@/app/components/AdventureQuestScene";
 import AuthDialog from "@/app/components/AuthDialog";
 import FishingQuestScene from "@/app/components/FishingQuestScene";
@@ -19,15 +20,19 @@ import {
 import {
   ACTIVE_SESSION_KEY,
   HISTORY_KEY,
+  RECOVERY_QUEST_KEY,
   addCampOutcome,
   addFocusRecord,
   createActiveSession,
   createFocusRecord,
+  createExpeditionProgress,
+  getBehaviorInsights,
   getDailyCount,
   getWeeklySummary,
   normalizeFocusIntent,
   parseActiveSession,
   parseHistory,
+  parseRecoveryQuest,
   pauseActiveSession,
   resumeActiveSession,
   type ActiveSession,
@@ -35,14 +40,21 @@ import {
   type BgmId,
   type CampOutcome,
   type FocusRecord,
+  type ExpeditionProgress,
+  type RecoveryQuest,
   type SessionMode,
 } from "@/lib/pomodoro";
 import type { StudyQuest } from "@/lib/study-quests";
+import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 
 type Screen = "select" | "setup" | "focus" | "complete";
 
 const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const FOCUS_INTENT_KEY = "focus-quest-focus-intent";
+const EXPEDITION_SETS_KEY = "focus-quest-expedition-sets";
+const NOTIFICATION_KEY = "focus-quest-notifications";
+const REMINDER_TIME_KEY = "focus-quest-reminder-time";
+const REMINDER_SENT_KEY = "focus-quest-reminder-sent";
 const quickFocusOptions = [
   { minutes: 10, label: "몸풀기", note: "가볍게 시작" },
   { minutes: 25, label: "기본 집중", note: "한 칸 완주" },
@@ -61,6 +73,10 @@ type FullscreenDocument = Document & {
 
 type FullscreenElement = HTMLElement & {
   webkitRequestFullscreen?: () => Promise<void> | void;
+};
+
+type DocumentPictureInPicture = {
+  requestWindow: (options?: { width?: number; height?: number }) => Promise<Window>;
 };
 
 type Adventure = {
@@ -313,12 +329,24 @@ export default function Home() {
   const [campOutcome, setCampOutcome] = useState<CampOutcome | null>(null);
   const [completedRecordId, setCompletedRecordId] = useState<string | null>(null);
   const [completedQuestId, setCompletedQuestId] = useState<string | null>(null);
+  const [expeditionSets, setExpeditionSets] = useState(1);
+  const [sessionExpedition, setSessionExpedition] = useState<ExpeditionProgress | null>(null);
+  const [completedExpedition, setCompletedExpedition] = useState<ExpeditionProgress | null>(null);
+  const [recoveryQuest, setRecoveryQuest] = useState<RecoveryQuest | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState("");
+  const [miniTimerSupported, setMiniTimerSupported] = useState(false);
+  const [silentCampCode, setSilentCampCode] = useState("");
+  const [silentCampStatus, setSilentCampStatus] = useState<"idle" | "connecting" | "joined" | "error">("idle");
+  const [silentCampCount, setSilentCampCount] = useState(0);
   const audioRef = useRef<AudioContext | null>(null);
   const activeSessionRef = useRef<ActiveSession | null>(null);
   const completionLockRef = useRef(false);
   const completeQuestSetRef = useRef<
     ((questId: string, sessionId: string, durationMinutes: number) => void) | null
   >(null);
+  const miniTimerWindowRef = useRef<Window | null>(null);
+  const silentCampChannelRef = useRef<RealtimeChannel | null>(null);
 
   const selected = useMemo(
     () => adventures.find((item) => item.id === selectedId) ?? adventures[0],
@@ -336,6 +364,25 @@ export default function Home() {
     () => getWeeklySummary(history),
     [history],
   );
+  const behaviorInsights = useMemo(() => getBehaviorInsights(history), [history]);
+  const recentAdventures = useMemo(() => {
+    const seenExpeditions = new Set<string>();
+    return history
+      .filter((record) => {
+        if (!record.expeditionId) return true;
+        if (seenExpeditions.has(record.expeditionId)) return false;
+        seenExpeditions.add(record.expeditionId);
+        return true;
+      })
+      .slice(0, 4);
+  }, [history]);
+  const selectedWorldCount = history.filter(
+    (record) => record.adventureId === selectedId,
+  ).length;
+  const selectedWorldLevel = Math.min(5, 1 + Math.floor(selectedWorldCount / 3));
+  const companionMemory = history[0]
+    ? `${history[0].focusIntent || "지난 목표"} 모험을 기억하고 있어요.`
+    : `${selected.friend}와 첫 번째 발자국을 남겨 보세요.`;
   const maxDayMinutes = Math.max(
     1,
     ...weeklySummary.days.map((day) => day.minutes),
@@ -402,6 +449,7 @@ export default function Home() {
         setFocusIntent(session.focusIntent ?? "");
         setBgm(session.bgm);
         setSessionMode(session.mode);
+        setSessionExpedition(session.expedition ?? null);
         setSessionDurationMinutes(session.durationMinutes);
         setRemaining(remainingSeconds);
         setEndAt(session.endAt);
@@ -422,6 +470,7 @@ export default function Home() {
               adventureId: session.adventureId,
               questId: session.questId,
               focusIntent: session.focusIntent,
+              expedition: session.expedition,
               completedAt: new Date(session.endAt ?? Date.now()),
             }),
             id: `${session.startedAt}-${session.adventureId}`,
@@ -453,6 +502,7 @@ export default function Home() {
           clearedAt,
         );
         setCompletionMode(session.mode);
+        setCompletedExpedition(session.expedition ?? null);
         setFocusIntent(session.focusIntent ?? "");
         setEndAt(null);
         setPaused(false);
@@ -489,6 +539,7 @@ export default function Home() {
         setCompletedQuestId(previousSession.questId ?? null);
         setCampOutcome(completedRecord?.campOutcome ?? null);
         setCompletionMode(previousSession.mode);
+        setCompletedExpedition(previousSession.expedition ?? null);
         setRemaining(0);
         setScreen("complete");
       } else {
@@ -521,6 +572,9 @@ export default function Home() {
   useEffect(() => {
     const stored = window.localStorage.getItem("haru-focus-preferences");
     const storedFocusIntent = window.localStorage.getItem(FOCUS_INTENT_KEY);
+    const storedExpeditionSets = Number(window.localStorage.getItem(EXPEDITION_SETS_KEY));
+    const storedRecoveryQuest = window.localStorage.getItem(RECOVERY_QUEST_KEY);
+    const storedReminderTime = window.localStorage.getItem(REMINDER_TIME_KEY) ?? "";
     const stats = window.localStorage.getItem("haru-focus-stats");
     const storedHistory = window.localStorage.getItem(HISTORY_KEY);
     const storedSession = window.localStorage.getItem(ACTIVE_SESSION_KEY);
@@ -529,6 +583,28 @@ export default function Home() {
     );
     let loadedFocusMinutes = 25;
     let loadedSelectedId: AdventureId = "hike";
+
+    if (Number.isInteger(storedExpeditionSets) && storedExpeditionSets >= 1 && storedExpeditionSets <= 8) {
+      setExpeditionSets(storedExpeditionSets);
+    }
+    const loadedRecoveryQuest = parseRecoveryQuest(storedRecoveryQuest);
+    setRecoveryQuest(loadedRecoveryQuest);
+    if (storedRecoveryQuest && !loadedRecoveryQuest) {
+      window.localStorage.removeItem(RECOVERY_QUEST_KEY);
+    }
+    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(storedReminderTime)) {
+      setReminderTime(storedReminderTime);
+    }
+    setNotificationsEnabled(
+      window.localStorage.getItem(NOTIFICATION_KEY) === "true" &&
+        "Notification" in window &&
+        Notification.permission === "granted",
+    );
+    setMiniTimerSupported("documentPictureInPicture" in window);
+    const sharedCampCode = new URLSearchParams(window.location.search).get("camp");
+    if (sharedCampCode && /^[A-Z0-9]{4,8}$/i.test(sharedCampCode)) {
+      setSilentCampCode(sharedCampCode.toUpperCase());
+    }
 
     if (stored) {
       try {
@@ -612,6 +688,7 @@ export default function Home() {
       setFocusIntent(session.focusIntent ?? "");
       setBgm(session.bgm);
       setSessionMode(session.mode);
+      setSessionExpedition(session.expedition ?? null);
       setSessionDurationMinutes(session.durationMinutes);
       setRemaining(remainingSeconds);
       setEndAt(session.endAt);
@@ -628,6 +705,7 @@ export default function Home() {
           completedAt,
         );
         setCompletionMode(session.mode);
+        setCompletedExpedition(session.expedition ?? null);
         setEndAt(null);
         setPaused(false);
         setScreen("complete");
@@ -640,6 +718,7 @@ export default function Home() {
               adventureId: session.adventureId,
               questId: session.questId,
               focusIntent: session.focusIntent,
+              expedition: session.expedition,
               completedAt,
             }),
             id: `${session.startedAt}-${session.adventureId}`,
@@ -722,6 +801,51 @@ export default function Home() {
   }, [focusIntent, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(EXPEDITION_SETS_KEY, String(expeditionSets));
+    if (reminderTime) window.localStorage.setItem(REMINDER_TIME_KEY, reminderTime);
+    else window.localStorage.removeItem(REMINDER_TIME_KEY);
+  }, [expeditionSets, hydrated, reminderTime]);
+
+  useEffect(() => {
+    if (!hydrated || !notificationsEnabled || !reminderTime) return;
+    const checkReminder = () => {
+      const now = new Date();
+      const current = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      const today = now.toDateString();
+      if (
+        current === reminderTime &&
+        window.localStorage.getItem(REMINDER_SENT_KEY) !== today &&
+        Notification.permission === "granted"
+      ) {
+        new Notification("Focus Quest 출발 시간", {
+          body: `${selected.friend}가 오늘의 한 가지를 기다리고 있어요.`,
+          icon: `${publicBasePath}/favicon.svg`,
+        });
+        window.localStorage.setItem(REMINDER_SENT_KEY, today);
+      }
+    };
+    checkReminder();
+    const timer = window.setInterval(checkReminder, 30_000);
+    return () => window.clearInterval(timer);
+  }, [hydrated, notificationsEnabled, reminderTime, selected.friend]);
+
+  useEffect(() => {
+    const miniWindow = miniTimerWindowRef.current;
+    if (!miniWindow || miniWindow.closed) return;
+    const goal = miniWindow.document.querySelector("[data-mini-goal]");
+    const clock = miniWindow.document.querySelector("[data-mini-clock]");
+    const route = miniWindow.document.querySelector("[data-mini-route]");
+    if (goal) goal.textContent = focusIntent || "자유 집중";
+    if (clock) clock.textContent = formatTime(remaining);
+    if (route) {
+      route.textContent = sessionExpedition
+        ? `${sessionExpedition.currentSet}/${sessionExpedition.totalSets} 구간 · ${selected.name}`
+        : selected.name;
+    }
+  }, [focusIntent, remaining, selected.name, sessionExpedition]);
+
+  useEffect(() => {
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
@@ -780,6 +904,10 @@ export default function Home() {
 
     completionLockRef.current = true;
     stopAudio();
+    if (miniTimerWindowRef.current && !miniTimerWindowRef.current.closed) {
+      miniTimerWindowRef.current.close();
+    }
+    miniTimerWindowRef.current = null;
     persistSession(null);
 
     if (session.mode === "focus") {
@@ -789,12 +917,14 @@ export default function Home() {
           adventureId: session.adventureId,
           questId: session.questId,
           focusIntent: session.focusIntent,
+          expedition: session.expedition,
           completedAt: new Date(),
         }),
         id: `${session.startedAt}-${session.adventureId}`,
       };
       setCompletedRecordId(record.id);
       setCompletedQuestId(session.questId ?? null);
+      setCompletedExpedition(session.expedition ?? null);
       setCampOutcome(null);
 
       setHistory((current) => {
@@ -818,18 +948,29 @@ export default function Home() {
     }
 
     setCompletionMode(session.mode);
+    setCompletedExpedition(session.expedition ?? null);
     setEndAt(null);
     setPaused(false);
     setShowExit(false);
 
     if (session.mode === "focus") {
       setRemaining(0);
-      setIsCelebrating(true);
+      const reachedFinalDestination =
+        !session.expedition ||
+        session.expedition.currentSet >= session.expedition.totalSets;
+      if (notificationsEnabled && Notification.permission === "granted") {
+        new Notification(
+          reachedFinalDestination ? "모험을 완주했어요!" : "원정 체크포인트 도착",
+          { body: `${session.focusIntent || "집중"} · ${session.durationMinutes}분 완료` },
+        );
+      }
+      setIsCelebrating(reachedFinalDestination);
+      if (!reachedFinalDestination) setScreen("complete");
       return;
     }
 
     setScreen("complete");
-  }, [persistSession, stopAudio]);
+  }, [notificationsEnabled, persistSession, stopAudio]);
 
   useEffect(() => {
     if (!isCelebrating) return;
@@ -856,6 +997,16 @@ export default function Home() {
 
   useEffect(() => () => stopAudio(), [stopAudio]);
 
+  useEffect(
+    () => () => {
+      const client = getSupabaseBrowserClient();
+      if (client && silentCampChannelRef.current) {
+        void client.removeChannel(silentCampChannelRef.current);
+      }
+    },
+    [],
+  );
+
   const chooseAdventure = (id: AdventureId) => {
     setActiveQuestId(null);
     setSelectedId(id);
@@ -872,13 +1023,18 @@ export default function Home() {
       questId?: string | null;
       focusIntent?: string;
       updateFocusPreference?: boolean;
+      adventureId?: AdventureId;
+      bgm?: BgmId;
+      expedition?: ExpeditionProgress;
     },
   ) => {
     const durationMinutes =
       options?.durationMinutes ??
       (mode === "focus" ? focusMinutes : breakMinutes);
     const seconds = durationMinutes * 60;
-    const theme = mode === "focus" ? bgm : "quiet";
+    const sessionAdventureId = options?.adventureId ?? selectedId;
+    const sessionBgm = options?.bgm ?? bgm;
+    const theme = mode === "focus" ? sessionBgm : "quiet";
     const intent =
       mode === "focus"
         ? normalizeFocusIntent(options?.focusIntent ?? focusIntent) || "자유 집중"
@@ -888,10 +1044,11 @@ export default function Home() {
     const session = createActiveSession({
       mode,
       durationMinutes,
-      adventureId: selectedId,
+      adventureId: sessionAdventureId,
       bgm: theme,
       questId: sessionQuestId ?? undefined,
       focusIntent: intent,
+      expedition: options?.expedition,
     });
 
     completionLockRef.current = false;
@@ -900,6 +1057,13 @@ export default function Home() {
       setFocusMinutes(durationMinutes);
     }
     if (mode === "focus") setFocusIntent(intent ?? "");
+    if (mode === "focus") {
+      setRecoveryQuest(null);
+      window.localStorage.removeItem(RECOVERY_QUEST_KEY);
+    }
+    setSelectedId(sessionAdventureId);
+    if (mode === "focus") setBgm(sessionBgm);
+    setSessionExpedition(options?.expedition ?? null);
     setCampOutcome(null);
     persistSession(session);
     setSessionMode(mode);
@@ -912,11 +1076,152 @@ export default function Home() {
     enterFullscreen();
   };
 
-  const beginFocus = () => beginSession("focus");
-  const beginBreak = () => beginSession("break");
+  const beginFocus = () => {
+    if (
+      completionMode === "break" &&
+      completedExpedition &&
+      completedExpedition.currentSet < completedExpedition.totalSets
+    ) {
+      beginSession("focus", {
+        durationMinutes: completedExpedition.focusMinutes,
+        expedition: {
+          ...completedExpedition,
+          currentSet: completedExpedition.currentSet + 1,
+        },
+        updateFocusPreference: false,
+      });
+      return;
+    }
+    const expedition =
+      expeditionSets > 1
+        ? createExpeditionProgress({ totalSets: expeditionSets, focusMinutes, breakMinutes })
+        : undefined;
+    beginSession("focus", { expedition });
+  };
+  const beginBreak = () =>
+    beginSession("break", {
+      durationMinutes: completedExpedition?.breakMinutes ?? breakMinutes,
+      expedition:
+        completedExpedition &&
+        completedExpedition.currentSet < completedExpedition.totalSets
+          ? completedExpedition
+          : undefined,
+    });
   const beginQuickFocus = (durationMinutes: number) => {
     setActiveQuestId(null);
-    beginSession("focus", { durationMinutes, questId: null });
+    beginSession("focus", { durationMinutes, questId: null, expedition: undefined });
+  };
+
+  const restartAdventure = (record: FocusRecord) => {
+    const adventureBgm = adventureBgms[record.adventureId];
+    setRecoveryQuest(null);
+    window.localStorage.removeItem(RECOVERY_QUEST_KEY);
+    beginSession("focus", {
+      durationMinutes: record.durationMinutes,
+      questId:
+        record.campOutcome === "unfinished" || record.campOutcome === "split"
+          ? record.questId ?? null
+          : null,
+      focusIntent: record.focusIntent || "자유 집중",
+      adventureId: record.adventureId,
+      bgm: adventureBgm,
+      updateFocusPreference: false,
+      expedition:
+        record.expeditionTotal && record.expeditionTotal > 1
+          ? createExpeditionProgress({
+              totalSets: record.expeditionTotal,
+              focusMinutes: record.durationMinutes,
+              breakMinutes,
+            })
+          : undefined,
+    });
+  };
+
+  const startRecoveryQuest = () => {
+    if (!recoveryQuest) return;
+    const next = recoveryQuest;
+    setRecoveryQuest(null);
+    window.localStorage.removeItem(RECOVERY_QUEST_KEY);
+    beginSession("focus", {
+      durationMinutes: next.durationMinutes,
+      questId: next.questId ?? null,
+      focusIntent: next.focusIntent,
+      adventureId: next.adventureId,
+      bgm: next.bgm,
+      updateFocusPreference: false,
+    });
+  };
+
+  const toggleNotifications = async () => {
+    if (!("Notification" in window)) return;
+    if (notificationsEnabled) {
+      setNotificationsEnabled(false);
+      window.localStorage.setItem(NOTIFICATION_KEY, "false");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    const enabled = permission === "granted";
+    setNotificationsEnabled(enabled);
+    window.localStorage.setItem(NOTIFICATION_KEY, String(enabled));
+  };
+
+  const openMiniTimer = async () => {
+    const pictureInPicture = (
+      window as typeof window & { documentPictureInPicture?: DocumentPictureInPicture }
+    ).documentPictureInPicture;
+    if (!pictureInPicture) return;
+    const miniWindow = await pictureInPicture.requestWindow({ width: 340, height: 210 });
+    miniWindow.document.body.innerHTML = `
+      <main style="height:100vh;box-sizing:border-box;padding:20px;background:#071a2d;color:#fff0c4;font-family:system-ui;text-align:center">
+        <small data-mini-route style="color:#55ccd2"></small>
+        <h2 data-mini-goal style="margin:12px 0 4px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></h2>
+        <strong data-mini-clock style="display:block;font:700 54px monospace;color:#ffd477"></strong>
+        <span style="font-size:12px;color:#9db8b4">Focus Quest · 모험 진행 중</span>
+      </main>`;
+    miniTimerWindowRef.current = miniWindow;
+    miniWindow.addEventListener("pagehide", () => {
+      miniTimerWindowRef.current = null;
+    });
+    setRemaining((current) => current);
+  };
+
+  const joinSilentCamp = async () => {
+    const client = getSupabaseBrowserClient();
+    if (!client) {
+      setSilentCampStatus("error");
+      return;
+    }
+    const code = (silentCampCode || Math.random().toString(36).slice(2, 8))
+      .replace(/[^a-z0-9]/gi, "")
+      .slice(0, 8)
+      .toUpperCase();
+    if (code.length < 4) return;
+    if (silentCampChannelRef.current) {
+      await client.removeChannel(silentCampChannelRef.current);
+    }
+    setSilentCampCode(code);
+    setSilentCampStatus("connecting");
+    const channel = client.channel(`silent-camp:${code}`, {
+      config: { presence: { key: crypto.randomUUID() } },
+    });
+    channel.on("presence", { event: "sync" }, () => {
+      setSilentCampCount(Object.keys(channel.presenceState()).length);
+    });
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({ joinedAt: new Date().toISOString() });
+        setSilentCampStatus("joined");
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        setSilentCampStatus("error");
+      }
+    });
+    silentCampChannelRef.current = channel;
+  };
+
+  const copySilentCampLink = async () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("camp", silentCampCode);
+    await navigator.clipboard.writeText(url.toString());
   };
 
   const recordCampOutcome = (outcome: CampOutcome) => {
@@ -951,6 +1256,9 @@ export default function Home() {
     setBgm(adventureBgms[quest.adventureId]);
     setFocusMinutes(quest.focusMinutes);
     setBreakMinutes(quest.breakMinutes);
+    setExpeditionSets(
+      Math.min(8, Math.max(1, quest.targetSets - quest.completedSets)),
+    );
     setSessionMode("focus");
     setSessionDurationMinutes(quest.focusMinutes);
     setRemaining(quest.focusMinutes * 60);
@@ -990,6 +1298,19 @@ export default function Home() {
   };
 
   const exitSession = () => {
+    const abandoned = activeSessionRef.current;
+    if (abandoned?.mode === "focus") {
+      const recovery: RecoveryQuest = {
+        createdAt: new Date().toISOString(),
+        focusIntent: abandoned.focusIntent || "자유 집중",
+        durationMinutes: remaining > 5 * 60 ? 10 : 5,
+        adventureId: abandoned.adventureId,
+        bgm: abandoned.bgm,
+        ...(abandoned.questId ? { questId: abandoned.questId } : {}),
+      };
+      setRecoveryQuest(recovery);
+      window.localStorage.setItem(RECOVERY_QUEST_KEY, JSON.stringify(recovery));
+    }
     const returnScreen: Screen = sessionMode === "focus" ? "select" : "setup";
     stopAudio();
     persistSession(null);
@@ -997,6 +1318,11 @@ export default function Home() {
     setEndAt(null);
     setPaused(false);
     setIsCelebrating(false);
+    setSessionExpedition(null);
+    if (miniTimerWindowRef.current && !miniTimerWindowRef.current.closed) {
+      miniTimerWindowRef.current.close();
+    }
+    miniTimerWindowRef.current = null;
     setSessionMode("focus");
     setSessionDurationMinutes(focusMinutes);
     setRemaining(focusMinutes * 60);
@@ -1010,6 +1336,12 @@ export default function Home() {
     const choice = await installPrompt.userChoice;
     if (choice.outcome === "accepted") setInstallPrompt(null);
   };
+
+  const isExpeditionCheckpoint = Boolean(
+    completionMode === "focus" &&
+      completedExpedition &&
+      completedExpedition.currentSet < completedExpedition.totalSets,
+  );
 
   return (
     <main
@@ -1176,7 +1508,7 @@ export default function Home() {
               <div className="quick-companion-status">
                 <span>READY</span>
                 <i />
-                {selected.chapter} · 모험 준비 완료
+                {selected.chapter} · WORLD LV.{selectedWorldLevel}
               </div>
               <div className="quick-companion-stage">
                 <div className="companion-stage-hud">
@@ -1196,6 +1528,10 @@ export default function Home() {
                   {bgms.find((item) => item.id === bgm)?.name ?? "고요히"}
                 </p>
                 <small>{selected.description}</small>
+                <div className="companion-memory">
+                  <span>동료의 기억</span>
+                  <p>{companionMemory}</p>
+                </div>
               </div>
 
               <div className="adventure-switcher" aria-label="모험 지역 선택">
@@ -1231,6 +1567,21 @@ export default function Home() {
               </div>
             </aside>
           </section>
+
+          {recoveryQuest && (
+            <aside className="recovery-card" aria-label="중단한 집중 이어가기">
+              <div>
+                <span>RECOVERY QUEST</span>
+                <h2>멈춘 곳은 실패가 아니라 다음 출발점이에요.</h2>
+                <p>
+                  “{recoveryQuest.focusIntent}”을 {recoveryQuest.durationMinutes}분짜리 작은 모험으로 줄여 두었어요.
+                </p>
+              </div>
+              <button type="button" onClick={startRecoveryQuest}>
+                {recoveryQuest.durationMinutes}분 복귀하기 →
+              </button>
+            </aside>
+          )}
 
           <div className="select-note quick-start-note">
             <span>ONE TASK · ONE ADVENTURE</span>
@@ -1271,6 +1622,36 @@ export default function Home() {
             onStartQuest={launchQuest}
           />
 
+          <section className="silent-camp" aria-labelledby="silent-camp-title">
+            <div>
+              <span>SILENT CAMP · BETA</span>
+              <h2 id="silent-camp-title">같은 시간, 각자의 모험</h2>
+              <p>랭킹과 채팅 없이 접속한 인원만 보여요. 방 코드를 친구와 나눠 조용히 함께 집중하세요.</p>
+            </div>
+            <div className="silent-camp-controls">
+              <label>
+                <span>캠프 코드</span>
+                <input
+                  maxLength={8}
+                  onChange={(event) => setSilentCampCode(event.target.value.replace(/[^a-z0-9]/gi, "").toUpperCase())}
+                  placeholder="비우면 자동 생성"
+                  value={silentCampCode}
+                />
+              </label>
+              <button disabled={silentCampStatus === "connecting"} onClick={() => void joinSilentCamp()} type="button">
+                {silentCampStatus === "connecting" ? "합류 중…" : silentCampStatus === "joined" ? "다시 연결" : "캠프 합류"}
+              </button>
+              {silentCampStatus === "joined" && (
+                <button onClick={() => void copySilentCampLink()} type="button">초대 링크 복사</button>
+              )}
+            </div>
+            <strong className={`silent-camp-presence status-${silentCampStatus}`} aria-live="polite">
+              {silentCampStatus === "joined" && `● 지금 ${silentCampCount}명이 조용히 집중 중`}
+              {silentCampStatus === "error" && "연결하지 못했어요. 잠시 후 다시 시도해 주세요."}
+              {silentCampStatus === "idle" && "코드 없이 합류하면 새 캠프가 열려요."}
+            </strong>
+          </section>
+
           <section className="weekly-summary" aria-labelledby="weekly-title">
             <div className="weekly-heading">
               <div>
@@ -1297,6 +1678,26 @@ export default function Home() {
                 <strong>{weeklySummary.activeDays}</strong>
                 <span>모험한 날</span>
               </div>
+            </div>
+
+            <div className="behavior-report" aria-label="나에게 맞는 집중 패턴">
+              <div>
+                <span>잘 맞는 집중 길이</span>
+                <strong>{behaviorInsights.favoriteMinutes ? `${behaviorInsights.favoriteMinutes}분` : "기록 중"}</strong>
+              </div>
+              <div>
+                <span>자주 완주한 시간대</span>
+                <strong>{behaviorInsights.favoriteHour === null ? "기록 중" : `${behaviorInsights.favoriteHour}시 무렵`}</strong>
+              </div>
+              <div>
+                <span>목표를 적은 모험</span>
+                <strong>{behaviorInsights.namedRate}%</strong>
+              </div>
+              <p>
+                {behaviorInsights.favoriteMinutes
+                  ? `다음 모험도 ${behaviorInsights.favoriteMinutes}분으로 시작하면 익숙한 리듬을 이어갈 수 있어요.`
+                  : "집중을 세 번 완주하면 나에게 맞는 리듬이 선명해져요."}
+              </p>
             </div>
 
             <div className="week-chart" aria-label="요일별 집중 시간">
@@ -1326,7 +1727,7 @@ export default function Home() {
                 </p>
               ) : (
                 <ul>
-                  {history.slice(0, 4).map((record) => {
+                  {recentAdventures.map((record) => {
                     const adventure =
                       adventures.find((item) => item.id === record.adventureId) ??
                       adventures[0];
@@ -1343,11 +1744,21 @@ export default function Home() {
                               day: "numeric",
                             })}{" "}
                             · {record.durationMinutes}분
+                            {record.expeditionTotal && ` × ${record.expeditionTotal}세트 원정`}
                             {record.campOutcome === "finished" && " · 완주"}
                             {record.campOutcome === "unfinished" && " · 조금 남음"}
                             {record.campOutcome === "split" && " · 나눠서 계속"}
                           </small>
                         </div>
+                        <button
+                          className="restart-adventure"
+                          onClick={() => restartAdventure(record)}
+                          type="button"
+                        >
+                          {record.campOutcome === "unfinished" || record.campOutcome === "split"
+                            ? "이어가기"
+                            : "다시 도전"}
+                        </button>
                       </li>
                     );
                   })}
@@ -1446,6 +1857,28 @@ export default function Home() {
               </fieldset>
 
               <fieldset>
+                <legend>
+                  원정 길이 <strong>{expeditionSets}세트</strong>
+                </legend>
+                <div className="expedition-set-options" role="group" aria-label="원정 세트 수">
+                  {[1, 2, 3, 4].map((sets) => (
+                    <button
+                      aria-pressed={expeditionSets === sets}
+                      className={expeditionSets === sets ? "active" : ""}
+                      key={sets}
+                      onClick={() => setExpeditionSets(sets)}
+                      type="button"
+                    >
+                      {sets === 1 ? "한 칸" : `${sets}세트 원정`}
+                    </button>
+                  ))}
+                </div>
+                <small className="setting-help">
+                  여러 세트를 고르면 집중과 휴식을 체크포인트처럼 이어가요.
+                </small>
+              </fieldset>
+
+              <fieldset>
                 <legend>집중 소리</legend>
                 <div className="bgm-grid">
                   {bgms.map((item) => (
@@ -1465,8 +1898,35 @@ export default function Home() {
                 </div>
               </fieldset>
 
+              <fieldset>
+                <legend>집중 도구</legend>
+                <div className="focus-tool-settings">
+                  <button
+                    aria-pressed={notificationsEnabled}
+                    className={notificationsEnabled ? "active" : ""}
+                    onClick={() => void toggleNotifications()}
+                    type="button"
+                  >
+                    {notificationsEnabled ? "✓ 종료 알림 켜짐" : "종료 알림 켜기"}
+                  </button>
+                  <label>
+                    <span>오늘 다시 만날 시간</span>
+                    <input
+                      aria-label="매일 집중 알림 시간"
+                      disabled={!notificationsEnabled}
+                      onChange={(event) => setReminderTime(event.target.value)}
+                      type="time"
+                      value={reminderTime}
+                    />
+                  </label>
+                </div>
+                <small className="setting-help">
+                  앱이 열려 있을 때 설정한 시간과 세션 종료를 알려드려요.
+                </small>
+              </fieldset>
+
               <button className="primary-button" type="button" onClick={beginFocus}>
-                <span>{selected.friend}와 집중 시작</span>
+                <span>{selected.friend}와 {expeditionSets > 1 ? `${expeditionSets}세트 원정 시작` : "집중 시작"}</span>
                 <strong>{focusMinutes}:00</strong>
               </button>
               <p className="copyright-note">음악은 이 기기에서 실시간 생성되어 별도의 음원 저작권이 없어요.</p>
@@ -1496,6 +1956,17 @@ export default function Home() {
               celebrating={isCelebrating}
               assetBasePath={publicBasePath}
             />
+          )}
+
+          {sessionMode === "focus" && (
+            <div
+              className={`world-growth-markers growth-${selected.id} level-${selectedWorldLevel}`}
+              aria-hidden="true"
+            >
+              {Array.from({ length: selectedWorldLevel }, (_, index) => (
+                <i key={index} style={{ "--marker": index } as React.CSSProperties} />
+              ))}
+            </div>
           )}
 
           <div className="scene-sky">
@@ -1557,6 +2028,11 @@ export default function Home() {
                   : `${selected.friend}와 회복 중`}
             </div>
             <div className="focus-actions">
+              {miniTimerSupported && (
+                <button type="button" onClick={() => void openMiniTimer()} aria-label="작은 타이머 열기">
+                  ▣
+                </button>
+              )}
               {sessionMode === "focus" && (
                 <button
                   type="button"
@@ -1580,6 +2056,21 @@ export default function Home() {
           </div>
 
           <div className="timer-card">
+            {sessionExpedition && (
+              <div className="expedition-route" aria-label={`${sessionExpedition.totalSets}세트 중 ${sessionExpedition.currentSet}세트`}>
+                <span>EXPEDITION</span>
+                <div>
+                  {Array.from({ length: sessionExpedition.totalSets }, (_, index) => (
+                    <i
+                      className={index + 1 <= sessionExpedition.currentSet ? "is-reached" : ""}
+                      key={index}
+                    >
+                      {index + 1}
+                    </i>
+                  ))}
+                </div>
+              </div>
+            )}
             {sessionMode === "focus" && (
               <span className="active-focus-intent">
                 {focusIntent || "자유 집중"}
@@ -1657,9 +2148,11 @@ export default function Home() {
           <div className="sparkles">✦　·　✧　　✦　·　✧</div>
           <div className="complete-card">
             <span className="complete-kicker">
-              {completionMode === "focus"
-                ? "ADVENTURE COMPLETE"
-                : "BREAK COMPLETE"}
+              {isExpeditionCheckpoint
+                ? "CHECKPOINT REACHED"
+                : completionMode === "focus"
+                  ? "ADVENTURE COMPLETE"
+                  : "BREAK COMPLETE"}
             </span>
             <div className="complete-character-wrap">
               <div className="complete-halo" />
@@ -1676,9 +2169,11 @@ export default function Home() {
               </span>
             </div>
             <h1>
-              {completionMode === "focus"
-                ? `${selected.friend}와 한 칸 완성!`
-                : "충전 완료, 다시 출발!"}
+              {isExpeditionCheckpoint
+                ? `${completedExpedition?.currentSet}번째 구간 통과!`
+                : completionMode === "focus"
+                  ? `${selected.friend}와 한 칸 완성!`
+                  : "충전 완료, 다시 출발!"}
             </h1>
             {completionMode === "focus" && (
               <strong className="completed-focus-intent">
@@ -1687,8 +2182,10 @@ export default function Home() {
             )}
             <p>
               {completionMode === "focus"
-                ? `${sessionDurationMinutes}분 동안 온전히 집중했어요. 정말 멋진 모험이었어요.`
-                : `${sessionDurationMinutes}분 동안 몸과 마음을 쉬었어요. 다음 모험을 시작해 볼까요?`}
+                ? isExpeditionCheckpoint
+                  ? `원정의 ${completedExpedition?.currentSet}/${completedExpedition?.totalSets} 구간을 지나왔어요. 성공 장면은 마지막 도착지에서 기다리고 있어요.`
+                  : `${sessionDurationMinutes}분 동안 온전히 집중했어요. 정말 멋진 모험이었어요.`
+                : `${sessionDurationMinutes}분 동안 몸과 마음을 쉬었어요. 다음 구간을 시작해 볼까요?`}
             </p>
             <div className="session-stats">
               <div>
@@ -1709,16 +2206,32 @@ export default function Home() {
               </div>
               <div>
                 <strong>
-                  {completionMode === "focus"
-                    ? breakMinutes
-                    : focusMinutes}
+                  {completedExpedition
+                    ? `${completedExpedition.currentSet}/${completedExpedition.totalSets}`
+                    : completionMode === "focus"
+                      ? breakMinutes
+                      : focusMinutes}
                 </strong>
                 <span>
-                  {completionMode === "focus" ? "추천 휴식" : "다음 집중"}
+                  {completedExpedition ? "원정 구간" : completionMode === "focus" ? "추천 휴식" : "다음 집중"}
                 </span>
               </div>
             </div>
-            {completionMode === "focus" ? (
+            {isExpeditionCheckpoint ? (
+              <div className="checkpoint-next">
+                <div className="checkpoint-path" aria-label="원정 진행도">
+                  {Array.from({ length: completedExpedition?.totalSets ?? 0 }, (_, index) => (
+                    <i className={index < (completedExpedition?.currentSet ?? 0) ? "is-reached" : ""} key={index}>
+                      {index + 1}
+                    </i>
+                  ))}
+                </div>
+                <button className="primary-button" type="button" onClick={beginBreak}>
+                  <span>{completedExpedition?.breakMinutes ?? breakMinutes}분 쉬고 다음 구간으로</span>
+                  <strong>→</strong>
+                </button>
+              </div>
+            ) : completionMode === "focus" ? (
               <div className="camp-log" aria-labelledby="camp-log-title">
                 <div className="camp-log-heading">
                   <span>CAMP LOG</span>
@@ -1785,7 +2298,11 @@ export default function Home() {
               </div>
             ) : (
               <button className="primary-button" type="button" onClick={beginFocus}>
-                <span>{focusMinutes}분 집중 시작</span>
+                <span>
+                  {completedExpedition && completedExpedition.currentSet < completedExpedition.totalSets
+                    ? `${completedExpedition.currentSet + 1}번째 구간 시작`
+                    : `${focusMinutes}분 집중 시작`}
+                </span>
                 <strong>→</strong>
               </button>
             )}
