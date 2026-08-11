@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   addFocusRecord,
+  addCampOutcome,
   createActiveSession,
   createFocusRecord,
   getDailyCount,
@@ -113,6 +114,17 @@ test("focus records are deduplicated and summarized by week", () => {
     getDailyCount(history, new Date("2026-07-20T12:30:00.000Z")),
     1,
   );
+});
+
+test("camp outcome is attached to exactly one completed focus record", () => {
+  const first = { ...createFocusRecord({ durationMinutes: 25, adventureId: "hike" }), id: "first" };
+  const second = { ...createFocusRecord({ durationMinutes: 10, adventureId: "fish" }), id: "second" };
+  const updated = addCampOutcome([first, second], "first", "unfinished");
+
+  assert.equal(updated[0].campOutcome, "unfinished");
+  assert.equal(updated[1].campOutcome, undefined);
+  assert.equal(parseHistory(JSON.stringify(updated))[0].campOutcome, "unfinished");
+  assert.deepEqual(addCampOutcome(updated, "missing", "split"), updated);
 });
 
 test("focus intent is normalized and bounded for safe persistence", () => {

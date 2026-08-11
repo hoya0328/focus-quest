@@ -5176,6 +5176,192 @@ input[type="range"] {
   line-height: 1.45;
 }
 
+/* Camp Log Lite: turn a completed timer into one clear next step. */
+.complete-card:has(.camp-log) {
+  width: min(760px, 100%);
+}
+
+.camp-log {
+  margin: 22px auto 0;
+  padding: 18px;
+  border: 3px solid #3e6470;
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, rgba(39, 105, 108, 0.22), transparent 52%),
+    #0b2435;
+  box-shadow: 6px 6px 0 #020a12;
+}
+
+.camp-log-heading > span {
+  color: #f1b74e;
+  font-family: "Courier New", "Malgun Gothic", monospace;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.camp-log-heading h2 {
+  margin: 5px 0 4px;
+  color: #fff0c4;
+  font-size: clamp(18px, 2.4vw, 25px);
+  letter-spacing: -0.04em;
+}
+
+.camp-log-heading p,
+.camp-log-next > p {
+  margin: 0;
+  color: #a9c4bd;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.camp-log-choices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.camp-log-choices button {
+  min-height: 88px;
+  padding: 11px 8px;
+  border: 2px solid #416974;
+  border-radius: 3px;
+  background: #0d3041;
+  color: #dce9df;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.camp-log-choices button:hover,
+.camp-log-choices button:focus-visible {
+  border-color: #f1c066;
+  transform: translateY(-2px);
+}
+
+.camp-log-choices button.is-selected {
+  border-color: #ffcf73;
+  background: #174653;
+  box-shadow: inset 0 -4px 0 rgba(2, 10, 18, 0.42);
+}
+
+.camp-log-choices span,
+.camp-log-choices strong,
+.camp-log-choices small {
+  display: block;
+}
+
+.camp-log-choices span {
+  color: #ffca68;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.camp-log-choices strong {
+  margin: 4px 0 2px;
+  color: #fff0c4;
+  font-size: 12px;
+}
+
+.camp-log-choices small {
+  color: #9eb8b2;
+  font-size: 10px;
+}
+
+.camp-log-next {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #416974;
+}
+
+.camp-log-next .primary-button {
+  max-width: 390px;
+  margin-top: 12px;
+}
+
+.mini-quest-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  max-width: 470px;
+  margin: 12px auto 0;
+}
+
+.mini-quest-actions button {
+  min-height: 46px;
+  border: 2px solid #ffca68;
+  border-radius: 3px;
+  background: #ef913d;
+  color: #071522;
+  font-weight: 900;
+  box-shadow: 3px 3px 0 #020a12;
+  cursor: pointer;
+}
+
+.mini-quest-actions button:focus-visible,
+.mini-quest-actions button:hover {
+  background: #ffc45f;
+}
+
+@media (max-width: 620px) {
+  .complete-screen {
+    align-items: start;
+    padding: 24px 12px 32px;
+  }
+
+  .complete-card:has(.camp-log) {
+    padding-top: 0;
+  }
+
+  .complete-card:has(.camp-log) .complete-character-wrap {
+    height: 190px;
+  }
+
+  .complete-card:has(.camp-log) .complete-character-wrap img {
+    width: 220px;
+    height: 195px;
+  }
+
+  .complete-card:has(.camp-log) .complete-halo {
+    width: 145px;
+    height: 145px;
+  }
+
+  .complete-card:has(.camp-log) .session-stats {
+    margin: 18px 0 14px;
+  }
+
+  .camp-log {
+    padding: 14px 11px;
+  }
+
+  .camp-log-choices {
+    grid-template-columns: 1fr;
+  }
+
+  .camp-log-choices button {
+    min-height: 62px;
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    grid-template-rows: auto auto;
+    align-items: center;
+    text-align: left;
+  }
+
+  .camp-log-choices button span {
+    grid-row: 1 / 3;
+    text-align: center;
+  }
+
+  .camp-log-choices button strong {
+    margin: 0;
+  }
+
+  .mini-quest-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .quick-start-hero {
     grid-template-columns: 1fr;

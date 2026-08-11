@@ -180,7 +180,18 @@ export function mergeCloudStates(
 ): CloudStateData {
   const records = new Map<string, FocusRecord>();
   [...cloud.history, ...local.history].forEach((record) => {
-    if (!records.has(record.id)) records.set(record.id, record);
+    const existing = records.get(record.id);
+    const campOutcome = record.campOutcome ?? existing?.campOutcome;
+    records.set(
+      record.id,
+      existing
+        ? {
+            ...existing,
+            ...record,
+            ...(campOutcome ? { campOutcome } : {}),
+          }
+        : record,
+    );
   });
 
   const history = [...records.values()]
