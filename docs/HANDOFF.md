@@ -217,4 +217,9 @@
 - 기여·보안·권리 고지와 구조화된 이슈·PR 템플릿을 추가했다.
 - PDF.js worker를 기본 export에 의존하지 않는 URL 방식으로 바꿔 Linux 정적 빌드 실패를 수정했다.
 - GitHub Actions를 Node 24 대응 공식 액션으로 갱신했다.
-- 릴리스 후보는 로컬 전체 검증과 GitHub Pages 재배포 성공 뒤 확정한다.
+- GitHub Pages가 아닌 현재 Cloudflare Worker 운영 주소를 README와 저장소 홈페이지에 연결했다.
+
+### README 문장 정리
+
+- 포트폴리오 방문자가 바로 이해할 수 있게 소개와 기능 목록을 짧은 1인칭 문장으로 바꿨다.
+- 제품 기능과 운영 배포는 변경하지 않았다.
