@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title description">
+<title id="title">Focus Quest — Small steps. Real progress.</title>
+<desc id="description">오늘의 집중이, 작은 모험이 되도록. 초록색 포트폴리오 소개 배너입니다. 서비스 화면이나 투자 성과 그래프가 아닙니다.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#062d23"/><stop offset="1" stop-color="#0c4231"/></linearGradient>
+<pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#b6e6ca" stroke-opacity=".055"/></pattern></defs>
+<rect width="1200" height="400" rx="24" fill="url(#bg)"/><rect width="1200" height="400" rx="24" fill="url(#grid)"/>
+<path d="M64 53H91" stroke="#a3e635" stroke-width="4"/>
+<g font-family="Segoe UI,Apple SD Gothic Neo,Malgun Gothic,Arial,sans-serif">
+<text x="106" y="58" font-size="14" letter-spacing="2" fill="#b2d5c0">03 / FOCUS ADVENTURE</text>
+<text x="60" y="158" font-size="67" font-weight="750" letter-spacing="-3" fill="#f0fdf4">Focus Quest</text>
+<text x="64" y="215" font-size="30" font-weight="600" letter-spacing="-.5" fill="#d9f99d">Small steps. Real progress.</text>
+<text x="64" y="259" font-size="21" fill="#b8d6c7">오늘의 집중이, 작은 모험이 되도록.</text>
+<text x="64" y="354" font-size="13" letter-spacing="2" fill="#a3bfb0">HOYA / SELECTED WORK</text>
+</g><path d="M64 314H746" stroke="#39715a"/><g transform="translate(822 64)">
+<circle cx="154" cy="142" r="124" fill="#174e39" stroke="#3a7557"/><circle cx="230" cy="54" r="27" fill="#d9f99d"/>
+<path d="m34 224 103-156 46 70 34-49 63 135Z" fill="#27744f"/><path d="m137 68-39 58 26-11 13 18 14-19 28 18Z" fill="#baf2cc"/>
+<path d="m179 219-29-39 17-25-23-23" fill="none" stroke="#d9f99d" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 15"/>
+<path d="M137 68V29" stroke="#ecfdf5" stroke-width="4"/><path d="M139 29h34l-9 12 9 12h-34Z" fill="#34d399"/></g>
+</svg>
