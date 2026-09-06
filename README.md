@@ -7,13 +7,14 @@
 
   귀여운 픽셀 친구와 함께하는 반응형 포모도로 집중 타이머
 
-  [🌐 바로 체험하기](https://hoya0328.github.io/focus-quest/) ·
+  [🌐 바로 체험하기](https://focus-quest.hoya0328.workers.dev) ·
   [📖 서비스 소개](#서비스-소개) ·
   [🗺️ 로드맵](#로드맵)
 
   ![Portfolio](https://img.shields.io/badge/Portfolio-First_Project-f0b13e?style=flat-square)
   ![Product](https://img.shields.io/badge/Product-Focus_Adventure-36c4ce?style=flat-square)
   ![PWA](https://img.shields.io/badge/PWA-Installable-ef8b47?style=flat-square)
+  [![CI](https://github.com/hoya0328/focus-quest/actions/workflows/ci.yml/badge.svg)](https://github.com/hoya0328/focus-quest/actions/workflows/ci.yml)
 </div>
 
 ---
@@ -107,6 +108,12 @@ npm run dev
 이 프로젝트는 **개발로 창작하는 걸 즐기는 PM**을 지향하며 만든 첫 번째 포트폴리오 프로젝트입니다.
 
 문제를 정의하고, 핵심 경험을 설계하고, 캐릭터와 인터랙션을 구체화한 뒤 실제로 작동하는 제품까지 연결했습니다. 완성된 결과뿐 아니라 사용자 피드백에 따라 콘셉트와 구현을 빠르게 바꾸는 과정도 제품 작업의 일부로 담았습니다.
+
+## 저장소 정책
+
+- 버그와 개선 제안은 GitHub Issues에서 받습니다.
+- 보안 문제는 공개 이슈 대신 [보안 정책](./SECURITY.md)에 따라 비공개로 알려주세요.
+- 별도 오픈소스 라이선스가 없으며 포트폴리오 열람 목적으로 공개합니다.
 
 ---
 

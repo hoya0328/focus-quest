@@ -1,0 +1,17 @@
+name: Feature request
+description: Suggest an improvement to the focus adventure.
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: user_problem
+    attributes:
+      label: User problem
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+    validations:
+      required: true
