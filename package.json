@@ -16,7 +16,7 @@
     "test:account-sync": "node --test tests/cloud-state.test.mjs tests/public-auth.test.mjs",
     "test:quests": "node --test tests/study-quests.test.mjs tests/pomodoro.test.mjs",
     "test:pdf": "node --test tests/pdf-analysis.test.mjs tests/study-quests.test.mjs",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint": "eslint app lib tests worker db examples vite.config.ts next.config.ts drizzle.config.ts",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

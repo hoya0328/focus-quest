@@ -1,6 +1,5 @@
 "use client";
 
-import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
   MAX_ANALYSIS_CHARACTERS,
   MAX_PDF_BYTES,
@@ -35,7 +34,10 @@ export async function extractPdfText(
 ) {
   validatePdfFile(file);
   const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url,
+  ).toString();
 
   let document;
   try {
