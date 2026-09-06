@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/assets/portfolio-banner.svg" width="100%" alt="Focus Quest — 오늘의 집중이 작은 모험이 되도록" />
+  <img src="./docs/assets/portfolio-banner.png" width="100%" alt="Focus Quest — 오늘의 집중이 작은 모험이 되도록" />
 </p>
 
 <p align="center">
