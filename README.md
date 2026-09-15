@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="./docs/assets/portfolio-banner.png" width="100%" alt="Focus Quest — 오늘의 집중이 작은 모험이 되도록" />
+  <img src="./docs/assets/portfolio-banner.png" width="100%" alt="Focus Quest | 다시 시작하는 순간도, 모험이니까. 실제 등산 모험 배경 아트" />
 </p>
 
 <p align="center">
-  <a href="https://focus-quest.hoya0328.workers.dev"><img src="https://img.shields.io/badge/Try_Focus_Quest-Web_%26_PWA-167452?style=flat-square" alt="웹과 PWA 사용하기" /></a>
-  <img src="https://img.shields.io/badge/React-TypeScript-315b46?style=flat-square" alt="React와 TypeScript" />
-  <img src="https://img.shields.io/badge/Phaser-Pixel_Adventure-658c36?style=flat-square" alt="Phaser 픽셀 모험" />
+  <a href="https://focus-quest.hoya0328.workers.dev"><img src="https://img.shields.io/badge/Try_Focus_Quest-Web_%26_PWA-126879?style=flat-square" alt="웹과 PWA 사용하기" /></a>
+  <img src="https://img.shields.io/badge/React-TypeScript-163E47?style=flat-square" alt="React와 TypeScript" />
+  <img src="https://img.shields.io/badge/Phaser-Pixel_Adventure-527835?style=flat-square" alt="Phaser 픽셀 모험" />
   <a href="https://github.com/hoya0328/focus-quest/actions/workflows/ci.yml"><img src="https://github.com/hoya0328/focus-quest/actions/workflows/ci.yml/badge.svg" alt="CI 검사 상태" /></a>
 </p>
 
@@ -15,13 +15,24 @@
 
 [서비스 사용해 보기](https://focus-quest.hoya0328.workers.dev) · [제품 설계](docs/PROJECT_CONTEXT.md) · [아키텍처](docs/ARCHITECTURE.md) · [로드맵](docs/ROADMAP.md)
 
+## Project Snapshot
+
+| 항목 | 내용 |
+| :--- | :--- |
+| **프로젝트 형태** | HOYA 개인 프로젝트 · 웹·PWA |
+| **담당 범위** | 집중·중단·복귀 흐름 기획, React UI·Phaser 장면 구현, 타이머·저장 상태 설계와 문서화 |
+| **핵심 설계** | Recovery Quest, 타이머와 연출 분리, 새로고침 복구, 게스트·계정 기록 동기화 |
+| **검증 과제** | 브라우저별 알림·작은 타이머·다중 계정 캠프 상호작용과 배포 반영 상태 |
+
+AI 개발 도구를 구현과 검토에 활용했습니다. 서비스의 기본 집중·회고 경험은 지속적인 AI 호출 없이 동작하도록 구성했습니다.
+
 ## 프로젝트를 시작한 이유
 
-집중 앱이 해야 하는 일이 꼭 다른 앱을 막거나 연속 기록을 유지하게 하는 것만은 아니라고 생각했습니다. 공부를 시작하기 전에 잠깐 보고 싶고, 도중에 멈췄더라도 부담 없이 돌아올 수 있는 화면을 만들고 싶었습니다.
+집중 서비스에서는 시작과 완주 사이에 일시정지, 중단, 복귀가 반복됩니다. 중단 이후 다시 목표를 정하는 부담을 줄이고, 집중 시간의 흐름을 직관적으로 보여주는 경험에서 출발했습니다.
 
 Focus Quest에서는 등산·수영·낚시 중 모험을 선택합니다. 집중하는 동안 캐릭터가 앞으로 나아가고, 세션을 마치면 오늘의 모험이 하나 완성됩니다. 긴 목표를 중단한 뒤에는 5분이나 10분처럼 더 작은 목표로 다시 시작할 수 있습니다.
 
-**완벽하게 지키는 하루보다, 내 속도로 다시 이어가는 경험**을 제품의 기준으로 삼았습니다.
+**중단 후에도 자신의 속도로 다시 이어가는 경험**을 제품의 기준으로 삼았습니다.
 
 ## 함께 모험하는 친구들
 
@@ -79,8 +90,8 @@ flowchart TD
     L <--> C["로그인 계정 · Supabase 동기화"]
     C --> R["주간 기록 · 다음 모험"]
     L --> R
-    style S fill:#14532d,color:#f0fdf4,stroke:#86efac
-    style P fill:#ecfccb,color:#1a2e05,stroke:#65a30d
+    style S fill:#126879,color:#ffffff,stroke:#163e47
+    style P fill:#afe8ec,color:#163e47,stroke:#126879
 ```
 
 | 영역 | 기술과 책임 |
