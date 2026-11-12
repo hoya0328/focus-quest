@@ -869,10 +869,7 @@ input:focus-visible {
   border-radius: 14px;
 }
 
-.pdf-builder-heading,
-.suggestion-select,
-.analysis-actions,
-.analysis-summary {
+.pdf-builder-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -937,9 +934,7 @@ input:focus-visible {
   white-space: nowrap;
 }
 
-.pdf-upload small,
-.material-tabs small,
-.suggestion-rationale {
+.pdf-upload small {
   color: #9abdb9;
 }
 
@@ -962,42 +957,6 @@ input:focus-visible {
 
 .pdf-status.phase-error {
   color: #ffb7a6;
-}
-
-.material-tabs {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-  padding-bottom: 3px;
-  overflow-x: auto;
-}
-
-.material-tabs button {
-  display: grid;
-  flex: 0 0 min(220px, 72vw);
-  gap: 3px;
-  padding: 10px 12px;
-  color: #cfe4df;
-  text-align: left;
-  background: #092a33;
-  border: 1px solid #3f686e;
-  border-radius: 9px;
-}
-
-.material-tabs button.is-active {
-  color: #102b31;
-  background: #f4c96b;
-  border-color: #ffe0a0;
-}
-
-.material-tabs strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.material-tabs button.is-active small {
-  color: #31494b;
 }
 
 .material-library {

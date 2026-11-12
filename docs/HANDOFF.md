@@ -263,3 +263,13 @@
 - 실제 사용자의 문제 품질·건너뛰기율 수집
 - GitHub `main`에는 반영 완료. 공개 Cloudflare Worker 재배포는 Wrangler OAuth 또는 `CLOUDFLARE_API_TOKEN` 재연결 후 `npm run deploy:public`로 진행
 - 기존 ChatGPT Sites 프로젝트는 현재 계정에서 조회만 가능하고 소스 저장소 쓰기 자격 증명 발급은 `project_not_found`로 거절됨
+
+## 2026-11-12 — 클린코드 및 보안 검사
+
+- 제거된 PDF 분석기의 미사용 파서·추천 생성기·타입 약 480줄을 삭제하고 PDF 자료 매핑과 퀴즈 생성 책임을 분리했다.
+- Next.js와 전이 의존성을 보안 버전으로 올려 운영 `npm audit` 취약점 4건(critical 1, high 2, moderate 1)을 0건으로 정리했다.
+- 공개 키·로컬 환경·Git 이력·빌드 산출물에서 관리자 키와 고신뢰도 비밀 패턴이 발견되지 않았다.
+- Supabase RLS, 소유 외래 키, RPC 실행 역할, 비공개 Storage 경로 정책을 정적으로 확인했다.
+- 공개 Worker의 무인증 `/api/cloud-state` 요청은 `401`을 반환했다.
+- 현재 `.env.local`의 Supabase 프로젝트 호스트는 DNS가 존재하지 않아 실제 owner/other-user 교차 계정 검증과 로그인은 보류했다.
+- 상세 증거와 재현 명령은 `docs/SECURITY_AUDIT_2026-11-12.md`에 기록했다.

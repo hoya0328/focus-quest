@@ -58,7 +58,7 @@ test("PDF storage path never includes the original Unicode file name", () => {
   assert.throws(() => createStudyMaterialStoragePath("../user", materialId));
 });
 
-test("material rows expose new quiz sources while preserving legacy analysis", () => {
+test("material rows expose quiz sources and ignore legacy analysis shapes", () => {
   const quizSource = createStudyQuizSource(pages);
   const material = materialFromRow({
     id: "123e4567-e89b-42d3-a456-426614174001",
@@ -77,7 +77,6 @@ test("material rows expose new quiz sources while preserving legacy analysis", (
     updated_at: "2026-11-12T00:00:00.000Z",
     analyzed_at: "2026-11-12T00:00:00.000Z",
   });
-  assert.equal(material.analysis, null);
   assert.equal(material.quizSource?.pages.length, 12);
 });
 
