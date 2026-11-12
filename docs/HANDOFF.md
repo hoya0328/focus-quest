@@ -261,3 +261,5 @@
 - 실제 로그인 계정으로 PDF 업로드부터 두 번째 세트 복습까지 브라우저 QA
 - 정답·오답과 도달 페이지의 계정 클라우드 저장
 - 실제 사용자의 문제 품질·건너뛰기율 수집
+- GitHub `main`에는 반영 완료. 공개 Cloudflare Worker 재배포는 Wrangler OAuth 또는 `CLOUDFLARE_API_TOKEN` 재연결 후 `npm run deploy:public`로 진행
+- 기존 ChatGPT Sites 프로젝트는 현재 계정에서 조회만 가능하고 소스 저장소 쓰기 자격 증명 발급은 `project_not_found`로 거절됨
