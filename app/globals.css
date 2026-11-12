@@ -1000,6 +1000,44 @@ input:focus-visible {
   color: #31494b;
 }
 
+.material-library {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.material-library article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  color: #d8ebe6;
+  background: #092a33;
+  border: 1px solid #3f686e;
+  border-radius: 9px;
+}
+
+.material-library article > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.material-library strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.material-library small {
+  color: #9abdb9;
+}
+
+.quest-material-range {
+  grid-template-columns: minmax(0, 1.4fr) minmax(180px, 0.6fr);
+}
+
 .pdf-failure {
   display: flex;
   align-items: center;
@@ -1315,6 +1353,12 @@ input:focus-visible {
   }
 
   .analysis-insights {
+    grid-template-columns: 1fr;
+  }
+
+  .material-library article,
+  .quest-material-range {
+    display: grid;
     grid-template-columns: 1fr;
   }
 
@@ -5683,6 +5727,153 @@ input[type="range"] {
   margin-top: 12px;
 }
 
+.study-checkpoint {
+  margin: 22px auto 0;
+  padding: 18px;
+  border: 3px solid #5d7181;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(78, 115, 128, 0.22), transparent 60%), #091f30;
+  box-shadow: 6px 6px 0 #020a12;
+  text-align: left;
+}
+
+.study-checkpoint-heading > span,
+.study-quiz-card > span {
+  color: #68d4c3;
+  font-family: "Courier New", "Malgun Gothic", monospace;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.study-checkpoint-heading h2 {
+  margin: 5px 0 4px;
+  color: #fff0c4;
+  font-size: clamp(18px, 2.4vw, 25px);
+  letter-spacing: -0.04em;
+}
+
+.study-checkpoint-heading p,
+.study-range-form > small,
+.study-quiz-feedback p {
+  margin: 0;
+  color: #a9c4bd;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.study-range-form {
+  display: grid;
+  gap: 11px;
+  margin-top: 15px;
+}
+
+.study-range-form > label {
+  display: grid;
+  gap: 7px;
+  color: #dbeae5;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.study-range-form > label > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.study-range-form input {
+  width: 100px;
+  min-height: 44px;
+  padding: 8px;
+  color: #fff0c4;
+  background: #061722;
+  border: 2px solid #53717c;
+  border-radius: 3px;
+  font-size: 17px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.study-range-form .primary-button,
+.study-recall > .primary-button {
+  max-width: 420px;
+  margin-top: 2px;
+}
+
+.study-quiz-card {
+  margin-top: 15px;
+}
+
+.study-quiz-card h3 {
+  margin: 8px 0 12px;
+  color: #f3ead1;
+  font-size: 15px;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.study-quiz-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.study-quiz-options button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 9px 11px;
+  color: #dce9df;
+  background: #0d3041;
+  border: 2px solid #416974;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.study-quiz-options button:hover:not(:disabled),
+.study-quiz-options button:focus-visible {
+  border-color: #f1c066;
+}
+
+.study-quiz-options button.is-correct {
+  color: #eaffcf;
+  background: #24533e;
+  border-color: #8ecf78;
+}
+
+.study-quiz-options button.is-wrong {
+  color: #ffd0c5;
+  background: #583438;
+  border-color: #e58b7b;
+}
+
+.study-quiz-options b {
+  display: grid;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: #071522;
+  background: #f1c066;
+  border-radius: 2px;
+}
+
+.study-quiz-feedback {
+  margin-top: 10px;
+  padding: 11px 12px;
+  background: #061722;
+  border-left: 3px solid #68d4c3;
+}
+
+.study-quiz-feedback strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #fff0c4;
+}
+
 .mini-quest-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -5737,6 +5928,19 @@ input[type="range"] {
 
   .camp-log {
     padding: 14px 11px;
+  }
+
+  .study-checkpoint {
+    padding: 14px 11px;
+  }
+
+  .study-quiz-options {
+    grid-template-columns: 1fr;
+  }
+
+  .study-range-form > label > span {
+    display: grid;
+    grid-template-columns: auto 90px auto;
   }
 
   .camp-log-choices {

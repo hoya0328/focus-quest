@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
-import PdfQuestBuilder from "@/app/components/PdfQuestBuilder";
+import StudyMaterialLibrary from "@/app/components/StudyMaterialLibrary";
 import { useStudyMaterials } from "@/app/hooks/useStudyMaterials";
+import type { StudyMaterial } from "@/lib/pdf-analysis";
 import {
   questProgress,
   type QuestDraft,
@@ -23,7 +24,7 @@ type QuestBoardProps = {
   onCreateQuest: (draft: QuestDraft) => Promise<StudyQuest | null>;
   onUpdateQuest: (id: string, draft: QuestDraft) => Promise<StudyQuest | null>;
   onDeleteQuest: (id: string) => Promise<boolean>;
-  onStartQuest: (quest: StudyQuest) => void | Promise<void>;
+  onStartQuest: (quest: StudyQuest, material: StudyMaterial | null) => void | Promise<void>;
 };
 
 const emptySubject: SubjectDraft = {
@@ -78,6 +79,10 @@ export default function QuestBoard({
   const visibleQuests = useMemo(
     () => quests.filter((quest) => quest.subjectId === effectiveSubjectId),
     [effectiveSubjectId, quests],
+  );
+  const subjectMaterials = useMemo(
+    () => materialStore.materials.filter((material) => material.subjectId === effectiveSubjectId),
+    [effectiveSubjectId, materialStore.materials],
   );
 
   const submitSubject = async (event: FormEvent) => {
@@ -237,16 +242,14 @@ export default function QuestBoard({
                 </button>
               </div>
 
-              <PdfQuestBuilder
+              <StudyMaterialLibrary
                 subject={subjects.find((subject) => subject.id === effectiveSubjectId)!}
                 materials={materialStore.materials}
                 message={materialStore.message}
                 pageProgress={materialStore.pageProgress}
                 phase={materialStore.phase}
-                onAnalyze={materialStore.analyzePdf}
-                onCreateQuest={onCreateQuest}
-                onDeleteMaterial={materialStore.deleteMaterial}
-                onUpdateAnalysis={materialStore.updateAnalysis}
+                onPrepare={materialStore.preparePdf}
+                onDelete={materialStore.deleteMaterial}
               />
 
               <div className="quest-list">
@@ -279,7 +282,10 @@ export default function QuestBoard({
                         type="button"
                         className="quest-primary"
                         disabled={quest.status === "completed"}
-                        onClick={() => onStartQuest(quest)}
+                        onClick={() => onStartQuest(
+                          quest,
+                          materialStore.materials.find((material) => material.id === quest.materialId) ?? null,
+                        )}
                       >
                         {quest.status === "completed" ? "퀘스트 완료" : "집중 시작"}
                       </button>
@@ -325,6 +331,41 @@ export default function QuestBoard({
                     placeholder="예: 핵심 개념 노트 1장과 연습문제 10개"
                   />
                 </label>
+                {subjectMaterials.length > 0 && (
+                  <div className="quest-form-row quest-material-range">
+                    <label>
+                      공부 자료
+                      <select
+                        value={questDraft.materialId ?? ""}
+                        onChange={(event) => {
+                          const material = subjectMaterials.find((item) => item.id === event.target.value);
+                          setQuestDraft({
+                            ...questDraft,
+                            materialId: material?.id ?? null,
+                            sourcePages: material ? `1~${material.pageCount}쪽` : "",
+                          });
+                        }}
+                      >
+                        <option value="">자료 없이 진행</option>
+                        {subjectMaterials.map((material) => (
+                          <option disabled={!material.quizSource} key={material.id} value={material.id}>
+                            {material.fileName}{material.quizSource ? "" : " · 다시 업로드 필요"}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      오늘의 목표 페이지
+                      <input
+                        disabled={!questDraft.materialId}
+                        maxLength={120}
+                        onChange={(event) => setQuestDraft({ ...questDraft, sourcePages: event.target.value })}
+                        placeholder="예: 10~27쪽"
+                        value={questDraft.sourcePages ?? ""}
+                      />
+                    </label>
+                  </div>
+                )}
                 <div className="quest-form-row quest-form-row-four">
                   <label>
                     모험

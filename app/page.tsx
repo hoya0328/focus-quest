@@ -9,6 +9,7 @@ import AdventureQuestScene from "@/app/components/AdventureQuestScene";
 import AuthDialog from "@/app/components/AuthDialog";
 import FishingQuestScene from "@/app/components/FishingQuestScene";
 import QuestBoard from "@/app/components/QuestBoard";
+import { StudyCheckpointPanel, StudyRecallPanel } from "@/app/components/StudyQuizPanel";
 import { useCloudSync } from "@/app/hooks/useCloudSync";
 import { useStudyQuests } from "@/app/hooks/useStudyQuests";
 import {
@@ -45,6 +46,12 @@ import {
   type SessionMode,
 } from "@/lib/pomodoro";
 import type { StudyQuest } from "@/lib/study-quests";
+import type { StudyMaterial } from "@/lib/pdf-analysis";
+import {
+  createStudyQuiz,
+  parseStudyPageRange,
+  type StudyQuiz,
+} from "@/lib/study-quiz";
 import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 
 type Screen = "select" | "setup" | "focus" | "complete";
@@ -339,6 +346,16 @@ export default function Home() {
   const [silentCampCode, setSilentCampCode] = useState("");
   const [silentCampStatus, setSilentCampStatus] = useState<"idle" | "connecting" | "joined" | "error">("idle");
   const [silentCampCount, setSilentCampCount] = useState(0);
+  const [activeStudyMaterial, setActiveStudyMaterial] = useState<StudyMaterial | null>(null);
+  const [studyRangeStart, setStudyRangeStart] = useState(1);
+  const [studyRangeEnd, setStudyRangeEnd] = useState(1);
+  const [reachedPage, setReachedPage] = useState("1");
+  const [checkpointQuiz, setCheckpointQuiz] = useState<StudyQuiz | null>(null);
+  const [checkpointAnswer, setCheckpointAnswer] = useState<number | null>(null);
+  const [checkpointSkipped, setCheckpointSkipped] = useState(false);
+  const [checkpointMessage, setCheckpointMessage] = useState("");
+  const [reviewQuiz, setReviewQuiz] = useState<StudyQuiz | null>(null);
+  const [reviewAnswer, setReviewAnswer] = useState<number | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const activeSessionRef = useRef<ActiveSession | null>(null);
   const completionLockRef = useRef(false);
@@ -1009,6 +1026,9 @@ export default function Home() {
 
   const chooseAdventure = (id: AdventureId) => {
     setActiveQuestId(null);
+    setActiveStudyMaterial(null);
+    setCheckpointQuiz(null);
+    setReviewQuiz(null);
     setSelectedId(id);
     setBgm(adventureBgms[id]);
     setSessionMode("focus");
@@ -1077,6 +1097,17 @@ export default function Home() {
   };
 
   const beginFocus = () => {
+    if (completionMode === "break" && activeStudyMaterial) {
+      const nextStart = Math.min(studyRangeEnd, Math.max(studyRangeStart, Number(reachedPage) + 1));
+      setStudyRangeStart(nextStart);
+      setReachedPage(String(studyRangeEnd));
+      setCheckpointQuiz(null);
+      setCheckpointAnswer(null);
+      setCheckpointSkipped(false);
+      setCheckpointMessage("");
+      setReviewQuiz(null);
+      setReviewAnswer(null);
+    }
     if (
       completionMode === "break" &&
       completedExpedition &&
@@ -1109,12 +1140,18 @@ export default function Home() {
     });
   const beginQuickFocus = (durationMinutes: number) => {
     setActiveQuestId(null);
+    setActiveStudyMaterial(null);
+    setCheckpointQuiz(null);
+    setReviewQuiz(null);
     beginSession("focus", { durationMinutes, questId: null, expedition: undefined });
   };
 
   const restartAdventure = (record: FocusRecord) => {
     const adventureBgm = adventureBgms[record.adventureId];
     setRecoveryQuest(null);
+    setActiveStudyMaterial(null);
+    setCheckpointQuiz(null);
+    setReviewQuiz(null);
     window.localStorage.removeItem(RECOVERY_QUEST_KEY);
     beginSession("focus", {
       durationMinutes: record.durationMinutes,
@@ -1234,6 +1271,47 @@ export default function Home() {
     });
   };
 
+  const prepareCheckpointQuiz = () => {
+    const source = activeStudyMaterial?.quizSource;
+    if (!source) {
+      setCheckpointSkipped(true);
+      setCheckpointMessage("이 자료에서는 읽을 수 있는 글자를 찾지 못해 범위만 기록했어요.");
+      return;
+    }
+    const reached = Math.min(
+      studyRangeEnd,
+      Math.max(studyRangeStart, Math.round(Number(reachedPage) || studyRangeStart)),
+    );
+    setReachedPage(String(reached));
+    const quiz = createStudyQuiz(source, studyRangeStart, reached, 0);
+    if (!quiz) {
+      setCheckpointSkipped(true);
+      setCheckpointMessage("이 범위의 글자가 짧아 문제 대신 공부한 페이지를 기록했어요.");
+      return;
+    }
+    setCheckpointQuiz(quiz);
+    setCheckpointAnswer(null);
+    setReviewQuiz(createStudyQuiz(source, studyRangeStart, reached, 1));
+    setReviewAnswer(null);
+    setCheckpointMessage("");
+    if (completedQuestId) {
+      window.localStorage.setItem(`focus-quest-reached-page:${completedQuestId}`, String(reached));
+    }
+  };
+
+  const skipCheckpointQuiz = () => {
+    const reached = Math.min(
+      studyRangeEnd,
+      Math.max(studyRangeStart, Math.round(Number(reachedPage) || studyRangeStart)),
+    );
+    setReachedPage(String(reached));
+    setCheckpointSkipped(true);
+    setReviewQuiz(null);
+    if (completedQuestId) {
+      window.localStorage.setItem(`focus-quest-reached-page:${completedQuestId}`, String(reached));
+    }
+  };
+
   const beginCampFollowUp = (durationMinutes: number, split = false) => {
     const nextIntent = split
       ? normalizeFocusIntent(`${focusIntent || "자유 집중"} · 작은 한 조각`)
@@ -1246,11 +1324,33 @@ export default function Home() {
     });
   };
 
-  const launchQuest = async (quest: StudyQuest) => {
+  const launchQuest = async (quest: StudyQuest, material: StudyMaterial | null) => {
     const started = await questStore.startQuest(quest.id);
     if (!started) return;
+    const range = material
+      ? parseStudyPageRange(quest.sourcePages, material.pageCount)
+      : { startPage: 1, endPage: 1 };
+    const previousReached = Number(
+      window.localStorage.getItem(`focus-quest-reached-page:${quest.id}`),
+    );
+    const nextStart =
+      Number.isFinite(previousReached) &&
+      previousReached >= range.startPage &&
+      previousReached < range.endPage
+        ? previousReached + 1
+        : range.startPage;
     persistSession(null);
     setActiveQuestId(quest.id);
+    setActiveStudyMaterial(material?.quizSource ? material : null);
+    setStudyRangeStart(nextStart);
+    setStudyRangeEnd(range.endPage);
+    setReachedPage(String(range.endPage));
+    setCheckpointQuiz(null);
+    setCheckpointAnswer(null);
+    setCheckpointSkipped(false);
+    setCheckpointMessage("");
+    setReviewQuiz(null);
+    setReviewAnswer(null);
     setFocusIntent(quest.title);
     setSelectedId(quest.adventureId);
     setBgm(adventureBgms[quest.adventureId]);
@@ -1342,6 +1442,11 @@ export default function Home() {
       completedExpedition &&
       completedExpedition.currentSet < completedExpedition.totalSets,
   );
+  const studyCheckpointRequired = Boolean(
+    completionMode === "focus" && completedQuestId && activeStudyMaterial?.quizSource,
+  );
+  const studyCheckpointDone =
+    !studyCheckpointRequired || checkpointSkipped || checkpointAnswer !== null;
 
   return (
     <main
@@ -2217,7 +2322,21 @@ export default function Home() {
                 </span>
               </div>
             </div>
-            {isExpeditionCheckpoint ? (
+            {studyCheckpointRequired && (
+              <StudyCheckpointPanel
+                answer={checkpointAnswer}
+                endPage={studyRangeEnd}
+                message={checkpointMessage}
+                onAnswer={setCheckpointAnswer}
+                onBuildQuiz={prepareCheckpointQuiz}
+                onSkip={skipCheckpointQuiz}
+                quiz={checkpointQuiz}
+                reachedPage={reachedPage}
+                setReachedPage={setReachedPage}
+                startPage={studyRangeStart}
+              />
+            )}
+            {studyCheckpointDone && (isExpeditionCheckpoint ? (
               <div className="checkpoint-next">
                 <div className="checkpoint-path" aria-label="원정 진행도">
                   {Array.from({ length: completedExpedition?.totalSets ?? 0 }, (_, index) => (
@@ -2296,6 +2415,18 @@ export default function Home() {
                   </div>
                 )}
               </div>
+            ) : reviewQuiz ? (
+              <StudyRecallPanel
+                answer={reviewAnswer}
+                continueLabel={
+                  completedExpedition && completedExpedition.currentSet < completedExpedition.totalSets
+                    ? `${completedExpedition.currentSet + 1}번째 구간 시작`
+                    : `${focusMinutes}분 집중 시작`
+                }
+                onAnswer={setReviewAnswer}
+                onContinue={beginFocus}
+                quiz={reviewQuiz}
+              />
             ) : (
               <button className="primary-button" type="button" onClick={beginFocus}>
                 <span>
@@ -2305,7 +2436,7 @@ export default function Home() {
                 </span>
                 <strong>→</strong>
               </button>
-            )}
+            ))}
             <button
               className="text-button"
               type="button"
