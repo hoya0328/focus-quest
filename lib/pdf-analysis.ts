@@ -1,4 +1,8 @@
 import type { AdventureId } from "@/lib/pomodoro";
+import {
+  parseStudyQuizSource,
+  type StudyQuizSource,
+} from "./study-quiz.ts";
 
 export const MAX_PDF_BYTES = 15 * 1024 * 1024;
 export const MAX_PDF_PAGES = 120;
@@ -83,6 +87,7 @@ export type StudyMaterial = {
   status: "uploaded" | "analyzing" | "ready" | "failed";
   summary: string;
   analysis: PdfAnalysis | null;
+  quizSource: StudyQuizSource | null;
   analysisProvider: "guided" | "openai";
   errorMessage: string;
   createdAt: string;
@@ -266,6 +271,7 @@ export function materialFromRow(row: MaterialRow): StudyMaterial {
     status: row.status,
     summary: row.summary,
     analysis: parsePdfAnalysis(row.analysis, row.analysis_provider),
+    quizSource: parseStudyQuizSource(row.analysis),
     analysisProvider: row.analysis_provider,
     errorMessage: row.error_message,
     createdAt: row.created_at,

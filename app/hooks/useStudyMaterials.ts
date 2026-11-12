@@ -5,12 +5,10 @@ import { extractPdfText } from "@/lib/pdf-client";
 import {
   createStudyMaterialStoragePath,
   materialFromRow,
-  parsePdfAnalysis,
-  sanitizePdfAnalysisForStorage,
   type MaterialRow,
-  type PdfAnalysis,
   type StudyMaterial,
 } from "@/lib/pdf-analysis";
+import { createStudyQuizSource } from "@/lib/study-quiz";
 import type { StudySubject } from "@/lib/study-quests";
 import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 
@@ -18,7 +16,7 @@ export type MaterialPhase =
   | "idle"
   | "extracting"
   | "uploading"
-  | "analyzing"
+  | "indexing"
   | "saving"
   | "error";
 
@@ -46,22 +44,6 @@ function storageUploadErrorMessage(error: unknown) {
   return status
     ? `PDF를 저장하지 못했어요. (Storage ${status})`
     : "PDF를 저장하지 못했어요.";
-}
-
-function analysisSaveErrorMessage(error: unknown) {
-  const failure = (error ?? {}) as {
-    code?: string;
-    message?: string;
-  };
-  if (failure.code === "23514") {
-    return "분석 결과가 저장 범위를 벗어났어요. 내용을 줄여서 다시 시도해 주세요.";
-  }
-  if (failure.code === "22P05" || failure.code === "22021") {
-    return "PDF에서 저장할 수 없는 문자를 발견했어요.";
-  }
-  return failure.code
-    ? `분석 결과를 저장하지 못했어요. (DB ${failure.code})`
-    : "분석 결과를 저장하지 못했어요.";
 }
 
 export function useStudyMaterials(enabled: boolean) {
@@ -97,7 +79,7 @@ export function useStudyMaterials(enabled: boolean) {
     void refresh();
   }, [refresh]);
 
-  const analyzePdf = useCallback(
+  const preparePdf = useCallback(
     async (file: File, subject: StudySubject) => {
       if (!client) return null;
       setMessage("");
@@ -110,6 +92,10 @@ export function useStudyMaterials(enabled: boolean) {
         const extracted = await extractPdfText(file, (completed, total) => {
           setPageProgress({ completed, total });
         });
+        const quizSource = createStudyQuizSource(extracted.pages);
+        if (!quizSource.pages.length) {
+          throw new Error("PDF에서 퀴즈에 사용할 글자를 찾지 못했어요. 스캔 자료인지 확인해 주세요.");
+        }
         const {
           data: { session },
         } = await client.auth.getSession();
@@ -131,6 +117,9 @@ export function useStudyMaterials(enabled: boolean) {
           throw new Error(storageUploadErrorMessage(upload.error));
         }
 
+        setPhase("indexing");
+        const analyzedAt = new Date().toISOString();
+        const summary = `${extracted.pageCount}쪽 자료 · ${quizSource.pages.length}쪽에서 복습 퀴즈를 준비했어요.`;
         const inserted = await client
           .from("study_materials")
           .insert({
@@ -141,7 +130,11 @@ export function useStudyMaterials(enabled: boolean) {
             storage_path: storagePath,
             file_size_bytes: file.size,
             page_count: extracted.pageCount,
-            status: "analyzing",
+            status: "ready",
+            summary,
+            analysis: quizSource,
+            analysis_provider: "guided",
+            analyzed_at: analyzedAt,
           })
           .select()
           .single();
@@ -149,76 +142,14 @@ export function useStudyMaterials(enabled: boolean) {
           await client.storage.from("study-materials").remove([storagePath]);
           throw new Error("자료 정보를 저장하지 못했어요.");
         }
-        const pending = materialFromRow(inserted.data as MaterialRow);
-        setMaterials((current) => [pending, ...current]);
-
-        setPhase("analyzing");
-        const response = await fetch("/api/analyze-pdf", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fileName: file.name,
-            pageCount: extracted.pageCount,
-            pages: extracted.pages,
-            subjectGoal: subject.goal,
-            subjectName: subject.name,
-          }),
-        });
-        const payload = (await response.json()) as {
-          analysis?: unknown;
-          error?: string;
-        };
-        if (!response.ok) {
-          throw new Error(payload.error || "PDF 분석에 실패했어요.");
-        }
-        const analysis = parsePdfAnalysis(payload.analysis);
-        if (!analysis) throw new Error("분석 결과 형식이 올바르지 않아요.");
-
-        setPhase("saving");
-        const analyzedAt = new Date().toISOString();
-        const persistedAnalysis = sanitizePdfAnalysisForStorage(analysis);
-        const updated = await client
-          .from("study_materials")
-          .update({
-            status: "ready",
-            summary: persistedAnalysis.summary,
-            analysis: persistedAnalysis,
-            analysis_provider: persistedAnalysis.provider,
-            error_message: "",
-            analyzed_at: analyzedAt,
-            updated_at: analyzedAt,
-          })
-          .eq("id", materialId)
-          .eq("user_id", user.id);
-        if (updated.error) {
-          throw new Error(analysisSaveErrorMessage(updated.error));
-        }
-        const ready: StudyMaterial = {
-          ...pending,
-          status: "ready",
-          summary: persistedAnalysis.summary,
-          analysis: persistedAnalysis,
-          analysisProvider: persistedAnalysis.provider,
-          errorMessage: "",
-          updatedAt: analyzedAt,
-          analyzedAt,
-        };
-        setMaterials((current) =>
-          current.map((item) => (item.id === ready.id ? ready : item)),
-        );
+        const ready = materialFromRow(inserted.data as MaterialRow);
+        setMaterials((current) => [ready, ...current]);
         setPhase("idle");
-        setMessage(
-          analysis.provider === "openai"
-            ? "AI가 퀘스트 초안을 만들었어요."
-            : "자료의 제목과 핵심어를 바탕으로 퀘스트 초안을 만들었어요.",
-        );
+        setMessage("자료가 준비됐어요. 퀘스트에 연결하면 집중이 끝날 때 복습 문제가 나와요.");
         return ready;
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : "PDF 분석에 실패했어요.";
+          error instanceof Error ? error.message : "PDF를 준비하지 못했어요.";
         if (materialId) {
           const failedAt = new Date().toISOString();
           const { data } = await client
@@ -242,35 +173,6 @@ export function useStudyMaterials(enabled: boolean) {
         setMessage(errorMessage);
         return null;
       }
-    },
-    [client],
-  );
-
-  const updateAnalysis = useCallback(
-    async (materialId: string, analysis: PdfAnalysis) => {
-      if (!client) return false;
-      setPhase("saving");
-      const { data, error } = await client
-        .from("study_materials")
-        .update({
-          analysis,
-          summary: analysis.summary,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", materialId)
-        .select()
-        .single();
-      if (error) {
-        setPhase("error");
-        setMessage("수정한 분석을 저장하지 못했어요.");
-        return false;
-      }
-      const updated = materialFromRow(data as MaterialRow);
-      setMaterials((current) =>
-        current.map((item) => (item.id === materialId ? updated : item)),
-      );
-      setPhase("idle");
-      return true;
     },
     [client],
   );
@@ -304,13 +206,12 @@ export function useStudyMaterials(enabled: boolean) {
   );
 
   return {
-    analyzePdf,
+    preparePdf,
     deleteMaterial,
     materials,
     message,
     pageProgress,
     phase,
     refresh,
-    updateAnalysis,
   };
 }
