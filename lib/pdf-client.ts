@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  MAX_ANALYSIS_CHARACTERS,
+  MAX_EXTRACTED_TEXT_CHARACTERS,
   MAX_PDF_BYTES,
   MAX_PDF_PAGES,
-  type PdfPageText,
 } from "@/lib/pdf-analysis";
+import type { StudyPageText } from "@/lib/study-quiz";
 
 export class PdfInputError extends Error {
   constructor(message: string) {
@@ -61,9 +61,9 @@ export async function extractPdfText(
 
   const charactersPerPage = Math.max(
     800,
-    Math.min(5_000, Math.floor(MAX_ANALYSIS_CHARACTERS / pageCount)),
+    Math.min(5_000, Math.floor(MAX_EXTRACTED_TEXT_CHARACTERS / pageCount)),
   );
-  const pages: PdfPageText[] = [];
+  const pages: StudyPageText[] = [];
   let extractedCharacters = 0;
 
   try {

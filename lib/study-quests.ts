@@ -1,5 +1,10 @@
 import type { AdventureId } from "@/lib/pomodoro";
-import type { QuestContract } from "@/lib/pdf-analysis";
+
+export type QuestContract = {
+  safe: string;
+  base: string;
+  stretch: string;
+};
 
 export type QuestStatus = "planned" | "in_progress" | "completed";
 
