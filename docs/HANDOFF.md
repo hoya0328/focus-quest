@@ -261,7 +261,7 @@
 - 실제 로그인 계정으로 PDF 업로드부터 두 번째 세트 복습까지 브라우저 QA
 - 정답·오답과 도달 페이지의 계정 클라우드 저장
 - 실제 사용자의 문제 품질·건너뛰기율 수집
-- GitHub `main`에는 반영 완료. 공개 Cloudflare Worker 재배포는 Wrangler OAuth 또는 `CLOUDFLARE_API_TOKEN` 재연결 후 `npm run deploy:public`로 진행
+- GitHub `main` 반영과 공개 Cloudflare Worker 재배포 완료: `c2c66a9b-2b79-45f1-88cf-55a0babcc73c`
 - 기존 ChatGPT Sites 프로젝트는 현재 계정에서 조회만 가능하고 소스 저장소 쓰기 자격 증명 발급은 `project_not_found`로 거절됨
 
 ## 2026-11-12 — 클린코드 및 보안 검사
@@ -273,3 +273,4 @@
 - 공개 Worker의 무인증 `/api/cloud-state` 요청은 `401`을 반환했다.
 - 현재 `.env.local`의 Supabase 프로젝트 호스트는 DNS가 존재하지 않아 실제 owner/other-user 교차 계정 검증과 로그인은 보류했다.
 - 상세 증거와 재현 명령은 `docs/SECURITY_AUDIT_2026-11-12.md`에 기록했다.
+- 보안 패치 빌드는 `https://focus-quest.hoya0328.workers.dev`에 배포했고 공개 화면 `200`, 무인증 클라우드 API `401`을 확인했다.

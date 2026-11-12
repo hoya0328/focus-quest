@@ -20,6 +20,7 @@
 - The public Worker does not bind the private Sites D1 database. Anonymous `GET /api/cloud-state` returned HTTP `401`.
 - Production dependencies were updated to Next.js `16.4.6`, Sharp `0.35.5`, source-map-js `1.2.2` and baseline-browser-mapping `2.11.0`. `npm audit --omit=dev` reports zero vulnerabilities.
 - PDF/quest tests: 11 passed. Account/auth tests: 15 passed. TypeScript, ESLint and production build passed.
+- The patched build was deployed to the existing public Worker as version `c2c66a9b-2b79-45f1-88cf-55a0babcc73c`; the landing page returned `200` and anonymous cloud-state access returned `401`.
 
 ## FAIL
 
