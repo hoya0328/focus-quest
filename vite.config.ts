@@ -1,7 +1,7 @@
 import vinext from "vinext";
 import { defineConfig } from "vite";
-import hostingConfig from "./.openai/hosting.json";
-import { sites } from "./build/sites-vite-plugin";
+import hostingConfig from "./.openai/hosting.json" with { type: "json" };
+import { sites } from "./build/sites-vite-plugin.ts";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
@@ -44,6 +44,12 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    // Keep Vite's mutable dependency cache inside the active workspace even
+    // when dependencies are provided through a shared/junctioned node_modules.
+    cacheDir: ".vite-cache",
+    // Phaser and PDF.js are isolated, on-demand runtimes. Keep a deliberate
+    // 1.25 MB ceiling so the build warns only if either vendor chunk regresses.
+    build: { chunkSizeWarningLimit: 1250 },
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,

@@ -2,49 +2,59 @@
 
 ## Scope
 
-- Local source and reachable Git history on `main`
-- Vinext/Cloudflare production build output
-- Supabase table, RPC and Storage migration policies
-- Public Cloudflare Worker anonymous API boundary
-- Production npm dependencies
-- No paid service, persistent test account, production row mutation or key rotation
+- Local source, reachable Git history and the Vinext/Cloudflare build output
+- Supabase table, RPC and Storage migration boundaries
+- Local and currently deployed Cloudflare Worker API behavior
+- Runtime and development dependencies
+- No paid service, persistent test account, production data mutation, key rotation or deployment
 
-## PASS
+## Result matrix
 
-- `.env.local` is ignored and untracked. It contains only the public Supabase URL, public anon key and Google-auth feature flag.
-- No OpenAI key, Cloudflare token, Supabase service-role key, private-key marker or high-confidence secret shape was found in current source, reachable Git history or build output.
-- Supabase SQL revokes `anon`, enables RLS and checks `auth.uid() = user_id` for cloud state, subjects, quests, sessions and materials.
-- Owned composite foreign keys prevent a quest or session from referencing another user's subject or quest.
-- `complete_study_quest_set` is `security invoker`, has an empty search path and is executable only by `authenticated`.
-- The `study-materials` bucket is private, PDF-only and limits select/insert/delete to the authenticated user's UUID path prefix.
-- The public Worker does not bind the private Sites D1 database. Anonymous `GET /api/cloud-state` returned HTTP `401`.
-- Production dependencies were updated to Next.js `16.4.6`, Sharp `0.35.5`, source-map-js `1.2.2` and baseline-browser-mapping `2.11.0`. `npm audit --omit=dev` reports zero vulnerabilities.
-- PDF/quest tests: 11 passed. Account/auth tests: 15 passed. TypeScript, ESLint and production build passed.
-- The patched build was deployed to the existing public Worker as version `c2c66a9b-2b79-45f1-88cf-55a0babcc73c`; the landing page returned `200` and anonymous cloud-state access returned `401`.
+| Boundary | Result | Evidence |
+| --- | --- | --- |
+| Secrets in source, Git history and build output | PASS | No service-role key, OpenAI key, Cloudflare token, private-key marker or high-confidence secret value was found. `.env.local` is ignored and untracked. |
+| Dependency vulnerabilities | PASS | `npm audit --audit-level=low` reports 0 vulnerabilities after the Next, React, Vinext, Vite, Wrangler and affected transitive packages were updated. |
+| TypeScript, ESLint and application tests | PASS | TypeScript and full ESLint pass. Logic/security tests 31/31 and rendered-server tests 2/2 pass. |
+| Table ownership model | PASS (static) | RLS is enabled for cloud state, subjects, quests, sessions and materials. Policies use `auth.uid() = user_id`; owned composite foreign keys prevent cross-user subject/quest references. |
+| RPC boundary | PASS (static) | `complete_study_quest_set` is `security invoker`, has an empty search path, is revoked from `anon`, granted only to `authenticated`, and checks ownership. |
+| PDF Storage boundary | PASS (static) | `study-materials` is private, PDF-only and limits read/upload/delete to the authenticated user's UUID path prefix. |
+| Public Worker without D1 | PASS (local patched build) | Anonymous and forged `oai-authenticated-user-email` requests both receive `404` before identity headers are read; API responses include `Cache-Control: no-store`. |
+| Browser security headers | PASS (local patched build) | CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and a restrictive `Permissions-Policy` are attached by the Worker. |
+| Currently deployed anonymous cloud-state request | PASS (old deployment) | The public Worker returns `401` for an ordinary anonymous request. |
+| Currently deployed forged identity header | FAIL (old deployment) | The public Worker returns `503`, revealing that the untrusted identity header was processed before the missing D1 binding. The local patch fixes this, but it has not been deployed. |
+| Live Supabase anonymous/owner/non-owner checks | NOT TESTED | The configured project hostname has the correct shape but does not resolve in DNS (`ENOTFOUND`). A network failure is not accepted as an authorization denial. |
 
-## FAIL
+## Repairs completed locally
 
-- The configured Supabase project host does not resolve in DNS. Authentication, account cloud state, quests, PDF metadata and private Storage cannot be verified or used until `.env.local` is updated from the active Supabase project's current API settings.
+- Reject cloud-state requests before reading ChatGPT identity headers when the Worker has no private D1 binding.
+- Add `Cache-Control: no-store` to every cloud-state response.
+- Add production security headers at the Worker boundary.
+- Expand static authorization regression tests across tables, owned foreign keys, RPC execution and private PDF Storage.
+- Expand rendered-server tests for anonymous and forged-header behavior.
+- Replace raw `<img>` usage with `next/image` while preserving the original pixel-art dimensions.
+- Restore the corrupted local Next package, update the vulnerable dependency graph and move scripts to the supported Vite/Vinext commands.
+- Keep Phaser and PDF.js in separate lazy chunks; the large-chunk budget now documents those deliberate optional runtimes.
 
-## NOT TESTED
+## Remaining external verification
 
-- Real owner A read/insert/update/delete positive controls against production Supabase
-- Unrelated account B attempts against owner A rows and PDF paths
-- Authenticated RPC execution and session-id collision behavior with two ordinary user JWTs
-- Storage owner download and non-owner denial using real objects
+The following checks require a valid active Supabase project URL and publishable/anon key plus two disposable ordinary user sessions:
 
-These checks require two disposable ordinary accounts and synthetic fixtures. They were not created during this audit to avoid emails and persistent production data.
+1. Owner A insert/read/update/delete positive controls.
+2. Account B denial against A's subjects, quests, sessions and PDF object paths.
+3. Authenticated RPC completion and collision behavior.
+4. Owner PDF download and non-owner denial.
+
+No accounts or persistent fixtures were created during this audit. The current public Worker also remains on the previous deployment until publication is explicitly requested.
 
 ## Reproduction
 
 ```powershell
-npm audit --omit=dev
+npm audit --audit-level=low
 npm run security:anonymous
-npm run test:pdf
-npm run test:account-sync
+npm run test:logic
 npx tsc --noEmit
 npm run lint
-npm run build
+npm test
 ```
 
-`npm run security:anonymous` is read-only. It should return empty anonymous results for every Supabase table and Storage list, plus HTTP `401` for the public Worker cloud-state API. A network error is not accepted as an authorization denial.
+`npm run security:anonymous` is read-only. Empty anonymous results are a pass; DNS or other network errors are `NOT TESTED`, not an authorization pass.

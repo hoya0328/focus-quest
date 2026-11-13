@@ -317,6 +317,28 @@ export function getDailyCount(
     .length;
 }
 
+export function getFocusStreak(
+  history: FocusRecord[],
+  input: Date | number | string = new Date(),
+) {
+  if (history.length === 0) return 0;
+  const completedDates = new Set(
+    history.map((record) => localDateKey(record.completedAt)),
+  );
+  const cursor = input instanceof Date ? new Date(input) : new Date(input);
+  cursor.setHours(12, 0, 0, 0);
+  if (!completedDates.has(localDateKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  let streak = 0;
+  while (completedDates.has(localDateKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
 export function getWeeklySummary(
   history: FocusRecord[],
   input: Date | number | string = new Date(),

@@ -1,8 +1,10 @@
-const CACHE_NAME = "focus-quest-v2";
+const CACHE_NAME = "focus-quest-v3";
 const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const OFFLINE_PAGE_KEY = `${BASE_PATH}/__focus-quest-offline`;
 const CORE_ASSETS = [
   `${BASE_PATH}/manifest.webmanifest`,
+  `${BASE_PATH}/brand/focus-quest-logo.png`,
+  `${BASE_PATH}/brand/focus-quest-mark.png`,
   `${BASE_PATH}/characters/momo-hiking.png`,
   `${BASE_PATH}/characters/podo-swimming.png`,
   `${BASE_PATH}/characters/bori-fishing.png`

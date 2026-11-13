@@ -14,6 +14,7 @@ test("the web app manifest is installable from both root and a subpath", async (
   assert.equal(manifest.display, "standalone");
   assert.ok(manifest.icons.length > 0);
   assert.ok(manifest.icons.every((icon) => !icon.src.startsWith("/")));
+  assert.equal(manifest.icons[0].src, "brand/focus-quest-mark.png");
 });
 
 test("the service worker provides an offline navigation fallback", async () => {
@@ -22,7 +23,9 @@ test("the service worker provides an offline navigation fallback", async () => {
   assert.match(serviceWorker, /event\.request\.mode === "navigate"/);
   assert.match(serviceWorker, /caches\.match\(OFFLINE_PAGE_KEY\)/);
   assert.match(serviceWorker, /requestUrl\.origin !== self\.location\.origin/);
-  assert.match(serviceWorker, /focus-quest-v2/);
+  assert.match(serviceWorker, /focus-quest-v3/);
+  assert.match(serviceWorker, /brand\/focus-quest-logo\.png/);
+  assert.match(serviceWorker, /brand\/focus-quest-mark\.png/);
   assert.match(serviceWorker, /cache: "no-store"/);
   assert.match(serviceWorker, /client\.navigate\(client\.url\)/);
   assert.doesNotMatch(

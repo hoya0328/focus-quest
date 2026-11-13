@@ -220,17 +220,26 @@ export default function FishingQuestScene({
           const width = this.scale.width;
           const height = this.scale.height;
           const compact = width < 600;
-          const coverScale =
-            Math.max(
-              width / this.lakeBackdrop.frame.realWidth,
-              height / this.lakeBackdrop.frame.realHeight,
-            ) * 1.015;
-          this.lakeBackdrop.setScale(coverScale);
+          const wholeScene = compact || height < 520;
+          const sceneTop = compact && height >= 520 ? Math.max(70, height * 0.085) : 0;
+          const availableHeight = height - sceneTop;
+          const sceneScale = wholeScene
+            ? Math.min(
+                width / this.lakeBackdrop.frame.realWidth,
+                availableHeight / this.lakeBackdrop.frame.realHeight,
+              )
+            : Math.max(
+                width / this.lakeBackdrop.frame.realWidth,
+                height / this.lakeBackdrop.frame.realHeight,
+              ) * 1.015;
+          this.lakeBackdrop.setScale(sceneScale);
           const displayWidth =
             this.lakeBackdrop.frame.realWidth * this.lakeBackdrop.scaleX;
+          const displayHeight =
+            this.lakeBackdrop.frame.realHeight * this.lakeBackdrop.scaleY;
           let imageLeft = (width - displayWidth) / 2;
 
-          if (compact && displayWidth > width) {
+          if (!wholeScene && displayWidth > width) {
             imageLeft = Phaser.Math.Clamp(
               width * 0.44 - displayWidth * 0.43,
               width - displayWidth,
@@ -239,7 +248,7 @@ export default function FishingQuestScene({
           }
           this.lakeBackdrop.setPosition(
             imageLeft + displayWidth / 2,
-            height / 2,
+            wholeScene ? sceneTop + displayHeight / 2 : height / 2,
           );
         }
 
@@ -258,6 +267,7 @@ export default function FishingQuestScene({
           const width = this.scale.width;
           const height = this.scale.height;
           const isCompact = width < 600;
+          const wholeScene = isCompact || height < 520;
           const unit = Math.max(0.72, Math.min(width / 1200, height / 700));
           this.sceneUnit = unit;
 
@@ -305,11 +315,13 @@ export default function FishingQuestScene({
             glow.setScale(unit);
           });
 
-          const displayWidth = isCompact
-            ? Math.max(225, Math.min(280, width * 0.7))
+          const displayWidth = wholeScene
+            ? Math.min(280, width * 0.7, height * 0.55)
             : Math.max(320, Math.min(440, width * 0.38, height * 0.72));
           const displayHeight = displayWidth * (430 / 520);
-          const bobberTarget = this.mapLakePoint(0.455, 0.63);
+          // The sprite contains the rod, line and bobber in one frame. Anchor the
+          // bobber just beyond the dock so Bori's feet remain on the planks.
+          const bobberTarget = this.mapLakePoint(0.43, 0.59);
           const anglerX = bobberTarget.x - displayWidth * 0.112;
           const anglerY = bobberTarget.y - displayHeight * 0.316;
           this.angler.setPosition(anglerX, anglerY);
@@ -322,8 +334,8 @@ export default function FishingQuestScene({
             ripple.setScale(unit);
           });
 
-          const catchSize = isCompact
-            ? Math.min(220, width * 0.58)
+          const catchSize = wholeScene
+            ? Math.min(220, width * 0.58, height * 0.48)
             : Math.min(310, width * 0.23);
           this.goldenCatch.setPosition(
             this.bobberX,

@@ -17,9 +17,13 @@
     "**/.openai": true,
     "**/.vscode": true,
     "**/.wrangler": true,
+    "**/.vite-cache": true,
+    "**/.hallmark": true,
+    "**/.impeccable": true,
     "**/node_modules": true,
     "**/dist": true,
     "**/out": true,
+    "**/output": true,
     "**/outputs": true,
     "**/tmp": true,
     "**/profile": true,
@@ -35,9 +39,11 @@
   "search.exclude": {
     "**/.next": true,
     "**/.wrangler": true,
+    "**/.vite-cache": true,
     "**/node_modules": true,
     "**/dist": true,
     "**/out": true,
+    "**/output": true,
     "**/outputs": true,
     "**/tmp": true
   }

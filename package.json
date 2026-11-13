@@ -6,9 +6,9 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "vinext dev",
-    "build": "vinext build",
-    "build:public": "vinext build",
+    "dev": "vite dev",
+    "build": "vite build",
+    "build:public": "vite build",
     "deploy:public": "npm run build:public && wrangler deploy --config wrangler.public.jsonc",
     "start": "vinext start",
     "test": "npm run test:logic && npm run build && node --test tests/rendered-html.test.mjs",
@@ -26,29 +26,36 @@
     "next": "16.4.6",
     "pdfjs-dist": "^5.4.296",
     "phaser": "^3.90.0",
-    "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.51.2",
+    "@cloudflare/vite-plugin": "1.69.0",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
-    "@vitejs/plugin-rsc": "0.5.26",
+    "@vitejs/plugin-rsc": "0.5.37",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
     "eslint-config-next": "16.3.0",
-    "react-server-dom-webpack": "19.2.6",
+    "react-server-dom-webpack": "19.3.1",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
-    "vinext": "0.0.50",
-    "vite": "8.0.13",
-    "wrangler": "4.120.1"
+    "vinext": "1.4.5",
+    "vite": "8.3.8",
+    "wrangler": "4.160.1"
   },
   "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "0.25.12"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.8"
+    },
     "baseline-browser-mapping": "2.11.0",
+    "fflate": "0.8.3",
     "sharp": "0.35.5",
     "source-map-js": "1.2.2"
   },

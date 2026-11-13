@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import { createStudyMaterialStoragePath, materialFromRow } from "../lib/pdf-analysis.ts";
 import {
   createStudyQuiz,
+  createUnseenStudyQuiz,
   createStudyQuizSource,
   parseStudyPageRange,
   parseStudyQuizSource,
@@ -49,6 +50,15 @@ test("checkpoint and recall quizzes stay inside the studied page range", () => {
 test("short or unreadable ranges skip quiz generation safely", () => {
   const source = createStudyQuizSource([{ pageNumber: 1, text: "짧은 글" }]);
   assert.equal(createStudyQuiz(source, 1, 1), null);
+});
+
+test("quiz selection skips questions already answered on another device", () => {
+  const source = createStudyQuizSource(pages);
+  const first = createUnseenStudyQuiz(source, 3, 7, 0, new Set());
+  assert.ok(first);
+  const next = createUnseenStudyQuiz(source, 3, 7, 0, new Set([first.id]));
+  assert.ok(next);
+  assert.notEqual(next.id, first.id);
 });
 
 test("PDF storage path never includes the original Unicode file name", () => {

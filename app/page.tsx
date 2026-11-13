@@ -3,14 +3,22 @@
 /* Local-storage hydration intentionally restores several client-only state values. */
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import AdventureQuestScene from "@/app/components/AdventureQuestScene";
+import Image from "next/image";
 import AuthDialog from "@/app/components/AuthDialog";
-import FishingQuestScene from "@/app/components/FishingQuestScene";
-import QuestBoard from "@/app/components/QuestBoard";
 import { StudyCheckpointPanel, StudyRecallPanel } from "@/app/components/StudyQuizPanel";
 import { useCloudSync } from "@/app/hooks/useCloudSync";
+import { useProductTelemetry } from "@/app/hooks/useProductTelemetry";
+import { useStudyProgress } from "@/app/hooks/useStudyProgress";
 import { useStudyQuests } from "@/app/hooks/useStudyQuests";
 import {
   ACTIVE_SESSION_UPDATED_AT_KEY,
@@ -29,6 +37,7 @@ import {
   createExpeditionProgress,
   getBehaviorInsights,
   getDailyCount,
+  getFocusStreak,
   getWeeklySummary,
   normalizeFocusIntent,
   parseActiveSession,
@@ -48,11 +57,19 @@ import {
 import type { StudyQuest } from "@/lib/study-quests";
 import type { StudyMaterial } from "@/lib/pdf-analysis";
 import {
-  createStudyQuiz,
+  createUnseenStudyQuiz,
   parseStudyPageRange,
   type StudyQuiz,
 } from "@/lib/study-quiz";
 import { getSupabaseBrowserClient } from "@/lib/supabase-client";
+
+const AdventureQuestScene = lazy(
+  () => import("@/app/components/AdventureQuestScene"),
+);
+const FishingQuestScene = lazy(
+  () => import("@/app/components/FishingQuestScene"),
+);
+const QuestBoard = lazy(() => import("@/app/components/QuestBoard"));
 
 type Screen = "select" | "setup" | "focus" | "complete";
 
@@ -62,12 +79,7 @@ const EXPEDITION_SETS_KEY = "focus-quest-expedition-sets";
 const NOTIFICATION_KEY = "focus-quest-notifications";
 const REMINDER_TIME_KEY = "focus-quest-reminder-time";
 const REMINDER_SENT_KEY = "focus-quest-reminder-sent";
-const quickFocusOptions = [
-  { minutes: 10, label: "몸풀기", note: "가볍게 시작" },
-  { minutes: 25, label: "기본 집중", note: "한 칸 완주" },
-  { minutes: 45, label: "깊은 집중", note: "긴 호흡 몰입" },
-] as const;
-
+const DISTRACTION_NOTES_KEY = "focus-quest-distraction-notes";
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -93,8 +105,11 @@ type Adventure = {
   friend: string;
   role: string;
   tagline: string;
+  reward: string;
   description: string;
   image: string;
+  imageWidth: number;
+  imageHeight: number;
   background: string;
   color: string;
   soft: string;
@@ -104,48 +119,57 @@ type Adventure = {
 const adventures: Adventure[] = [
   {
     id: "hike",
-    chapter: "ROUTE 01",
+    chapter: "첫 번째 길",
     name: "해오름 봉우리",
     friend: "모리",
     role: "씩씩한 산길잡이",
     tagline: "노을숲 능선을 올라 정상에 깃발을 세워요.",
+    reward: "정상에 깃발 세우기",
     description:
       "한 걸음씩 오를수록 숲이 걷히고, 마지막엔 바람 부는 정상에서 깃발이 펼쳐져요.",
     image: `${publicBasePath}/characters/momo-hiking.png`,
+    imageWidth: 1254,
+    imageHeight: 1254,
     background: `${publicBasePath}/backgrounds/hike-pixel-summit-v1.png`,
     color: "#f0b13e",
     soft: "#173d37",
-    icon: "⛰",
+    icon: "산길",
   },
   {
     id: "swim",
-    chapter: "DIVE 02",
+    chapter: "두 번째 길",
     name: "유리산호 유적",
     friend: "나루",
     role: "호기심 많은 유적 잠수부",
     tagline: "산호길 끝의 오래된 보물상자를 깨워요.",
+    reward: "황금 보물상자 열기",
     description:
       "햇빛이 스미는 해저 유적을 건너면, 잠들어 있던 보물상자가 황금빛으로 열려요.",
     image: `${publicBasePath}/characters/podo-swimming.png`,
+    imageWidth: 1402,
+    imageHeight: 1122,
     background: `${publicBasePath}/backgrounds/swim-pixel-depth.png`,
     color: "#36c4ce",
     soft: "#103b50",
-    icon: "≈",
+    icon: "해저",
   },
   {
     id: "fish",
-    chapter: "CAST 03",
+    chapter: "세 번째 길",
     name: "달비늘 호수",
     friend: "보리",
     role: "느긋한 전설 낚시꾼",
     tagline: "달빛 부두에서 전설의 황금 잉어를 기다려요.",
+    reward: "황금 잉어 낚기",
     description:
       "잔잔한 수면에 낚싯줄을 드리우고 기다리면, 마지막엔 황금 잉어가 힘차게 뛰어올라요.",
     image: `${publicBasePath}/characters/bori-fishing.png`,
+    imageWidth: 1448,
+    imageHeight: 1086,
     background: `${publicBasePath}/backgrounds/fish-pixel-lake-v1.png`,
     color: "#ef8b47",
     soft: "#204847",
-    icon: "◌",
+    icon: "호수",
   },
 ];
 
@@ -336,6 +360,7 @@ export default function Home() {
   const [campOutcome, setCampOutcome] = useState<CampOutcome | null>(null);
   const [completedRecordId, setCompletedRecordId] = useState<string | null>(null);
   const [completedQuestId, setCompletedQuestId] = useState<string | null>(null);
+  const [completedSessionKey, setCompletedSessionKey] = useState<string | null>(null);
   const [expeditionSets, setExpeditionSets] = useState(1);
   const [sessionExpedition, setSessionExpedition] = useState<ExpeditionProgress | null>(null);
   const [completedExpedition, setCompletedExpedition] = useState<ExpeditionProgress | null>(null);
@@ -356,6 +381,8 @@ export default function Home() {
   const [checkpointMessage, setCheckpointMessage] = useState("");
   const [reviewQuiz, setReviewQuiz] = useState<StudyQuiz | null>(null);
   const [reviewAnswer, setReviewAnswer] = useState<number | null>(null);
+  const [distractionDraft, setDistractionDraft] = useState("");
+  const [distractionNotes, setDistractionNotes] = useState<string[]>([]);
   const audioRef = useRef<AudioContext | null>(null);
   const activeSessionRef = useRef<ActiveSession | null>(null);
   const completionLockRef = useRef(false);
@@ -382,6 +409,7 @@ export default function Home() {
     [history],
   );
   const behaviorInsights = useMemo(() => getBehaviorInsights(history), [history]);
+  const focusStreak = useMemo(() => getFocusStreak(history), [history]);
   const recentAdventures = useMemo(() => {
     const seenExpeditions = new Set<string>();
     return history
@@ -393,13 +421,11 @@ export default function Home() {
       })
       .slice(0, 4);
   }, [history]);
+  const lastAdventure = history[0] ?? null;
   const selectedWorldCount = history.filter(
     (record) => record.adventureId === selectedId,
   ).length;
   const selectedWorldLevel = Math.min(5, 1 + Math.floor(selectedWorldCount / 3));
-  const companionMemory = history[0]
-    ? `${history[0].focusIntent || "지난 목표"} 모험을 기억하고 있어요.`
-    : `${selected.friend}와 첫 번째 발자국을 남겨 보세요.`;
   const maxDayMinutes = Math.max(
     1,
     ...weeklySummary.days.map((day) => day.minutes),
@@ -495,6 +521,7 @@ export default function Home() {
           nextHistory = addFocusRecord(nextHistory, record);
           setCompletedRecordId(record.id);
           setCompletedQuestId(session.questId ?? null);
+          setCompletedSessionKey(record.id);
           setCampOutcome(record.campOutcome ?? null);
           setHistory(nextHistory);
           setCompletedToday(getDailyCount(nextHistory));
@@ -554,6 +581,7 @@ export default function Home() {
         );
         setCompletedRecordId(completedId);
         setCompletedQuestId(previousSession.questId ?? null);
+        setCompletedSessionKey(completedId);
         setCampOutcome(completedRecord?.campOutcome ?? null);
         setCompletionMode(previousSession.mode);
         setCompletedExpedition(previousSession.expedition ?? null);
@@ -575,6 +603,8 @@ export default function Home() {
   const questLoggedIn =
     cloudSync.authProvider === "supabase" && Boolean(cloudSync.account);
   const questStore = useStudyQuests(questLoggedIn);
+  const studyProgress = useStudyProgress(questLoggedIn);
+  const { track: trackProductEvent } = useProductTelemetry(questLoggedIn);
   const completeQuestSet = questStore.completeSet;
 
   useEffect(() => {
@@ -598,8 +628,28 @@ export default function Home() {
     const storedSessionUpdatedAt = window.localStorage.getItem(
       ACTIVE_SESSION_UPDATED_AT_KEY,
     );
+    const storedDistractionNotes = window.localStorage.getItem(
+      DISTRACTION_NOTES_KEY,
+    );
     let loadedFocusMinutes = 25;
     let loadedSelectedId: AdventureId = "hike";
+
+    if (storedDistractionNotes) {
+      try {
+        const notes = JSON.parse(storedDistractionNotes);
+        if (Array.isArray(notes)) {
+          setDistractionNotes(
+            notes
+              .filter((note): note is string => typeof note === "string")
+              .map((note) => note.trim().slice(0, 80))
+              .filter(Boolean)
+              .slice(0, 8),
+          );
+        }
+      } catch {
+        window.localStorage.removeItem(DISTRACTION_NOTES_KEY);
+      }
+    }
 
     if (Number.isInteger(storedExpeditionSets) && storedExpeditionSets >= 1 && storedExpeditionSets <= 8) {
       setExpeditionSets(storedExpeditionSets);
@@ -743,6 +793,7 @@ export default function Home() {
           loadedHistory = addFocusRecord(loadedHistory, record);
           setCompletedRecordId(record.id);
           setCompletedQuestId(session.questId ?? null);
+          setCompletedSessionKey(record.id);
           setCampOutcome(record.campOutcome ?? null);
           setHistory(loadedHistory);
           setCompletedToday(getDailyCount(loadedHistory));
@@ -819,6 +870,18 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated) return;
+    if (distractionNotes.length > 0) {
+      window.localStorage.setItem(
+        DISTRACTION_NOTES_KEY,
+        JSON.stringify(distractionNotes),
+      );
+    } else {
+      window.localStorage.removeItem(DISTRACTION_NOTES_KEY);
+    }
+  }, [distractionNotes, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(EXPEDITION_SETS_KEY, String(expeditionSets));
     if (reminderTime) window.localStorage.setItem(REMINDER_TIME_KEY, reminderTime);
     else window.localStorage.removeItem(REMINDER_TIME_KEY);
@@ -837,7 +900,7 @@ export default function Home() {
       ) {
         new Notification("Focus Quest 출발 시간", {
           body: `${selected.friend}가 오늘의 한 가지를 기다리고 있어요.`,
-          icon: `${publicBasePath}/favicon.svg`,
+          icon: `${publicBasePath}/brand/focus-quest-mark.png`,
         });
         window.localStorage.setItem(REMINDER_SENT_KEY, today);
       }
@@ -941,6 +1004,7 @@ export default function Home() {
       };
       setCompletedRecordId(record.id);
       setCompletedQuestId(session.questId ?? null);
+      setCompletedSessionKey(record.id);
       setCompletedExpedition(session.expedition ?? null);
       setCampOutcome(null);
 
@@ -962,6 +1026,12 @@ export default function Home() {
           session.durationMinutes,
         );
       }
+      void trackProductEvent("focus_completed", {
+        adventureId: session.adventureId,
+        durationMinutes: session.durationMinutes,
+        questId: session.questId ?? null,
+        outcome: "completed",
+      });
     }
 
     setCompletionMode(session.mode);
@@ -987,7 +1057,7 @@ export default function Home() {
     }
 
     setScreen("complete");
-  }, [notificationsEnabled, persistSession, stopAudio]);
+  }, [notificationsEnabled, persistSession, stopAudio, trackProductEvent]);
 
   useEffect(() => {
     if (!isCelebrating) return;
@@ -1080,6 +1150,9 @@ export default function Home() {
     if (mode === "focus") {
       setRecoveryQuest(null);
       window.localStorage.removeItem(RECOVERY_QUEST_KEY);
+      setDistractionDraft("");
+      setDistractionNotes([]);
+      window.localStorage.removeItem(DISTRACTION_NOTES_KEY);
     }
     setSelectedId(sessionAdventureId);
     if (mode === "focus") setBgm(sessionBgm);
@@ -1094,6 +1167,13 @@ export default function Home() {
     setScreen("focus");
     startAudio(theme);
     enterFullscreen();
+    if (mode === "focus") {
+      void trackProductEvent("focus_started", {
+        adventureId: sessionAdventureId,
+        durationMinutes,
+        questId: sessionQuestId ?? null,
+      });
+    }
   };
 
   const beginFocus = () => {
@@ -1138,12 +1218,11 @@ export default function Home() {
           ? completedExpedition
           : undefined,
     });
-  const beginQuickFocus = (durationMinutes: number) => {
-    setActiveQuestId(null);
-    setActiveStudyMaterial(null);
-    setCheckpointQuiz(null);
-    setReviewQuiz(null);
-    beginSession("focus", { durationMinutes, questId: null, expedition: undefined });
+  const parkDistraction = () => {
+    const note = distractionDraft.trim().replace(/\s+/g, " ").slice(0, 80);
+    if (!note) return;
+    setDistractionNotes((current) => [...current, note].slice(-8));
+    setDistractionDraft("");
   };
 
   const restartAdventure = (record: FocusRecord) => {
@@ -1271,6 +1350,42 @@ export default function Home() {
     });
   };
 
+  const persistReachedPage = (reached: number) => {
+    if (!completedQuestId || !activeStudyMaterial) return;
+    void studyProgress.saveProgress(
+      completedQuestId,
+      activeStudyMaterial.id,
+      reached,
+    );
+  };
+
+  const persistQuizAttempt = (
+    stage: "checkpoint" | "review",
+    quizKey: string,
+    selectedIndex: number | null,
+    correct: boolean | null,
+    skipped: boolean,
+  ) => {
+    if (!completedQuestId || !completedSessionKey || !activeStudyMaterial) return;
+    const reached = Math.min(
+      studyRangeEnd,
+      Math.max(studyRangeStart, Math.round(Number(reachedPage) || studyRangeStart)),
+    );
+    void studyProgress.recordAttempt({
+      questId: completedQuestId,
+      materialId: activeStudyMaterial.id,
+      sessionKey: completedSessionKey,
+      stage,
+      quizKey,
+      rangeStart: studyRangeStart,
+      rangeEnd: studyRangeEnd,
+      reachedPage: reached,
+      selectedIndex,
+      isCorrect: correct,
+      skipped,
+    });
+  };
+
   const prepareCheckpointQuiz = () => {
     const source = activeStudyMaterial?.quizSource;
     if (!source) {
@@ -1283,20 +1398,46 @@ export default function Home() {
       Math.max(studyRangeStart, Math.round(Number(reachedPage) || studyRangeStart)),
     );
     setReachedPage(String(reached));
-    const quiz = createStudyQuiz(source, studyRangeStart, reached, 0);
+    persistReachedPage(reached);
+    const attemptedKeys = completedQuestId
+      ? studyProgress.attemptedQuizKeys(completedQuestId)
+      : new Set<string>();
+    const quiz = createUnseenStudyQuiz(
+      source,
+      studyRangeStart,
+      reached,
+      0,
+      attemptedKeys,
+    );
     if (!quiz) {
       setCheckpointSkipped(true);
       setCheckpointMessage("이 범위의 글자가 짧아 문제 대신 공부한 페이지를 기록했어요.");
+      persistQuizAttempt(
+        "checkpoint",
+        `no-question:${studyRangeStart}:${reached}`,
+        null,
+        null,
+        true,
+      );
+      void trackProductEvent("quiz_skipped", {
+        questId: completedQuestId,
+        outcome: "skipped",
+      });
       return;
     }
     setCheckpointQuiz(quiz);
     setCheckpointAnswer(null);
-    setReviewQuiz(createStudyQuiz(source, studyRangeStart, reached, 1));
+    setReviewQuiz(
+      createUnseenStudyQuiz(
+        source,
+        studyRangeStart,
+        reached,
+        1,
+        new Set([...attemptedKeys, quiz.id]),
+      ),
+    );
     setReviewAnswer(null);
     setCheckpointMessage("");
-    if (completedQuestId) {
-      window.localStorage.setItem(`focus-quest-reached-page:${completedQuestId}`, String(reached));
-    }
   };
 
   const skipCheckpointQuiz = () => {
@@ -1307,9 +1448,40 @@ export default function Home() {
     setReachedPage(String(reached));
     setCheckpointSkipped(true);
     setReviewQuiz(null);
-    if (completedQuestId) {
-      window.localStorage.setItem(`focus-quest-reached-page:${completedQuestId}`, String(reached));
-    }
+    persistReachedPage(reached);
+    persistQuizAttempt(
+      "checkpoint",
+      `user-skip:${studyRangeStart}:${reached}`,
+      null,
+      null,
+      true,
+    );
+    void trackProductEvent("quiz_skipped", {
+      questId: completedQuestId,
+      outcome: "skipped",
+    });
+  };
+
+  const answerCheckpointQuiz = (index: number) => {
+    if (!checkpointQuiz || checkpointAnswer !== null) return;
+    const correct = index === checkpointQuiz.correctIndex;
+    setCheckpointAnswer(index);
+    persistQuizAttempt("checkpoint", checkpointQuiz.id, index, correct, false);
+    void trackProductEvent("quiz_answered", {
+      questId: completedQuestId,
+      outcome: correct ? "correct" : "incorrect",
+    });
+  };
+
+  const answerReviewQuiz = (index: number) => {
+    if (!reviewQuiz || reviewAnswer !== null) return;
+    const correct = index === reviewQuiz.correctIndex;
+    setReviewAnswer(index);
+    persistQuizAttempt("review", reviewQuiz.id, index, correct, false);
+    void trackProductEvent("quiz_answered", {
+      questId: completedQuestId,
+      outcome: correct ? "correct" : "incorrect",
+    });
   };
 
   const beginCampFollowUp = (durationMinutes: number, split = false) => {
@@ -1330,11 +1502,9 @@ export default function Home() {
     const range = material
       ? parseStudyPageRange(quest.sourcePages, material.pageCount)
       : { startPage: 1, endPage: 1 };
-    const previousReached = Number(
-      window.localStorage.getItem(`focus-quest-reached-page:${quest.id}`),
-    );
+    const previousReached = studyProgress.getReachedPage(quest.id);
     const nextStart =
-      Number.isFinite(previousReached) &&
+      previousReached !== null &&
       previousReached >= range.startPage &&
       previousReached < range.endPage
         ? previousReached + 1
@@ -1410,6 +1580,12 @@ export default function Home() {
       };
       setRecoveryQuest(recovery);
       window.localStorage.setItem(RECOVERY_QUEST_KEY, JSON.stringify(recovery));
+      void trackProductEvent("focus_abandoned", {
+        adventureId: abandoned.adventureId,
+        durationMinutes: abandoned.durationMinutes,
+        questId: abandoned.questId ?? null,
+        outcome: "abandoned",
+      });
     }
     const returnScreen: Screen = sessionMode === "focus" ? "select" : "setup";
     stopAudio();
@@ -1450,7 +1626,7 @@ export default function Home() {
 
   return (
     <main
-      className={`app-shell screen-${screen}`}
+      className={`app-shell focus-quest-app screen-${screen}`}
       style={
         {
           "--accent": selected.color,
@@ -1461,13 +1637,22 @@ export default function Home() {
       {screen !== "focus" && (
         <header className="topbar">
           <button className="brand" type="button" onClick={() => setScreen("select")} aria-label="Focus Quest 홈">
-            <span className="brand-mark">●</span>
-            <span>Focus Quest</span>
+            <Image
+              className="brand-logo"
+              src={`${publicBasePath}/brand/focus-quest-logo.png`}
+              alt=""
+              width={2172}
+              height={724}
+              priority
+              unoptimized
+              aria-hidden="true"
+            />
+            <span className="sr-only">Focus Quest</span>
           </button>
           <div className="topbar-actions">
             <div className="today-chip" aria-label={`오늘 ${completedToday}번 집중 완료`}>
-              <span>✦</span>
-              오늘 {completedToday}칸
+              <span>오늘</span>
+              {completedToday}칸 완성
             </div>
             {cloudSync.account ? (
               <details className="account-menu">
@@ -1498,9 +1683,18 @@ export default function Home() {
                     </button>
                   )}
                   {cloudSync.authProvider === "supabase" ? (
-                    <button type="button" onClick={cloudSync.signOut}>
-                      로그아웃
-                    </button>
+                    <>
+                      <button type="button" onClick={cloudSync.signOut}>
+                        로그아웃
+                      </button>
+                      <button
+                        className="account-delete-button"
+                        type="button"
+                        onClick={() => void cloudSync.deleteAccount()}
+                      >
+                        계정과 모든 자료 삭제
+                      </button>
+                    </>
                   ) : (
                     <a href="/signout-with-chatgpt?return_to=%2F">로그아웃</a>
                   )}
@@ -1513,7 +1707,6 @@ export default function Home() {
                 type="button"
                 aria-label="로그인하고 클라우드에 집중 기록 저장"
               >
-                <span className="cloud-icon" aria-hidden="true">☁</span>
                 <span className="account-chip-copy">
                   <strong>기록 이어하기</strong>
                   <small>{cloudSync.message}</small>
@@ -1525,7 +1718,6 @@ export default function Home() {
                 href="/signin-with-chatgpt?return_to=%2F"
                 aria-label="로그인하고 클라우드에 집중 기록 저장"
               >
-                <span className="cloud-icon" aria-hidden="true">☁</span>
                 <span className="account-chip-copy">
                   <strong>기록 이어하기</strong>
                   <small>{cloudSync.message}</small>
@@ -1537,56 +1729,73 @@ export default function Home() {
       )}
 
       {screen === "select" && (
-        <section className="select-screen">
-          <section className="quick-start-hero" aria-labelledby="quick-start-title">
-            <div className="quick-start-copy">
-              <span className="eyebrow">오늘의 한 가지</span>
-              <h1 id="quick-start-title">
-                지금 끝낼 일을 적고
-                <br />
-                바로 출발해요.
-              </h1>
-              <p>
-                복잡한 계획은 잠시 내려두고, 이번 모험에서 집중할 한 가지만
-                정해 보세요.
-              </p>
+        <section className="select-screen entry-screen">
+          <section className="companion-gate" aria-labelledby="companion-gate-title">
+            <header className="companion-gate-copy">
+              <span>오늘의 동행</span>
+              <h1 id="companion-gate-title">누구와 집중할까요?</h1>
+              <p>친구마다 걷는 길과 마지막 장면이 달라요. 오늘 마음이 가는 한 명을 골라 주세요.</p>
+            </header>
 
-              <label className="focus-intent-field">
-                <span>이번에 집중할 일</span>
-                <input
-                  autoComplete="off"
-                  maxLength={80}
-                  onChange={(event) => setFocusIntent(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-                      event.preventDefault();
-                      beginQuickFocus(25);
-                    }
-                  }}
-                  placeholder="예: 운영체제 3장 복습"
-                  value={focusIntent}
-                />
-                <small>
-                  비워도 괜찮아요. 그럴 땐 자유 집중으로 기록할게요.
-                </small>
-              </label>
-
-              <div className="quick-focus-options" aria-label="빠른 집중 시간">
-                {quickFocusOptions.map((option) => (
+            <div className="companion-choice-grid" role="radiogroup" aria-label="함께 공부할 친구">
+              {adventures.map((adventure) => {
+                const active = selectedId === adventure.id;
+                return (
                   <button
-                    key={option.minutes}
-                    onClick={() => beginQuickFocus(option.minutes)}
+                    aria-checked={active}
+                    className={`companion-choice theme-${adventure.id} ${active ? "is-active" : ""}`}
+                    key={adventure.id}
+                    onClick={() => chooseAdventure(adventure.id)}
+                    role="radio"
+                    style={
+                      {
+                        "--choice-accent": adventure.color,
+                        "--choice-bg": `url("${adventure.background}")`,
+                      } as React.CSSProperties
+                    }
                     type="button"
                   >
-                    <span>{option.label}</span>
-                    <strong>{option.minutes}분 시작</strong>
-                    <small>{option.note}</small>
+                    <span className="companion-choice-world" aria-hidden="true">
+                      <Image
+                        className="companion-choice-backdrop"
+                        src={adventure.background}
+                        alt=""
+                        height={941}
+                        priority
+                        unoptimized
+                        width={1672}
+                      />
+                      <Image
+                        className="companion-choice-character"
+                        src={adventure.image}
+                        alt=""
+                        height={adventure.imageHeight}
+                        priority
+                        unoptimized
+                        width={adventure.imageWidth}
+                      />
+                    </span>
+                    <span className="companion-choice-copy">
+                      <small>{adventure.role}</small>
+                      <strong>{adventure.friend}</strong>
+                      <span>{adventure.name}</span>
+                      <span className="companion-choice-description">{adventure.tagline}</span>
+                    </span>
+                    <span className="companion-choice-mark" aria-hidden="true">
+                      {active ? "함께하기" : "선택"}
+                    </span>
                   </button>
-                ))}
-              </div>
+                );
+              })}
+            </div>
 
+            <footer className="companion-gate-action">
+              <div>
+                <span>선택한 친구</span>
+                <strong>{selected.friend} · {selected.name}</strong>
+                <small>{selected.reward}</small>
+              </div>
               <button
-                className="detail-settings-button"
                 onClick={() => {
                   setActiveQuestId(null);
                   setScreen("setup");
@@ -1594,104 +1803,63 @@ export default function Home() {
                 }}
                 type="button"
               >
-                시간·휴식·집중 소리 자세히 설정
-                <span aria-hidden="true">→</span>
+                {selected.friend}와 준비하기
               </button>
-            </div>
-
-            <aside
-              className={`quick-companion theme-${selected.id}`}
-              style={
-                {
-                  "--companion-accent": selected.color,
-                  "--companion-soft": selected.soft,
-                  "--companion-bg": `url("${selected.background}")`,
-                } as React.CSSProperties
-              }
-              aria-label={`현재 모험 친구 ${selected.friend}`}
-            >
-              <div className="quick-companion-status">
-                <span>READY</span>
-                <i />
-                {selected.chapter} · WORLD LV.{selectedWorldLevel}
-              </div>
-              <div className="quick-companion-stage">
-                <div className="companion-stage-hud">
-                  <span>현재 지역</span>
-                  <strong>{selected.name}</strong>
-                </div>
-                <img
-                  src={selected.image}
-                  alt={`${selected.name}의 ${selected.role} ${selected.friend}`}
-                />
-              </div>
-              <div className="quick-companion-copy">
-                <span>{selected.icon} {selected.role}</span>
-                <h2>{selected.friend} · {selected.name}</h2>
-                <p>
-                  {selected.tagline} ·{" "}
-                  {bgms.find((item) => item.id === bgm)?.name ?? "고요히"}
-                </p>
-                <small>{selected.description}</small>
-                <div className="companion-memory">
-                  <span>동료의 기억</span>
-                  <p>{companionMemory}</p>
-                </div>
-              </div>
-
-              <div className="adventure-switcher" aria-label="모험 지역 선택">
-                <div className="adventure-switcher-heading">
-                  <strong>모험 지도</strong>
-                  <span>지역을 고르면 동행과 소리가 함께 바뀌어요</span>
-                </div>
-                <div className="adventure-options">
-                  {adventures.map((adventure) => (
-                    <button
-                      aria-pressed={selectedId === adventure.id}
-                      className={`adventure-option option-${adventure.id} ${
-                        selectedId === adventure.id ? "is-active" : ""
-                      }`}
-                      key={adventure.id}
-                      onClick={() => chooseAdventure(adventure.id)}
-                      style={
-                        {
-                          "--option-accent": adventure.color,
-                        } as React.CSSProperties
-                      }
-                      type="button"
-                    >
-                      <img src={adventure.image} alt="" />
-                      <span>
-                        <small>{adventure.chapter}</small>
-                        <strong>{adventure.name}</strong>
-                        <em>{adventure.friend} · {adventure.role}</em>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </aside>
+            </footer>
           </section>
+
+          {hydrated && history.length === 0 && !recoveryQuest && (
+            <ol className="first-expedition-guide" aria-label="첫 집중 시작 순서">
+              <li>
+                <span>1</span>
+                <div><strong>친구 고르기</strong><small>오늘 함께할 모험을 정해요.</small></div>
+              </li>
+              <li>
+                <span>2</span>
+                <div><strong>준비하기</strong><small>시간과 자료를 한곳에서 정해요.</small></div>
+              </li>
+              <li>
+                <span>3</span>
+                <div><strong>장면과 함께 완주</strong><small>끝나면 모험 기록이 남아요.</small></div>
+              </li>
+            </ol>
+          )}
+
+          {lastAdventure && !recoveryQuest && (
+            <aside className="returning-route" aria-label="지난 집중 다시 시작">
+              <div>
+                <span>지난 모험</span>
+                <strong>{lastAdventure.focusIntent || "자유 집중"}</strong>
+                <small>
+                  {adventures.find((item) => item.id === lastAdventure.adventureId)?.name ?? "모험"}
+                  {` · ${lastAdventure.durationMinutes}분`}
+                </small>
+              </div>
+              <button type="button" onClick={() => restartAdventure(lastAdventure)}>
+                같은 리듬으로 시작
+              </button>
+            </aside>
+          )}
 
           {recoveryQuest && (
             <aside className="recovery-card" aria-label="중단한 집중 이어가기">
               <div>
-                <span>RECOVERY QUEST</span>
+                <span>이어갈 모험</span>
                 <h2>멈춘 곳은 실패가 아니라 다음 출발점이에요.</h2>
                 <p>
                   “{recoveryQuest.focusIntent}”을 {recoveryQuest.durationMinutes}분짜리 작은 모험으로 줄여 두었어요.
                 </p>
               </div>
               <button type="button" onClick={startRecoveryQuest}>
-                {recoveryQuest.durationMinutes}분 복귀하기 →
+                {recoveryQuest.durationMinutes}분 복귀하기
               </button>
             </aside>
           )}
 
           <div className="select-note quick-start-note">
-            <span>ONE TASK · ONE ADVENTURE</span>
+            <span>다음은 준비실</span>
             <i />
-            <p>{selected.friend}가 준비됐어요. 시간만 고르면 바로 시작해요.</p>
+            <p>{selected.friend}와 함께 시간, 목표, 공부 자료를 정할 수 있어요.</p>
           </div>
 
           {(installPrompt || showIosInstallHint) && (
@@ -1712,24 +1880,9 @@ export default function Home() {
             </aside>
           )}
 
-          <QuestBoard
-            loggedIn={questLoggedIn}
-            status={questStore.status}
-            message={questStore.message}
-            subjects={questStore.subjects}
-            quests={questStore.quests}
-            onLogin={() => setShowAuthDialog(true)}
-            onCreateSubject={questStore.createSubject}
-            onDeleteSubject={questStore.deleteSubject}
-            onCreateQuest={questStore.createQuest}
-            onUpdateQuest={questStore.updateQuest}
-            onDeleteQuest={questStore.deleteQuest}
-            onStartQuest={launchQuest}
-          />
-
           <section className="silent-camp" aria-labelledby="silent-camp-title">
             <div>
-              <span>SILENT CAMP · BETA</span>
+              <span>조용한 집중 캠프</span>
               <h2 id="silent-camp-title">같은 시간, 각자의 모험</h2>
               <p>랭킹과 채팅 없이 접속한 인원만 보여요. 방 코드를 친구와 나눠 조용히 함께 집중하세요.</p>
             </div>
@@ -1760,7 +1913,7 @@ export default function Home() {
           <section className="weekly-summary" aria-labelledby="weekly-title">
             <div className="weekly-heading">
               <div>
-                <span className="eyebrow">이번 주의 발자국</span>
+                <span className="section-intro">이번 주의 발자국</span>
                 <h2 id="weekly-title">집중 모험 기록</h2>
               </div>
               <p>
@@ -1782,6 +1935,10 @@ export default function Home() {
               <div>
                 <strong>{weeklySummary.activeDays}</strong>
                 <span>모험한 날</span>
+              </div>
+              <div>
+                <strong>{focusStreak}</strong>
+                <span>연속 집중일</span>
               </div>
             </div>
 
@@ -1877,7 +2034,7 @@ export default function Home() {
       {screen === "setup" && (
         <section className="setup-screen">
           <button className="back-button" type="button" onClick={() => setScreen("select")}>
-            ← 오늘의 한 가지로
+            친구 선택으로 돌아가기
           </button>
 
           <div className="setup-layout">
@@ -1886,7 +2043,14 @@ export default function Home() {
               <div className="preview-cloud cloud-one" />
               <div className="preview-cloud cloud-two" />
               <div className="preview-ground" />
-              <img src={selected.image} alt={selected.friend} className="setup-character" />
+              <Image
+                src={selected.image}
+                alt={selected.friend}
+                className="setup-character"
+                height={selected.imageHeight}
+                unoptimized
+                width={selected.imageWidth}
+              />
               <div className="preview-label">
                 <span>{selected.icon} 오늘의 모험</span>
                 <h2>{selected.name}</h2>
@@ -1896,7 +2060,7 @@ export default function Home() {
 
             <div className="settings-panel">
               <div className="settings-heading">
-                <span className="eyebrow">모험 준비</span>
+                <span className="section-intro">모험 준비</span>
                 <h1>나만의 집중 시간을 만들어요.</h1>
               </div>
 
@@ -2037,6 +2201,38 @@ export default function Home() {
               <p className="copyright-note">음악은 이 기기에서 실시간 생성되어 별도의 음원 저작권이 없어요.</p>
             </div>
           </div>
+
+          <section className="setup-materials" aria-labelledby="setup-materials-title">
+            <header>
+              <span>선택 사항</span>
+              <h2 id="setup-materials-title">공부 자료를 함께 준비할까요?</h2>
+              <p>
+                PDF나 과목 퀘스트가 있다면 여기서 연결하세요. 자료 없이 타이머만 시작해도 괜찮아요.
+              </p>
+            </header>
+            <Suspense
+              fallback={
+                <section className="feature-loading" aria-live="polite">
+                  공부 자료를 준비하고 있어요.
+                </section>
+              }
+            >
+              <QuestBoard
+                loggedIn={questLoggedIn}
+                status={questStore.status}
+                message={questStore.message}
+                subjects={questStore.subjects}
+                quests={questStore.quests}
+                onLogin={() => setShowAuthDialog(true)}
+                onCreateSubject={questStore.createSubject}
+                onDeleteSubject={questStore.deleteSubject}
+                onCreateQuest={questStore.createQuest}
+                onUpdateQuest={questStore.updateQuest}
+                onDeleteQuest={questStore.deleteQuest}
+                onStartQuest={launchQuest}
+              />
+            </Suspense>
+          </section>
         </section>
       )}
 
@@ -2045,23 +2241,31 @@ export default function Home() {
           className={`focus-screen focus-${selected.id} session-${sessionMode} ${paused ? "is-paused" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
           style={{ "--journey": progress } as React.CSSProperties}
         >
-          {selected.id === "fish" && sessionMode === "focus" && (
-            <FishingQuestScene
-              progress={progress}
-              paused={paused}
-              celebrating={isCelebrating}
-              assetBasePath={publicBasePath}
-            />
-          )}
-          {selected.id !== "fish" && sessionMode === "focus" && (
-            <AdventureQuestScene
-              kind={selected.id}
-              progress={progress}
-              paused={paused}
-              celebrating={isCelebrating}
-              assetBasePath={publicBasePath}
-            />
-          )}
+          <Suspense
+            fallback={
+              <div className="scene-loading" role="status">
+                {selected.friend}가 모험 장면을 준비하고 있어요.
+              </div>
+            }
+          >
+            {selected.id === "fish" && sessionMode === "focus" && (
+              <FishingQuestScene
+                progress={progress}
+                paused={paused}
+                celebrating={isCelebrating}
+                assetBasePath={publicBasePath}
+              />
+            )}
+            {selected.id !== "fish" && sessionMode === "focus" && (
+              <AdventureQuestScene
+                kind={selected.id}
+                progress={progress}
+                paused={paused}
+                celebrating={isCelebrating}
+                assetBasePath={publicBasePath}
+              />
+            )}
+          </Suspense>
 
           {sessionMode === "focus" && (
             <div
@@ -2113,17 +2317,19 @@ export default function Home() {
                 } as React.CSSProperties
               }
             >
-              <img
+              <Image
                 src={selected.image}
                 alt={`${selected.friend}의 휴식 시간`}
                 className="focus-character"
+                height={selected.imageHeight}
+                unoptimized
+                width={selected.imageWidth}
               />
             </div>
           )}
 
           <div className="focus-top">
             <div className="focus-status">
-              <span className="live-dot" />
               {isCelebrating
                 ? "목표 달성!"
                 : paused
@@ -2163,7 +2369,7 @@ export default function Home() {
           <div className="timer-card">
             {sessionExpedition && (
               <div className="expedition-route" aria-label={`${sessionExpedition.totalSets}세트 중 ${sessionExpedition.currentSet}세트`}>
-                <span>EXPEDITION</span>
+                <span>원정 경로</span>
                 <div>
                   {Array.from({ length: sessionExpedition.totalSets }, (_, index) => (
                     <i
@@ -2176,27 +2382,59 @@ export default function Home() {
                 </div>
               </div>
             )}
-            {sessionMode === "focus" && (
-              <span className="active-focus-intent">
-                {focusIntent || "자유 집중"}
-              </span>
-            )}
-            <span className="timer-adventure-label">
-              {sessionMode === "focus" ? selected.name : "모닥불 옆 휴식"}
-            </span>
-            <strong>{formatTime(remaining)}</strong>
-            <div className="timer-progress">
-              <i style={{ width: `${progress * 100}%` }} />
+            <div
+              className="timer-dial"
+              aria-label={`${Math.round(progress * 100)}% 진행`}
+            >
+              <i className="timer-dial-marker" aria-hidden="true" />
+              <div className="timer-dial-face">
+                {sessionMode === "focus" && (
+                  <span className="active-focus-intent">
+                    {focusIntent || "자유 집중"}
+                  </span>
+                )}
+                <span className="timer-adventure-label">
+                  {sessionMode === "focus" ? selected.name : "모닥불 옆 휴식"}
+                </span>
+                <strong>{formatTime(remaining)}</strong>
+                <span className="timer-percent">
+                  {Math.round(progress * 100)}% 이동
+                </span>
+              </div>
             </div>
-            <p>
+            <p className="timer-narration">
               {isCelebrating
                 ? "100% · 캐릭터와 함께 목표를 완성했어요!"
                 : paused
                 ? "괜찮아요. 준비되면 다시 출발해요."
                 : sessionMode === "focus"
-                  ? `${Math.round(progress * 100)}% · ${adventureNarration}`
-                  : `${Math.round(progress * 100)}% · 천천히 숨을 고르고 있어요`}
+                  ? adventureNarration
+                  : "천천히 숨을 고르고 있어요"}
             </p>
+            {sessionMode === "focus" && !isCelebrating && (
+              <details className="distraction-capture">
+                <summary>
+                  딴생각 잠시 보관
+                  {distractionNotes.length > 0 && <span>{distractionNotes.length}</span>}
+                </summary>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    parkDistraction();
+                  }}
+                >
+                  <input
+                    aria-label="나중에 확인할 생각"
+                    maxLength={80}
+                    onChange={(event) => setDistractionDraft(event.target.value)}
+                    placeholder="예: 장보기 목록 확인"
+                    value={distractionDraft}
+                  />
+                  <button type="submit">보관</button>
+                </form>
+                <small>지금 처리하지 않고 집중이 끝난 뒤 다시 볼 수 있어요.</small>
+              </details>
+            )}
             <div className="timer-controls">
               {isCelebrating ? (
                 <span className="celebration-caption">성공 장면 재생 중…</span>
@@ -2217,7 +2455,13 @@ export default function Home() {
             <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="exit-title">
               <div className="exit-modal">
                 <div className="modal-character">
-                  <img src={selected.image} alt="" />
+                  <Image
+                    src={selected.image}
+                    alt=""
+                    height={selected.imageHeight}
+                    unoptimized
+                    width={selected.imageWidth}
+                  />
                 </div>
                 <span>
                   {sessionMode === "focus"
@@ -2250,27 +2494,30 @@ export default function Home() {
         <section
           className={`complete-screen complete-${selected.id} complete-${completionMode}`}
         >
-          <div className="sparkles">✦　·　✧　　✦　·　✧</div>
+          <div className="sparkles" aria-hidden="true" />
           <div className="complete-card">
             <span className="complete-kicker">
               {isExpeditionCheckpoint
-                ? "CHECKPOINT REACHED"
+                ? "중간 지점 도착"
                 : completionMode === "focus"
-                  ? "ADVENTURE COMPLETE"
-                  : "BREAK COMPLETE"}
+                  ? "모험 완료"
+                  : "휴식 완료"}
             </span>
             <div className="complete-character-wrap">
               <div className="complete-halo" />
-              <img
+              <Image
                 src={selected.image}
                 alt={
                   completionMode === "focus"
                     ? `${selected.friend} 모험 완료`
                     : `${selected.friend} 휴식 완료`
                 }
+                height={selected.imageHeight}
+                unoptimized
+                width={selected.imageWidth}
               />
               <span className="badge">
-                {completionMode === "focus" ? "+1" : "♥"}
+                {completionMode === "focus" ? "+1" : "휴식"}
               </span>
             </div>
             <h1>
@@ -2322,12 +2569,28 @@ export default function Home() {
                 </span>
               </div>
             </div>
+            {completionMode === "focus" && distractionNotes.length > 0 && (
+              <section className="distraction-review" aria-labelledby="distraction-review-title">
+                <div>
+                  <span>집중 방해 보관함</span>
+                  <h2 id="distraction-review-title">이제 확인해도 괜찮아요.</h2>
+                </div>
+                <ul>
+                  {distractionNotes.map((note, index) => (
+                    <li key={`${note}-${index}`}>{note}</li>
+                  ))}
+                </ul>
+                <button type="button" onClick={() => setDistractionNotes([])}>
+                  모두 확인했어요
+                </button>
+              </section>
+            )}
             {studyCheckpointRequired && (
               <StudyCheckpointPanel
                 answer={checkpointAnswer}
                 endPage={studyRangeEnd}
                 message={checkpointMessage}
-                onAnswer={setCheckpointAnswer}
+                onAnswer={answerCheckpointQuiz}
                 onBuildQuiz={prepareCheckpointQuiz}
                 onSkip={skipCheckpointQuiz}
                 quiz={checkpointQuiz}
@@ -2347,13 +2610,13 @@ export default function Home() {
                 </div>
                 <button className="primary-button" type="button" onClick={beginBreak}>
                   <span>{completedExpedition?.breakMinutes ?? breakMinutes}분 쉬고 다음 구간으로</span>
-                  <strong>→</strong>
+                  <strong>다음</strong>
                 </button>
               </div>
             ) : completionMode === "focus" ? (
               <div className="camp-log" aria-labelledby="camp-log-title">
                 <div className="camp-log-heading">
-                  <span>CAMP LOG</span>
+                  <span>집중 기록</span>
                   <h2 id="camp-log-title">오늘의 목표는 어디까지 왔나요?</h2>
                   <p>한 번만 고르면, 다음 걸음을 바로 준비해 드려요.</p>
                 </div>
@@ -2398,12 +2661,12 @@ export default function Home() {
                     </p>
                     {campOutcome === "finished" && (
                       <button className="primary-button" type="button" onClick={beginBreak}>
-                        <span>{breakMinutes}분 쉬어가기</span><strong>→</strong>
+                        <span>{breakMinutes}분 쉬어가기</span><strong>다음</strong>
                       </button>
                     )}
                     {campOutcome === "unfinished" && (
                       <button className="primary-button" type="button" onClick={() => beginCampFollowUp(10)}>
-                        <span>같은 목표로 10분 더</span><strong>→</strong>
+                        <span>같은 목표로 10분 더</span><strong>시작</strong>
                       </button>
                     )}
                     {campOutcome === "split" && (
@@ -2423,7 +2686,7 @@ export default function Home() {
                     ? `${completedExpedition.currentSet + 1}번째 구간 시작`
                     : `${focusMinutes}분 집중 시작`
                 }
-                onAnswer={setReviewAnswer}
+                onAnswer={answerReviewQuiz}
                 onContinue={beginFocus}
                 quiz={reviewQuiz}
               />
@@ -2434,7 +2697,7 @@ export default function Home() {
                     ? `${completedExpedition.currentSet + 1}번째 구간 시작`
                     : `${focusMinutes}분 집중 시작`}
                 </span>
-                <strong>→</strong>
+                <strong>시작</strong>
               </button>
             ))}
             <button

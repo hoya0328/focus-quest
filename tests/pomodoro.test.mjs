@@ -7,6 +7,7 @@ import {
   createActiveSession,
   createFocusRecord,
   getDailyCount,
+  getFocusStreak,
   getBehaviorInsights,
   getWeeklySummary,
   normalizeFocusIntent,
@@ -116,6 +117,17 @@ test("focus records are deduplicated and summarized by week", () => {
     getDailyCount(history, new Date("2026-07-20T12:30:00.000Z")),
     1,
   );
+});
+
+test("focus streak includes today or the most recent completed day", () => {
+  const history = [
+    createFocusRecord({ durationMinutes: 25, adventureId: "hike", completedAt: new Date("2026-11-10T10:00:00") }),
+    createFocusRecord({ durationMinutes: 25, adventureId: "swim", completedAt: new Date("2026-11-11T10:00:00") }),
+  ];
+
+  assert.equal(getFocusStreak(history, new Date("2026-11-11T18:00:00")), 2);
+  assert.equal(getFocusStreak(history, new Date("2026-11-12T08:00:00")), 2);
+  assert.equal(getFocusStreak(history, new Date("2026-11-14T08:00:00")), 0);
 });
 
 test("camp outcome is attached to exactly one completed focus record", () => {

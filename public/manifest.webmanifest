@@ -14,10 +14,10 @@
   "categories": ["productivity", "education", "lifestyle"],
   "icons": [
     {
-      "src": "characters/momo-hiking.png",
+      "src": "brand/focus-quest-mark.png",
       "sizes": "any",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [

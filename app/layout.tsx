@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./adventure-motion-v2.css";
+import "./focus-quest-2026.css";
 
 const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
@@ -10,8 +11,9 @@ export const metadata: Metadata = {
   applicationName: "Focus Quest",
   manifest: `${publicBasePath}/manifest.webmanifest`,
   icons: {
-    icon: `${publicBasePath}/characters/momo-hiking.png`,
-    apple: `${publicBasePath}/characters/momo-hiking.png`,
+    icon: `${publicBasePath}/brand/focus-quest-mark.png`,
+    shortcut: `${publicBasePath}/brand/focus-quest-mark.png`,
+    apple: `${publicBasePath}/brand/focus-quest-mark.png`,
   },
   appleWebApp: {
     capable: true,
@@ -24,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#071a2d",
+  themeColor: "#160f1f",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

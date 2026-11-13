@@ -1,0 +1,1938 @@
+/* Hallmark · shape: app screen · genre: playful · theme: Arcade (deal 2/3, seed focus-quest-productivity-app-716e·88a6f364·2026-11-12·r0)
+ * nav: compact top bar · signature: one living adventure panorama · states: loading, empty, error, full · arcade: ember/grille
+ * axes: dark/pixel/chromatic-ember · posture: full-palette · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H5 E4 S5 R4 V5 · weakest: expression, reduced CRT decoration and let the real pixel scenes carry the identity */
+/* Hallmark · answered F4 · one shared primary recipe appears on mutually exclusive app screens */
+/* Hallmark · answered F7 · grouped selectors normalize legacy controls while surface hierarchy varies */
+/* Hallmark · answered F3 · the three equal items are a real ordered first-session sequence, not feature tiles */
+@import url("./tokens.css");
+@import url("./base.css");
+
+.focus-quest-app {
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  line-height: 1.55;
+  accent-color: var(--color-primary);
+}
+
+.focus-quest-app,
+.focus-quest-app * { font-synthesis: none; }
+.focus-quest-app button,
+.focus-quest-app input,
+.focus-quest-app select,
+.focus-quest-app textarea { font-family: var(--font-body); }
+.focus-quest-app :is(button, a, summary, input, select, textarea):focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.focus-quest-app h1,
+.focus-quest-app h2,
+.focus-quest-app h3 {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+.focus-quest-app p,
+.focus-quest-app small { text-wrap: pretty; }
+
+.focus-quest-app .topbar {
+  position: relative;
+  z-index: var(--z-sticky-nav);
+  width: min(var(--container), calc(100% - (var(--gutter) * 2)));
+  min-height: 76px;
+  margin-inline: auto;
+  padding: var(--space-sm) 0;
+  border: 0;
+  border-bottom: var(--rule-hair) solid var(--color-border);
+  background: color-mix(in oklab, var(--color-canvas) 92%, transparent);
+  box-shadow: none;
+}
+.focus-quest-app .brand {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  box-shadow: none;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.focus-quest-app .brand-logo {
+  display: block;
+  width: clamp(132px, 14vw, 176px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, .24));
+}
+.focus-quest-app .topbar-actions { gap: var(--space-sm); }
+.focus-quest-app .today-chip,
+.focus-quest-app .account-chip {
+  min-height: 44px;
+  border: var(--rule-hair) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-soft);
+  box-shadow: none;
+}
+.focus-quest-app .today-chip {
+  gap: var(--space-xs);
+  padding: 0 var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.focus-quest-app .today-chip span { color: var(--color-primary); font-size: var(--text-xs); }
+.focus-quest-app .account-chip { padding: var(--space-xs) var(--space-sm); }
+.focus-quest-app .account-avatar { background: var(--color-primary); color: var(--color-primary-ink); }
+.focus-quest-app .account-chip-copy :is(strong, small) { color: inherit; font-family: var(--font-body); letter-spacing: 0; }
+.focus-quest-app .account-chip-copy small { color: var(--color-text-muted); }
+.focus-quest-app .account-popover {
+  z-index: var(--z-dropdown);
+  min-width: 264px;
+  padding: var(--space-md);
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: none;
+}
+
+.focus-quest-app .select-screen,
+.focus-quest-app .setup-screen {
+  width: min(var(--container), 100%);
+  margin-inline: auto;
+  padding: var(--space-xl) var(--gutter) var(--space-3xl);
+}
+.focus-quest-app .quick-start-hero {
+  display: grid;
+  grid-template-columns: minmax(0, .86fr) minmax(0, 1.14fr);
+  gap: var(--space-lg);
+  margin: 0;
+  align-items: stretch;
+}
+.focus-quest-app .quick-start-copy,
+.focus-quest-app .quick-companion {
+  min-width: 0;
+  min-height: 650px;
+  border: 0;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.focus-quest-app .quick-start-copy {
+  justify-content: center;
+  padding: clamp(var(--space-xl), 5vw, var(--space-2xl));
+  background: var(--color-surface);
+}
+.focus-quest-app .section-intro,
+.focus-quest-app .eyebrow {
+  display: block;
+  margin: 0 0 var(--space-sm);
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.focus-quest-app .quick-start-copy h1 {
+  max-width: 12ch;
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(2.75rem, 5.2vw, 4.75rem);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.065em;
+  text-shadow: none;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+.focus-quest-app .quick-start-copy > p {
+  max-width: 38ch;
+  margin: var(--space-lg) 0 var(--space-xl);
+  color: var(--color-text-soft);
+  font-size: var(--text-md);
+  line-height: 1.7;
+}
+.focus-quest-app .focus-intent-field,
+.focus-quest-app .setup-intent-field { gap: var(--space-xs); }
+.focus-quest-app .focus-intent-field > span,
+.focus-quest-app .setup-intent-field > span {
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.focus-quest-app .focus-intent-field input,
+.focus-quest-app .setup-intent-field input,
+.focus-quest-app .custom-time,
+.focus-quest-app .range-wrap,
+.focus-quest-app .focus-tool-settings label,
+.focus-quest-app .silent-camp-controls label {
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+  box-shadow: none;
+}
+.focus-quest-app .focus-intent-field input {
+  min-height: 58px;
+  padding-inline: var(--space-md);
+  color: var(--color-text);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+.focus-quest-app input::placeholder,
+.focus-quest-app textarea::placeholder { color: var(--color-text-muted); }
+.focus-quest-app .focus-intent-field small,
+.focus-quest-app .setup-intent-field small,
+.focus-quest-app .setting-help { color: var(--color-text-muted); font-size: var(--text-xs); line-height: 1.55; }
+
+.focus-quest-app .quick-focus-options { gap: var(--space-sm); margin-top: var(--space-lg); }
+.focus-quest-app .quick-focus-options button {
+  min-height: 104px;
+  padding: var(--space-md);
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-raised);
+  color: var(--color-text-soft);
+  box-shadow: none;
+  transition: transform var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+}
+.focus-quest-app .quick-focus-options button:nth-child(2) {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+}
+.focus-quest-app .quick-focus-options button:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-soft);
+  transform: translateY(-2px);
+}
+.focus-quest-app .quick-focus-options button:nth-child(2):hover { background: var(--color-primary-strong); }
+.focus-quest-app .quick-focus-options button:active { transform: translateY(0); }
+.focus-quest-app .quick-focus-options button :is(span, small) { font-family: var(--font-body); font-size: var(--text-xs); letter-spacing: 0; }
+.focus-quest-app .quick-focus-options button strong { color: inherit; font-size: var(--text-lg); }
+.focus-quest-app .detail-settings-button,
+.focus-quest-app .back-button,
+.focus-quest-app .text-button {
+  min-height: 44px;
+  border: 0;
+  border-bottom: var(--rule-hair) solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-soft);
+  font-weight: 700;
+  text-decoration: none;
+  transition: color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+}
+.focus-quest-app :is(.detail-settings-button, .back-button, .text-button):hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+.focus-quest-app .quick-companion {
+  isolation: isolate;
+  overflow: clip;
+  background: var(--color-surface);
+}
+.focus-quest-app .quick-companion-status {
+  min-height: 48px;
+  padding-inline: var(--space-md);
+  border: 0;
+  border-bottom: var(--rule-hair) solid var(--color-border);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.focus-quest-app .quick-companion-status span {
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--radius-pill);
+  background: var(--companion-accent);
+  color: var(--color-primary-ink);
+  box-shadow: none;
+}
+.focus-quest-app .quick-companion-status i { display: none; }
+.focus-quest-app .quick-companion-stage {
+  min-height: 380px;
+  background: linear-gradient(180deg, transparent 42%, var(--color-image-shade) 100%), var(--companion-bg) center / cover no-repeat;
+}
+.focus-quest-app .quick-companion-stage::before { z-index: 2; background: linear-gradient(90deg, var(--color-overlay-soft), transparent 48%); }
+.focus-quest-app .quick-companion-stage::after { display: none; }
+.focus-quest-app .companion-stage-hud {
+  top: var(--space-lg);
+  left: var(--space-lg);
+  gap: var(--space-2xs);
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--color-overlay);
+  box-shadow: none;
+}
+.focus-quest-app .companion-stage-hud :is(span, strong) { color: var(--color-text); font-family: var(--font-body); letter-spacing: 0; }
+.focus-quest-app .companion-stage-hud span { color: var(--companion-accent); font-size: var(--text-xs); font-weight: 700; }
+.focus-quest-app .companion-stage-hud strong { font-size: var(--text-xl); }
+.focus-quest-app .quick-companion-stage img {
+  left: 1%;
+  bottom: -3%;
+  width: min(48%, 300px);
+  height: 82%;
+  filter: drop-shadow(0 20px 28px var(--color-overlay));
+  transition: transform var(--dur-short) var(--ease-out);
+}
+.focus-quest-app .quick-companion:hover .quick-companion-stage img { transform: translateY(-3px); }
+.focus-quest-app .quick-companion-copy {
+  padding: var(--space-lg);
+  border: 0;
+  border-top: var(--rule-hair) solid var(--color-border);
+}
+.focus-quest-app .quick-companion-copy > span,
+.focus-quest-app .quick-companion-copy > small,
+.focus-quest-app .quick-companion-copy p { color: var(--color-text-muted); font-family: var(--font-body); letter-spacing: 0; }
+.focus-quest-app .quick-companion-copy > span { color: var(--companion-accent); font-size: var(--text-xs); font-weight: 700; }
+.focus-quest-app .quick-companion-copy h2 {
+  margin: var(--space-xs) 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  letter-spacing: -0.045em;
+}
+.focus-quest-app .quick-companion-copy p { color: var(--color-text-soft); font-size: var(--text-sm); }
+.focus-quest-app .quick-companion-copy .companion-sound { margin-top: var(--space-sm); color: var(--companion-accent); }
+.focus-quest-app .companion-memory {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) 0 0;
+  border: 0;
+  border-top: var(--rule-hair) solid var(--color-border);
+  background: transparent;
+}
+.focus-quest-app .companion-memory span,
+.focus-quest-app .quick-companion-copy .companion-memory p { color: var(--color-text-muted); font-family: var(--font-body); font-size: var(--text-xs); letter-spacing: 0; }
+.focus-quest-app .adventure-switcher { border: 0; border-top: var(--rule-hair) solid var(--color-border); background: var(--color-canvas); }
+.focus-quest-app .adventure-switcher-heading { padding: var(--space-md) var(--space-md) var(--space-sm); }
+.focus-quest-app .adventure-switcher-heading :is(strong, span) { color: var(--color-text-soft); font-family: var(--font-body); letter-spacing: 0; }
+.focus-quest-app .adventure-options { gap: var(--space-xs); padding: 0 var(--space-md) var(--space-md); }
+.focus-quest-app .adventure-options button {
+  min-height: 86px;
+  padding: var(--space-xs);
+  border: var(--rule-hair) solid transparent;
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: none;
+  transition: transform var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+}
+.focus-quest-app .adventure-options button::after { display: none; }
+.focus-quest-app .adventure-options button:hover { border-color: var(--option-accent); background: var(--color-surface-raised); transform: translateY(-2px); }
+.focus-quest-app .adventure-options button.is-active { border-color: var(--option-accent); background: var(--color-surface-raised); box-shadow: inset 0 -3px 0 var(--option-accent); }
+.focus-quest-app .adventure-options :is(strong, small, em) { color: var(--color-text-soft); font-family: var(--font-body); font-style: normal; letter-spacing: 0; }
+.focus-quest-app .adventure-options small { color: var(--option-accent); }
+
+.focus-quest-app .select-note {
+  width: min(100%, 860px);
+  margin: var(--space-lg) auto 0;
+  padding: var(--space-md);
+  border: 0;
+  color: var(--color-text-muted);
+  background: transparent;
+  box-shadow: none;
+}
+.focus-quest-app .select-note i { background: var(--color-border-strong); }
+.focus-quest-app .first-expedition-guide {
+  display: grid;
+  width: min(100%, 980px);
+  margin: var(--space-lg) auto 0;
+  padding: 0;
+  grid-template-columns: minmax(0, .94fr) minmax(0, 1fr) minmax(0, 1.06fr);
+  list-style: none;
+  border-block: var(--rule-hair) solid var(--color-border);
+}
+.focus-quest-app .first-expedition-guide li {
+  display: grid;
+  min-width: 0;
+  padding: var(--space-md);
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: center;
+}
+.focus-quest-app .first-expedition-guide li + li { border-left: var(--rule-hair) solid var(--color-border); }
+.focus-quest-app .first-expedition-guide li > span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-soft);
+  color: var(--color-primary);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+.focus-quest-app .first-expedition-guide div { display: grid; gap: var(--space-2xs); min-width: 0; }
+.focus-quest-app .first-expedition-guide strong { color: var(--color-text); font-size: var(--text-sm); }
+.focus-quest-app .first-expedition-guide small { color: var(--color-text-muted); font-size: var(--text-xs); }
+.focus-quest-app .returning-route {
+  display: flex;
+  width: min(100%, 980px);
+  margin: var(--space-lg) auto 0;
+  padding: var(--space-md) 0;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+  border-block: var(--rule-hair) solid var(--color-border);
+}
+.focus-quest-app .returning-route > div { display: grid; min-width: 0; gap: var(--space-2xs); }
+.focus-quest-app .returning-route span { color: var(--color-primary); font-size: var(--text-xs); font-weight: 700; }
+.focus-quest-app .returning-route strong { overflow: hidden; color: var(--color-text); text-overflow: ellipsis; white-space: nowrap; }
+.focus-quest-app .returning-route small { color: var(--color-text-muted); font-size: var(--text-xs); }
+.focus-quest-app .returning-route button {
+  min-height: 46px;
+  padding-inline: var(--space-lg);
+  flex: 0 0 auto;
+  border: var(--rule-hair) solid var(--color-primary);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 800;
+}
+.focus-quest-app .returning-route button:hover { background: var(--color-primary); color: var(--color-primary-ink); }
+.focus-quest-app .feature-loading {
+  width: min(1180px, 100%);
+  min-height: 160px;
+  display: grid;
+  margin: var(--space-xl) auto 0;
+  place-items: center;
+  border-block: var(--rule-hair) solid var(--color-border);
+  color: var(--color-text-muted);
+}
+.focus-quest-app .scene-loading {
+  position: absolute;
+  z-index: var(--z-raised);
+  left: 50%;
+  bottom: var(--space-xl);
+  max-width: calc(100% - (var(--gutter) * 2));
+  padding: var(--space-sm) var(--space-md);
+  transform: translateX(-50%);
+  border-radius: var(--radius-pill);
+  background: var(--color-overlay);
+  color: var(--color-text-soft);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+.focus-quest-app .recovery-card,
+.focus-quest-app .install-card,
+.focus-quest-app .silent-camp,
+.focus-quest-app .weekly-summary,
+.focus-quest-app .recent-history,
+.focus-quest-app .quest-board,
+.focus-quest-app .material-library {
+  width: min(1180px, 100%);
+  margin-inline: auto;
+  border: var(--rule-hair) solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: none;
+}
+.focus-quest-app .recovery-card { margin-top: var(--space-lg); padding: var(--space-lg); }
+.focus-quest-app .recovery-card :is(span, h2, p) { color: var(--color-text-soft); font-family: var(--font-body); letter-spacing: 0; }
+.focus-quest-app .recovery-card span { color: var(--color-primary); font-size: var(--text-xs); }
+.focus-quest-app .recovery-card button,
+.focus-quest-app .install-card button,
+.focus-quest-app .quest-primary,
+.focus-quest-app .primary-button,
+.focus-quest-app .keep-going,
+.focus-quest-app .auth-dialog-primary {
+  min-height: 48px;
+  border: var(--rule-hair) solid var(--color-primary);
+  border-radius: var(--radius-control);
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+  box-shadow: none;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: transform var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+}
+.focus-quest-app :is(.recovery-card button, .install-card button, .quest-primary, .primary-button, .keep-going, .auth-dialog-primary):hover { background: var(--color-primary-strong); transform: translateY(-1px); }
+.focus-quest-app :is(.recovery-card button, .install-card button, .quest-primary, .primary-button, .keep-going, .auth-dialog-primary):active { transform: translateY(0); }
+.focus-quest-app .silent-camp,
+.focus-quest-app .weekly-summary,
+.focus-quest-app .recent-history,
+.focus-quest-app .quest-board,
+.focus-quest-app .material-library { margin-top: var(--space-xl); padding: var(--space-lg); }
+.focus-quest-app .behavior-report,
+.focus-quest-app .quest-workspace,
+.focus-quest-app .quest-form-card,
+.focus-quest-app .pdf-builder,
+.focus-quest-app .camp-log,
+.focus-quest-app .study-checkpoint { border: 0; border-radius: var(--radius-control); background: var(--color-surface-raised); color: var(--color-text); box-shadow: none; }
+.focus-quest-app .quest-card,
+.focus-quest-app .subject-tabs button,
+.focus-quest-app .bgm-grid button,
+.focus-quest-app .preset-row button,
+.focus-quest-app .expedition-set-options button,
+.focus-quest-app .focus-tool-settings > button,
+.focus-quest-app .study-quiz-options button,
+.focus-quest-app .camp-log-choices button {
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-raised);
+  color: var(--color-text-soft);
+  box-shadow: none;
+}
+.focus-quest-app :is(.subject-tabs button, .bgm-grid button, .preset-row button, .expedition-set-options button, .focus-tool-settings > button).active,
+.focus-quest-app .subject-tabs button[aria-selected="true"] { border-color: var(--color-primary); background: var(--color-surface-soft); color: var(--color-primary); }
+
+.focus-quest-app .setup-screen { padding-top: var(--space-lg); }
+.focus-quest-app .setup-screen > .back-button { margin-bottom: var(--space-lg); }
+.focus-quest-app .setup-layout { grid-template-columns: minmax(0, 1.08fr) minmax(390px, .92fr); gap: var(--space-lg); align-items: start; }
+.focus-quest-app .preview-panel,
+.focus-quest-app .settings-panel {
+  border: 0;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.focus-quest-app .preview-panel {
+  min-height: 720px;
+  position: sticky;
+  top: var(--space-lg);
+  overflow: clip;
+  background: var(--page-bg) center / cover no-repeat;
+}
+.focus-quest-app .preview-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 42%, var(--color-image-shade) 100%);
+  pointer-events: none;
+}
+.focus-quest-app .preview-label {
+  z-index: var(--z-raised);
+  right: var(--space-lg);
+  bottom: var(--space-lg);
+  left: var(--space-lg);
+  width: auto;
+  padding: var(--space-lg);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--color-overlay);
+  box-shadow: none;
+}
+.focus-quest-app .preview-label :is(span, h2, p) { color: var(--color-text); font-family: var(--font-body); letter-spacing: 0; }
+.focus-quest-app .settings-panel { padding: var(--space-xl); background: var(--color-surface); color: var(--color-text); }
+.focus-quest-app .settings-heading h1 { max-width: 12ch; font-size: clamp(2rem, 3.5vw, 3.25rem); line-height: 1.08; }
+.focus-quest-app .settings-panel fieldset { margin-top: var(--space-lg); padding: var(--space-lg) 0 0; border: 0; border-top: var(--rule-hair) solid var(--color-border); }
+.focus-quest-app .settings-panel legend { padding: 0; color: var(--color-text-soft); font-size: var(--text-sm); font-weight: 700; }
+.focus-quest-app .settings-panel legend strong { color: var(--color-primary); }
+
+.focus-quest-app .focus-screen { color: var(--color-text); }
+.focus-quest-app .focus-top { top: var(--space-lg); right: var(--space-lg); left: var(--space-lg); }
+.focus-quest-app .focus-status,
+.focus-quest-app .focus-actions button {
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-overlay);
+  color: var(--color-text);
+  box-shadow: none;
+}
+.focus-quest-app .focus-status { min-height: 44px; padding: 0 var(--space-md); font-family: var(--font-body); letter-spacing: 0; }
+.focus-quest-app .focus-actions button { width: 44px; height: 44px; }
+.focus-quest-app .timer-card {
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-overlay);
+  box-shadow: var(--shadow-card);
+}
+.focus-quest-app .timer-card > strong {
+  color: var(--color-text);
+  font-family: var(--font-outlier);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.065em;
+  text-shadow: none;
+}
+.focus-quest-app .timer-card > .active-focus-intent,
+.focus-quest-app .timer-adventure-label,
+.focus-quest-app .timer-card p,
+.focus-quest-app .expedition-route span { color: var(--color-text-soft); font-family: var(--font-body); letter-spacing: 0; }
+.focus-quest-app .timer-progress,
+.focus-quest-app .scene-progress-track { background: var(--color-surface-soft); }
+.focus-quest-app .timer-progress i,
+.focus-quest-app .scene-progress-track div { background: var(--color-primary); }
+.focus-quest-app .timer-controls button,
+.focus-quest-app .exit-modal button,
+.focus-quest-app .confirm-exit { min-height: 46px; border-radius: var(--radius-control); box-shadow: none; font-weight: 700; }
+.focus-quest-app .pause-button,
+.focus-quest-app .keep-going { border: var(--rule-hair) solid var(--color-primary); background: var(--color-primary); color: var(--color-primary-ink); }
+.focus-quest-app .exit-button,
+.focus-quest-app .confirm-exit { border: var(--rule-hair) solid var(--color-border-strong); background: transparent; color: var(--color-text-soft); }
+.focus-quest-app .modal-backdrop,
+.focus-quest-app .auth-dialog-backdrop { background: var(--color-overlay); }
+.focus-quest-app .exit-modal,
+.focus-quest-app .auth-dialog,
+.focus-quest-app .complete-card {
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+}
+.focus-quest-app .complete-screen { background: linear-gradient(180deg, var(--color-overlay-soft), var(--color-canvas)), var(--page-bg) center / cover no-repeat; }
+.focus-quest-app .complete-card { padding: clamp(var(--space-lg), 5vw, var(--space-2xl)); }
+.focus-quest-app .complete-kicker,
+.focus-quest-app .camp-log-heading > span,
+.focus-quest-app .study-checkpoint-heading > span,
+.focus-quest-app .study-quiz-card > span,
+.focus-quest-app .auth-dialog-eyebrow {
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.focus-quest-app .session-stats,
+.focus-quest-app .weekly-metrics { border-color: var(--color-border); background: transparent; }
+.focus-quest-app .camp-log,
+.focus-quest-app .study-checkpoint { padding: var(--space-lg); }
+.focus-quest-app .auth-dialog-tabs button,
+.focus-quest-app .auth-dialog-form input,
+.focus-quest-app .auth-dialog-google {
+  min-height: 48px;
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+  color: var(--color-text);
+}
+.focus-quest-app .quest-danger { color: var(--color-danger); }
+.focus-quest-app :is(button, input, select, textarea):disabled { cursor: not-allowed; filter: saturate(.45); opacity: .55; }
+
+.focus-quest-app .weekly-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.focus-quest-app .distraction-capture {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: var(--rule-hair) solid var(--color-border);
+  color: var(--color-text-soft);
+}
+.focus-quest-app .distraction-capture summary {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  list-style: none;
+}
+.focus-quest-app .distraction-capture summary::-webkit-details-marker { display: none; }
+.focus-quest-app .distraction-capture summary span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+  font-size: var(--text-xs);
+}
+.focus-quest-app .distraction-capture form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+.focus-quest-app .distraction-capture input,
+.focus-quest-app .distraction-capture button {
+  min-height: 42px;
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+}
+.focus-quest-app .distraction-capture input {
+  min-width: 0;
+  padding-inline: var(--space-sm);
+  background: var(--color-canvas);
+  color: var(--color-text);
+}
+.focus-quest-app .distraction-capture button {
+  padding-inline: var(--space-md);
+  background: var(--color-surface-soft);
+  color: var(--color-text);
+  font-weight: 700;
+}
+.focus-quest-app .distraction-capture small {
+  display: block;
+  margin-top: var(--space-xs);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+.focus-quest-app .distraction-review {
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  text-align: left;
+}
+.focus-quest-app .distraction-review span { color: var(--color-primary); font-size: var(--text-xs); font-weight: 700; }
+.focus-quest-app .distraction-review h2 { margin-top: var(--space-2xs); font-size: var(--text-xl); }
+.focus-quest-app .distraction-review ul { margin: var(--space-md) 0; padding-left: var(--space-lg); color: var(--color-text-soft); }
+.focus-quest-app .distraction-review li + li { margin-top: var(--space-xs); }
+.focus-quest-app .distraction-review button {
+  min-height: 42px;
+  padding-inline: var(--space-md);
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-soft);
+  font-weight: 700;
+}
+
+@media (max-width: 64rem) {
+  .focus-quest-app .quick-start-hero,
+  .focus-quest-app .setup-layout { grid-template-columns: minmax(0, 1fr); }
+  .focus-quest-app .quick-start-copy,
+  .focus-quest-app .quick-companion { min-height: auto; }
+  .focus-quest-app .preview-panel { position: relative; top: auto; min-height: 520px; }
+  .focus-quest-app .quick-companion-stage { min-height: 340px; }
+}
+
+@media (max-width: 48rem) {
+  .focus-quest-app .topbar { width: calc(100% - (var(--gutter) * 2)); }
+  .focus-quest-app .account-chip-copy { display: block; }
+  .focus-quest-app .account-chip-copy small,
+  .focus-quest-app .today-chip { display: none; }
+  .focus-quest-app .account-chip {
+    width: auto;
+    min-width: 72px;
+    justify-content: center;
+    padding-inline: 10px;
+  }
+  .focus-quest-app .select-screen,
+  .focus-quest-app .setup-screen {
+    width: 100%;
+    max-width: 100%;
+    padding: var(--space-lg) var(--gutter) var(--space-2xl);
+  }
+  .focus-quest-app .quick-start-hero,
+  .focus-quest-app .quick-start-copy,
+  .focus-quest-app .quick-companion { width: 100%; max-width: 100%; min-width: 0; }
+  .focus-quest-app .quick-start-copy { padding: var(--space-xl) var(--space-md); overflow: hidden; }
+  .focus-quest-app .quick-start-copy h1 { max-width: 14ch; font-size: clamp(2.45rem, 12vw, 3.75rem); }
+  .focus-quest-app .quick-start-copy > p { margin: var(--space-md) 0 var(--space-lg); }
+  .focus-quest-app .quick-focus-options { grid-template-columns: minmax(0, 1fr); }
+  .focus-quest-app .quick-focus-options button {
+    width: 100%;
+    min-width: 0;
+    min-height: 72px;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    padding-inline: var(--space-md);
+  }
+  .focus-quest-app .quick-focus-options button strong { justify-self: end; white-space: nowrap; }
+  .focus-quest-app .quick-companion-stage { min-height: 280px; }
+  .focus-quest-app .companion-stage-hud { top: var(--space-md); left: var(--space-md); }
+  .focus-quest-app .adventure-options { grid-template-columns: minmax(0, 1fr); }
+  .focus-quest-app .adventure-options button { min-height: 72px; }
+  .focus-quest-app .first-expedition-guide { grid-template-columns: minmax(0, 1fr); }
+  .focus-quest-app .first-expedition-guide li + li { border-top: var(--rule-hair) solid var(--color-border); border-left: 0; }
+  .focus-quest-app .returning-route { align-items: stretch; flex-direction: column; gap: var(--space-md); }
+  .focus-quest-app .returning-route button { width: 100%; }
+  .focus-quest-app .recovery-card,
+  .focus-quest-app .install-card,
+  .focus-quest-app .silent-camp { align-items: stretch; grid-template-columns: minmax(0, 1fr); flex-direction: column; }
+  .focus-quest-app .settings-panel { padding: var(--space-lg); }
+  .focus-quest-app .preview-panel { min-height: 420px; }
+  .focus-quest-app .preview-label { right: var(--space-md); bottom: var(--space-md); left: var(--space-md); padding: var(--space-md); }
+  .focus-quest-app .focus-top { top: var(--space-md); right: var(--space-md); left: var(--space-md); }
+  .focus-quest-app .focus-status { max-width: calc(100% - 108px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .focus-quest-app .timer-card { right: var(--space-md); bottom: var(--space-md); left: var(--space-md); width: auto; padding: var(--space-lg); }
+  .focus-quest-app .weekly-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-quest-app *,
+  .focus-quest-app *::before,
+  .focus-quest-app *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* 2026-11 companion console redesign
+ * The scene leads; controls stay quiet, functional, and intentionally asymmetric. */
+.screen-select .select-screen {
+  width: min(var(--container), 100%);
+  padding-top: 0;
+}
+
+.focus-quest-app .companion-console {
+  display: block;
+  margin: 0;
+  overflow: clip;
+  border: var(--rule-hair) solid rgba(244, 235, 216, .2);
+  border-radius: 8px;
+  background: #090d16;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .36);
+}
+
+/* Keep the utility bar understated so the authored scene remains the product. */
+.screen-select .today-chip {
+  padding-inline: 8px;
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+}
+
+.screen-select .account-chip {
+  border-radius: 5px;
+  background: rgba(17, 24, 39, .66);
+}
+
+.focus-quest-app .console-scene {
+  position: relative;
+  isolation: isolate;
+  height: min(820px, calc(100svh - 104px));
+  min-height: 700px;
+  overflow: hidden;
+  background-color: #0b111d;
+  background-image: var(--companion-bg);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.focus-quest-app .console-scene::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(5, 9, 16, .22);
+}
+
+.focus-quest-app .console-scene > * {
+  position: absolute;
+  z-index: 1;
+}
+
+.focus-quest-app .console-mobile-world {
+  display: none;
+}
+
+.focus-quest-app .console-heading {
+  top: 34px;
+  left: 42px;
+  display: grid;
+  gap: 4px;
+  max-width: 430px;
+  padding: 12px 16px;
+  border-left: 3px solid var(--companion-accent);
+  background: rgba(8, 13, 22, .72);
+}
+
+.focus-quest-app .console-heading span {
+  color: rgba(244, 235, 216, .7);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.focus-quest-app .console-heading h1 {
+  max-width: none;
+  color: #f4ebd8;
+  font-size: clamp(1.7rem, 3vw, 2.45rem);
+  font-weight: 750;
+  line-height: 1.14;
+  letter-spacing: -.035em;
+  text-wrap: pretty;
+}
+
+.focus-quest-app .console-goal {
+  top: 270px;
+  left: 42px;
+  width: min(330px, calc(36% - 42px));
+  padding: 16px;
+  border-left: 3px solid var(--companion-accent);
+  background: rgba(8, 13, 22, .78);
+}
+
+.focus-quest-app .companion-console .focus-intent-field > span {
+  color: var(--companion-accent);
+  font-size: .95rem;
+}
+
+.focus-quest-app .companion-console .focus-intent-field input {
+  min-height: 54px;
+  border: 1px solid rgba(244, 235, 216, .58);
+  border-radius: 5px;
+  background: rgba(8, 13, 22, .8);
+  color: #f4ebd8;
+  box-shadow: none;
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.focus-quest-app .companion-console .focus-intent-field small {
+  color: rgba(244, 235, 216, .62);
+}
+
+.focus-quest-app .console-timer {
+  top: 112px;
+  left: 34%;
+  display: grid;
+  width: min(520px, 42%);
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 22px 16px;
+  background: rgba(8, 13, 22, .52);
+}
+
+.focus-quest-app .console-timer > strong {
+  color: #f4ebd8;
+  font-family: var(--font-outlier);
+  font-size: clamp(3.4rem, 6.2vw, 5.6rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -.055em;
+  line-height: 1;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, .28);
+}
+
+.focus-quest-app .console-timer > span {
+  color: rgba(244, 235, 216, .72);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.focus-quest-app .console-route {
+  position: relative;
+  display: grid;
+  width: 100%;
+  margin: 0 0 6px;
+  padding: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+}
+
+.focus-quest-app .console-route::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  right: 11%;
+  left: 11%;
+  border-top: 1px dashed rgba(244, 235, 216, .56);
+}
+
+.focus-quest-app .console-route li {
+  position: relative;
+  padding-top: 18px;
+  color: rgba(244, 235, 216, .58);
+  font-size: .7rem;
+  font-weight: 650;
+  text-align: center;
+}
+
+.focus-quest-app .console-route li::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: calc(50% - 5px);
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(244, 235, 216, .72);
+  border-radius: 50%;
+  background: #111827;
+}
+
+.focus-quest-app .console-route li.is-current {
+  color: #f4ebd8;
+}
+
+.focus-quest-app .console-route li.is-current::before {
+  border-color: var(--companion-accent);
+  background: var(--companion-accent);
+}
+
+.focus-quest-app .console-companion {
+  z-index: 2;
+  bottom: 132px;
+  left: 31%;
+  width: min(26vw, 310px);
+  height: min(42vw, 390px);
+  object-fit: contain;
+  object-position: center bottom;
+  image-rendering: auto;
+  filter: drop-shadow(0 18px 13px rgba(0, 0, 0, .48));
+  transform: translateX(-50%);
+}
+
+.focus-quest-app .companion-console.theme-swim .console-companion {
+  bottom: 152px;
+  left: 34%;
+  width: min(29vw, 340px);
+}
+
+.focus-quest-app .companion-console.theme-fish .console-companion {
+  bottom: 116px;
+  left: 32%;
+  width: min(32vw, 390px);
+}
+
+.focus-quest-app .console-reward {
+  top: 300px;
+  right: 42px;
+  display: grid;
+  width: min(300px, 27%);
+  gap: 6px;
+  padding: 14px 0 14px 18px;
+  border-left: 3px solid var(--companion-accent);
+  background: rgba(8, 13, 22, .7);
+}
+
+.focus-quest-app .console-reward span {
+  color: var(--companion-accent);
+  font-size: var(--text-sm);
+  font-weight: 750;
+}
+
+.focus-quest-app .console-reward strong {
+  color: #f4ebd8;
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  line-height: 1.25;
+}
+
+.focus-quest-app .console-reward small {
+  color: rgba(244, 235, 216, .68);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+}
+
+.focus-quest-app .companion-console .adventure-switcher {
+  right: 32px;
+  bottom: 30px;
+  width: min(390px, 31%);
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.focus-quest-app .companion-console .adventure-options {
+  display: grid;
+  padding: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.focus-quest-app .companion-console .adventure-options button {
+  position: relative;
+  isolation: isolate;
+  min-height: 90px;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(244, 235, 216, .45);
+  border-radius: 4px;
+  background-color: #111827;
+  background-image: var(--option-bg);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  box-shadow: none;
+  transform: none;
+}
+
+.focus-quest-app .companion-console .adventure-options button:hover {
+  border-color: #f4ebd8;
+  background-color: #111827;
+  transform: translateY(-2px);
+}
+
+.focus-quest-app .companion-console .adventure-options button.is-active {
+  border-color: var(--option-accent);
+  box-shadow: inset 0 -3px 0 var(--option-accent);
+}
+
+.focus-quest-app .companion-console .adventure-options button span {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  gap: 0;
+  padding: 7px 8px;
+  background: rgba(8, 13, 22, .82);
+  text-align: left;
+}
+
+.focus-quest-app .companion-console .adventure-options :is(strong, small) {
+  overflow: hidden;
+  color: #f4ebd8;
+  font-family: var(--font-body);
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-quest-app .companion-console .adventure-options strong {
+  font-size: .72rem;
+}
+
+.focus-quest-app .companion-console .adventure-options small {
+  color: rgba(244, 235, 216, .66);
+  font-size: .62rem;
+}
+
+.focus-quest-app .console-controls {
+  bottom: 28px;
+  left: 42px;
+  display: grid;
+  width: min(630px, 50%);
+  grid-template-columns: minmax(0, 1fr) minmax(170px, .54fr);
+  gap: 10px 12px;
+  padding: 14px;
+  border: 1px solid rgba(244, 235, 216, .24);
+  background: rgba(8, 13, 22, .84);
+}
+
+.focus-quest-app .companion-console .quick-focus-options {
+  display: grid;
+  margin: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.focus-quest-app .companion-console .quick-focus-options button {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid rgba(244, 235, 216, .45);
+  border-radius: 5px;
+  background: #151c28;
+  color: #f4ebd8;
+  box-shadow: none;
+  text-align: center;
+  transform: none;
+}
+
+.focus-quest-app .companion-console .quick-focus-options button:hover {
+  border-color: #f4ebd8;
+  background: #1b2532;
+  transform: none;
+}
+
+.focus-quest-app .companion-console .quick-focus-options button.is-active {
+  border-color: var(--companion-accent);
+  background: #dc682c;
+  color: #fff8ec;
+}
+
+.focus-quest-app .companion-console .quick-focus-options button :is(span, strong) {
+  color: inherit;
+  font-family: var(--font-body);
+  font-size: .95rem;
+  line-height: 1;
+}
+
+.focus-quest-app .companion-console .quick-focus-options button span {
+  min-width: 12px;
+}
+
+.focus-quest-app .console-start-button {
+  min-height: 54px;
+  border: 1px solid #f48a4b;
+  border-radius: 5px;
+  background: #dc682c;
+  color: #fff8ec;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+
+.focus-quest-app .console-start-button:hover {
+  background: #ee7839;
+  transform: translateY(-1px);
+}
+
+.focus-quest-app .companion-console .detail-settings-button {
+  min-height: 30px;
+  margin: 0;
+  padding: 2px 0;
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+  border: 0;
+  background: transparent;
+  color: rgba(244, 235, 216, .68);
+  font-size: .75rem;
+}
+
+.focus-quest-app .companion-console .detail-settings-button:hover {
+  color: #f4ebd8;
+}
+
+@media (max-width: 64rem) {
+  .focus-quest-app .console-goal {
+    top: 225px;
+    width: 300px;
+  }
+
+  .focus-quest-app .console-timer {
+    left: 38%;
+    width: 43%;
+  }
+
+  .focus-quest-app .console-reward {
+    top: 300px;
+    width: 240px;
+  }
+
+  .focus-quest-app .console-companion {
+    left: 34%;
+  }
+
+  .focus-quest-app .console-controls {
+    width: min(590px, 60%);
+  }
+
+  .focus-quest-app .companion-console .adventure-switcher {
+    width: min(320px, 34%);
+  }
+}
+
+@media (max-width: 48rem) {
+  .screen-select .select-screen {
+    padding: 0 0 var(--space-2xl);
+  }
+
+  .focus-quest-app .companion-console {
+    border-inline: 0;
+    border-radius: 0;
+  }
+
+  .focus-quest-app .console-scene {
+    display: grid;
+    height: auto;
+    min-height: 0;
+    padding: 24px 16px 20px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    background-color: #080d16;
+    background-image: none;
+  }
+
+  .focus-quest-app .console-scene::before {
+    background: linear-gradient(180deg, rgba(5, 9, 16, .12), rgba(5, 9, 16, .42));
+  }
+
+  .focus-quest-app .console-scene > * {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    max-width: none;
+    transform: none;
+  }
+
+  .focus-quest-app .console-heading {
+    order: 1;
+    padding: 10px 12px;
+  }
+
+  .focus-quest-app .console-heading h1 {
+    font-size: clamp(1.6rem, 8vw, 2.2rem);
+  }
+
+  .focus-quest-app .console-mobile-world {
+    position: relative;
+    order: 2;
+    display: block;
+    aspect-ratio: 1672 / 941;
+    overflow: hidden;
+    border: 1px solid rgba(244, 235, 216, .28);
+    background: #101722;
+  }
+
+  .focus-quest-app .console-mobile-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .focus-quest-app .console-mobile-companion {
+    position: absolute;
+    z-index: 1;
+    bottom: -3%;
+    left: 38%;
+    width: 42%;
+    height: 82%;
+    object-fit: contain;
+    object-position: center bottom;
+    filter: drop-shadow(0 10px 8px rgba(0, 0, 0, .46));
+    transform: translateX(-50%);
+  }
+
+  .focus-quest-app .theme-swim .console-mobile-companion {
+    bottom: 4%;
+    left: 31%;
+    width: 44%;
+    height: 78%;
+  }
+
+  .focus-quest-app .theme-fish .console-mobile-companion {
+    bottom: -1%;
+    left: 31%;
+    width: 54%;
+    height: 90%;
+  }
+
+  .focus-quest-app .console-goal {
+    order: 3;
+    padding: 14px;
+  }
+
+  .focus-quest-app .console-timer {
+    order: 4;
+    padding: 12px;
+  }
+
+  .focus-quest-app .console-timer > strong {
+    font-size: clamp(3.5rem, 19vw, 5rem);
+  }
+
+  .focus-quest-app .console-companion,
+  .focus-quest-app .companion-console.theme-swim .console-companion,
+  .focus-quest-app .companion-console.theme-fish .console-companion {
+    display: none;
+  }
+
+  .focus-quest-app .console-reward {
+    order: 6;
+    padding: 12px 14px;
+  }
+
+  .focus-quest-app .console-controls {
+    order: 5;
+    display: grid;
+    padding: 12px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .focus-quest-app .console-start-button {
+    min-height: 58px;
+  }
+
+  .focus-quest-app .companion-console .detail-settings-button {
+    grid-column: auto;
+  }
+
+  .focus-quest-app .companion-console .adventure-switcher {
+    order: 7;
+    position: relative;
+    inset: auto;
+    width: 100%;
+    max-width: none;
+  }
+
+  .focus-quest-app .companion-console .adventure-options button {
+    min-height: 84px;
+  }
+}
+
+/* 2026-11 focus session redesign
+ * One honest progress dial; the scene stays dominant and every other surface
+ * behaves like quiet field equipment. */
+.focus-quest-app .focus-screen .focus-status {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: rgba(7, 13, 22, .76);
+  box-shadow: none;
+}
+
+.focus-quest-app .focus-screen .focus-actions button {
+  border-color: rgba(244, 235, 216, .45);
+  background: rgba(7, 13, 22, .72);
+}
+
+.focus-quest-app .focus-screen .timer-card {
+  right: clamp(24px, 5vw, 84px);
+  display: grid;
+  width: clamp(360px, 31vw, 470px);
+  justify-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  transform: translateY(-48%);
+}
+
+.focus-quest-app .focus-screen .expedition-route {
+  width: min(100%, 390px);
+  padding: 10px 14px;
+  border: 1px solid rgba(244, 235, 216, .25);
+  border-radius: 4px;
+  background: rgba(7, 13, 22, .76);
+}
+
+.focus-quest-app .timer-dial {
+  position: relative;
+  display: grid;
+  width: clamp(276px, 23vw, 350px);
+  aspect-ratio: 1;
+  place-items: center;
+  padding: 9px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from -90deg,
+    var(--accent) 0 calc(var(--journey) * 1turn),
+    rgba(244, 235, 216, .24) calc(var(--journey) * 1turn) 1turn
+  );
+  box-shadow: 0 22px 54px rgba(0, 0, 0, .34);
+}
+
+.focus-quest-app .timer-dial::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(244, 235, 216, .55);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.focus-quest-app .timer-dial-face {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  align-content: center;
+  justify-items: center;
+  padding: 30px;
+  border: 1px solid rgba(244, 235, 216, .18);
+  border-radius: 50%;
+  background: rgba(7, 13, 22, .88);
+  text-align: center;
+}
+
+.focus-quest-app .timer-dial-marker {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: rotate(calc(var(--journey) * 1turn));
+  transition: transform .5s linear;
+}
+
+.focus-quest-app .timer-dial-marker::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border: 3px solid #101722;
+  border-radius: 50%;
+  background: #fff0c8;
+  transform: translateX(-50%);
+}
+
+.focus-quest-app .timer-dial .active-focus-intent {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  color: #f4ebd8;
+  font-size: clamp(.9rem, 1.1vw, 1.05rem);
+  font-weight: 760;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-quest-app .timer-dial .timer-adventure-label {
+  margin-top: 4px;
+  color: rgba(244, 235, 216, .64);
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.focus-quest-app .timer-dial strong {
+  display: block;
+  margin: 13px 0 9px;
+  color: #f4ebd8;
+  font-family: var(--font-outlier);
+  font-size: clamp(3.65rem, 5.8vw, 5.2rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -.07em;
+  line-height: .92;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, .24);
+}
+
+.focus-quest-app .timer-percent {
+  color: var(--accent);
+  font-size: .74rem;
+  font-weight: 800;
+}
+
+.focus-quest-app .focus-screen .timer-narration {
+  width: min(100%, 390px);
+  min-height: 0;
+  margin: 0;
+  padding: 11px 14px;
+  border-left: 3px solid var(--accent);
+  background: rgba(7, 13, 22, .76);
+  color: rgba(244, 235, 216, .78);
+  font-size: .78rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.focus-quest-app .focus-screen .distraction-capture {
+  width: min(100%, 390px);
+  margin: 0;
+  border-color: rgba(244, 235, 216, .2);
+  border-radius: 4px;
+  background: rgba(7, 13, 22, .76);
+}
+
+.focus-quest-app .focus-screen .timer-controls {
+  width: min(100%, 390px);
+}
+
+.focus-quest-app .focus-screen .timer-controls button {
+  min-height: 48px;
+  border-radius: 4px;
+}
+
+@media (max-width: 48rem) {
+  .focus-quest-app .focus-screen .timer-card {
+    top: auto;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 12px;
+    width: auto;
+    gap: 8px;
+    transform: none;
+  }
+
+  .focus-quest-app .focus-screen .expedition-route {
+    padding-block: 7px;
+  }
+
+  .focus-quest-app .timer-dial {
+    width: clamp(154px, 42vw, 184px);
+    padding: 7px;
+  }
+
+  .focus-quest-app .timer-dial-face {
+    padding: 18px;
+  }
+
+  .focus-quest-app .timer-dial strong {
+    margin: 8px 0 5px;
+    font-size: clamp(2.65rem, 13vw, 3.5rem);
+  }
+
+  .focus-quest-app .focus-screen .timer-narration,
+  .focus-quest-app .focus-screen .distraction-capture,
+  .focus-quest-app .focus-screen .timer-controls {
+    width: min(100%, 360px);
+  }
+
+  .focus-quest-app .focus-screen .timer-narration {
+    padding-block: 8px;
+    font-size: .72rem;
+  }
+}
+
+@media (max-width: 56rem) and (max-height: 30rem) and (orientation: landscape) {
+  .focus-quest-app .focus-screen .timer-card {
+    top: max(68px, calc(env(safe-area-inset-top) + 58px));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: auto;
+    left: auto;
+    width: min(43vw, 360px);
+    gap: 6px;
+  }
+
+  .focus-quest-app .timer-dial {
+    width: clamp(118px, 34vh, 148px);
+  }
+
+  .focus-quest-app .timer-dial-face {
+    padding: 12px;
+  }
+
+  .focus-quest-app .timer-dial strong {
+    margin: 5px 0 3px;
+    font-size: clamp(2rem, 9vh, 2.75rem);
+  }
+
+  .focus-quest-app .focus-screen .timer-narration {
+    padding: 6px 9px;
+    font-size: .67rem;
+  }
+
+  .focus-quest-app .focus-screen .distraction-capture {
+    display: none;
+  }
+
+  .focus-quest-app .focus-screen .timer-controls button {
+    min-height: 42px;
+  }
+}
+
+/* 2026-11 companion-first entry
+ * The opening screen answers one question only: who will study with me? */
+.focus-quest-app .entry-screen {
+  padding-top: clamp(12px, 2vw, 28px);
+}
+
+.focus-quest-app .companion-gate {
+  overflow: hidden;
+  border: var(--rule-hair) solid rgba(244, 235, 216, .18);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% -20%, rgba(67, 106, 122, .24), transparent 44%),
+    #080d16;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .34);
+}
+
+.focus-quest-app .companion-gate-copy {
+  display: grid;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: clamp(34px, 5vw, 66px) var(--space-lg) clamp(26px, 4vw, 46px);
+  gap: 8px;
+  text-align: center;
+}
+
+.focus-quest-app .companion-gate-copy > span {
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.focus-quest-app .companion-gate-copy h1 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(2.4rem, 5vw, 4.8rem);
+  line-height: 1.02;
+  letter-spacing: -.055em;
+}
+
+.focus-quest-app .companion-gate-copy p {
+  max-width: 52ch;
+  margin: 8px auto 0;
+  color: var(--color-text-muted);
+  font-size: clamp(.96rem, 1.4vw, 1.08rem);
+  line-height: 1.7;
+}
+
+.focus-quest-app .companion-choice-grid {
+  display: grid;
+  padding: 0 clamp(18px, 3vw, 38px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(12px, 1.7vw, 22px);
+}
+
+.focus-quest-app .companion-choice {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(244, 235, 216, .18);
+  border-radius: 7px;
+  background: #111824;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.focus-quest-app .companion-choice:hover {
+  border-color: color-mix(in srgb, var(--choice-accent) 65%, white 12%);
+  transform: translateY(-3px);
+}
+
+.focus-quest-app .companion-choice.is-active {
+  border-color: var(--choice-accent);
+  background: color-mix(in srgb, var(--choice-accent) 9%, #111824);
+  box-shadow: inset 0 0 0 1px var(--choice-accent);
+}
+
+.focus-quest-app .companion-choice:focus-visible {
+  outline: 3px solid #fff3c4;
+  outline-offset: 3px;
+}
+
+.focus-quest-app .companion-choice-world {
+  position: relative;
+  display: block;
+  aspect-ratio: 1672 / 941;
+  overflow: hidden;
+  background: #0e1520;
+}
+
+.focus-quest-app .companion-choice-world::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 58%, rgba(5, 9, 16, .45));
+}
+
+.focus-quest-app .companion-choice-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.focus-quest-app .companion-choice-character {
+  position: absolute;
+  z-index: 1;
+  bottom: -7%;
+  left: 47%;
+  width: 48%;
+  height: 92%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 9px 7px rgba(0, 0, 0, .46));
+  transform: translateX(-50%);
+}
+
+.focus-quest-app .companion-choice.theme-swim .companion-choice-character {
+  bottom: 2%;
+  left: 35%;
+  width: 48%;
+  height: 78%;
+}
+
+.focus-quest-app .companion-choice.theme-fish .companion-choice-character {
+  bottom: -6%;
+  left: 34%;
+  width: 58%;
+  height: 94%;
+}
+
+.focus-quest-app .companion-choice-copy {
+  display: grid;
+  min-height: 210px;
+  padding: 22px 22px 58px;
+  align-content: start;
+  gap: 4px;
+}
+
+.focus-quest-app .companion-choice-copy small {
+  color: var(--choice-accent);
+  font-size: .77rem;
+  font-weight: 800;
+}
+
+.focus-quest-app .companion-choice-copy strong {
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: clamp(1.7rem, 2.6vw, 2.35rem);
+  line-height: 1;
+  letter-spacing: -.035em;
+}
+
+.focus-quest-app .companion-choice-copy > span {
+  color: var(--color-text-soft);
+  font-size: .9rem;
+  font-weight: 750;
+}
+
+.focus-quest-app .companion-choice-copy .companion-choice-description {
+  display: block;
+  margin: 11px 0 0;
+  color: var(--color-text-muted);
+  font-size: .86rem;
+  line-height: 1.55;
+}
+
+.focus-quest-app .companion-choice-mark {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  min-width: 62px;
+  padding: 7px 10px;
+  border: 1px solid rgba(244, 235, 216, .24);
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  font-size: .72rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.focus-quest-app .companion-choice.is-active .companion-choice-mark {
+  border-color: var(--choice-accent);
+  background: var(--choice-accent);
+  color: #071019;
+}
+
+.focus-quest-app .companion-gate-action {
+  display: flex;
+  margin-top: clamp(24px, 4vw, 42px);
+  padding: 20px clamp(18px, 3vw, 38px);
+  border-top: 1px solid rgba(244, 235, 216, .14);
+  background: rgba(15, 22, 33, .82);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.focus-quest-app .companion-gate-action > div {
+  display: grid;
+  gap: 2px;
+}
+
+.focus-quest-app .companion-gate-action span,
+.focus-quest-app .companion-gate-action small {
+  color: var(--color-text-muted);
+  font-size: .78rem;
+}
+
+.focus-quest-app .companion-gate-action strong {
+  color: var(--color-text);
+  font-size: 1.05rem;
+}
+
+.focus-quest-app .companion-gate-action button {
+  min-width: 220px;
+  min-height: 54px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+  font-size: .95rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.focus-quest-app .companion-gate-action button:hover {
+  background: var(--color-primary-strong);
+}
+
+.focus-quest-app .setup-materials {
+  margin-top: clamp(30px, 5vw, 60px);
+}
+
+.focus-quest-app .setup-materials > header {
+  display: grid;
+  max-width: 700px;
+  margin-bottom: var(--space-lg);
+  gap: 5px;
+}
+
+.focus-quest-app .setup-materials > header span {
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.focus-quest-app .setup-materials > header h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(1.7rem, 3vw, 2.7rem);
+  letter-spacing: -.035em;
+}
+
+.focus-quest-app .setup-materials > header p {
+  margin: 2px 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+@media (max-width: 64rem) {
+  .focus-quest-app .companion-choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .focus-quest-app .companion-choice:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .focus-quest-app .companion-choice:last-child .companion-choice-world {
+    aspect-ratio: 2.3 / 1;
+  }
+}
+
+@media (max-width: 48rem) {
+  .focus-quest-app .entry-screen {
+    padding: 0 0 var(--space-2xl);
+  }
+
+  .focus-quest-app .companion-gate {
+    border-inline: 0;
+    border-radius: 0;
+  }
+
+  .focus-quest-app .companion-gate-copy {
+    padding: 30px 20px 24px;
+    text-align: left;
+  }
+
+  .focus-quest-app .companion-gate-copy p {
+    margin-inline: 0;
+  }
+
+  .focus-quest-app .companion-choice-grid {
+    padding-inline: 16px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .focus-quest-app .companion-choice,
+  .focus-quest-app .companion-choice:last-child {
+    display: grid;
+    grid-column: auto;
+    grid-template-columns: minmax(124px, 41%) minmax(0, 1fr);
+  }
+
+  .focus-quest-app .companion-choice-world,
+  .focus-quest-app .companion-choice:last-child .companion-choice-world {
+    min-height: 184px;
+    aspect-ratio: auto;
+  }
+
+  .focus-quest-app .companion-choice-copy {
+    min-height: 184px;
+    padding: 19px 15px 48px;
+  }
+
+  .focus-quest-app .companion-choice-copy strong {
+    font-size: 1.65rem;
+  }
+
+  .focus-quest-app .companion-choice-copy .companion-choice-description {
+    font-size: .78rem;
+  }
+
+  .focus-quest-app .companion-choice-mark {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .focus-quest-app .companion-gate-action {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .focus-quest-app .companion-gate-action button {
+    width: 100%;
+    min-width: 0;
+    min-height: 58px;
+  }
+
+  .focus-quest-app .setup-materials {
+    margin-top: 34px;
+  }
+}

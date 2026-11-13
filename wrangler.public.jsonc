@@ -5,6 +5,9 @@
   "compatibility_date": "2026-07-26",
   "compatibility_flags": ["nodejs_compat"],
   "no_bundle": true,
+  "vars": {
+    "SUPABASE_URL": "https://uaqmmsuhnwupckakagmi.supabase.co"
+  },
   "rules": [
     {
       "type": "ESModule",

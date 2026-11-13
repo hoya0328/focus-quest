@@ -453,6 +453,18 @@ input:focus-visible {
   overflow: hidden;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .topbar {
   width: min(1240px, calc(100% - 44px));
   height: 86px;
@@ -655,6 +667,16 @@ input:focus-visible {
 .account-popover a:hover {
   border-color: #65cad0;
   color: #fff0c7;
+}
+
+.account-popover .account-delete-button {
+  border-color: color-mix(in srgb, #ff806c 55%, #345766);
+  color: #ffc2b7;
+}
+
+.account-popover .account-delete-button:hover {
+  border-color: #ff806c;
+  color: #ffe2dc;
 }
 
 @keyframes account-pulse {
