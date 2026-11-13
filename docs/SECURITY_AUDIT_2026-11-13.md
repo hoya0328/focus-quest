@@ -22,7 +22,8 @@
 | Dependency vulnerabilities | PASS | `npm audit --audit-level=low` reports 0 vulnerabilities. |
 | TypeScript and ESLint | PASS | `npx tsc --noEmit` and full `npm run lint` complete without errors. |
 | Application tests | PASS | Logic/security 34, PDF 12, quests 14 and rendered-server 2 tests pass. |
-| Cloudflare anonymous API behavior | PENDING DEPLOY | The validated local build rejects unavailable private cloud storage before reading identity headers. The old live deployment still returns `503` for a forged header until the new version is published. |
+| Cloudflare anonymous API behavior | PASS | Version `e0613042-495f-4ec8-bcb6-91d357ebdf76` returns `404` before reading a forged identity header and returns `401` for an unauthenticated account-deletion request. |
+| Live browser security headers | PASS | The public root returns `200` with CSP, HSTS, `DENY` framing, `nosniff` and a strict-origin referrer policy. |
 
 ## Repairs applied
 
