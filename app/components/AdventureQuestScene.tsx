@@ -268,10 +268,12 @@ export default function AdventureQuestScene({
           const width = this.scale.width;
           const height = this.scale.height;
           const displayWidth = image.frame.realWidth * image.scaleX;
-          const compact = width < 600;
+          const displayHeight = image.frame.realHeight * image.scaleY;
+          const wholeScene = width < 600 || height < 520;
+          const sceneTop = width < 600 && height >= 520 ? Math.max(70, height * 0.085) : 0;
           let imageLeft = (width - displayWidth) / 2;
 
-          if (compact && displayWidth > width) {
+          if (!wholeScene && displayWidth > width) {
             const sourcePoint = this.getHikeSourcePoint(progress);
             const targetX = width * (0.3 + progress * 0.1);
             imageLeft = Phaser.Math.Clamp(
@@ -282,6 +284,7 @@ export default function AdventureQuestScene({
           }
 
           image.setPosition(imageLeft + displayWidth / 2, height / 2);
+          image.setY(wholeScene ? sceneTop + displayHeight / 2 : height / 2);
         }
 
         private mapHikePoint(progress: number) {
@@ -300,6 +303,7 @@ export default function AdventureQuestScene({
           const width = this.scale.width;
           const height = this.scale.height;
           const compact = width < 600;
+          const wholeScene = compact || height < 520;
           if (kind === "hike" && this.hikeBackdrop) {
             return {
               ...this.mapHikePoint(progress),
@@ -308,11 +312,15 @@ export default function AdventureQuestScene({
             };
           }
 
-          const start = compact
-            ? { x: width * 0.15, y: height * 0.56 }
+          const sceneTop = compact && height >= 520 ? Math.max(70, height * 0.085) : 0;
+          const sceneHeight = this.swimBackdrop
+            ? this.swimBackdrop.frame.realHeight * this.swimBackdrop.scaleY
+            : height;
+          const start = wholeScene
+            ? { x: width * 0.18, y: sceneTop + sceneHeight * 0.7 }
             : { x: width * 0.1, y: height * 0.75 };
-          const end = compact
-            ? { x: width * 0.55, y: height * 0.51 }
+          const end = wholeScene
+            ? { x: width * 0.66, y: sceneTop + sceneHeight * 0.48 }
             : { x: width * 0.47, y: height * 0.56 };
 
           const x = Phaser.Math.Linear(start.x, end.x, progress);
@@ -325,18 +333,26 @@ export default function AdventureQuestScene({
           const width = this.scale.width;
           const height = this.scale.height;
           const compact = width < 600;
+          const wholeScene = compact || height < 520;
           const unit = Math.max(0.68, Math.min(width / 1200, height / 700));
           this.backdrop.clear();
 
           if (kind === "hike") {
             const image = this.hikeBackdrop;
             if (image) {
-              const coverScale =
-                Math.max(
-                  width / image.frame.realWidth,
-                  height / image.frame.realHeight,
-                ) * 1.015;
-              image.setScale(coverScale);
+              const wholeScene = compact || height < 520;
+              const sceneTop = compact && height >= 520 ? Math.max(70, height * 0.085) : 0;
+              const availableHeight = height - sceneTop;
+              const sceneScale = wholeScene
+                ? Math.min(
+                    width / image.frame.realWidth,
+                    availableHeight / image.frame.realHeight,
+                  )
+                : Math.max(
+                    width / image.frame.realWidth,
+                    height / image.frame.realHeight,
+                  ) * 1.015;
+              image.setScale(sceneScale);
               this.positionHikeBackdrop(this.currentProgress);
             }
 
@@ -371,10 +387,18 @@ export default function AdventureQuestScene({
             if (image) {
               const frameWidth = image.frame.realWidth;
               const frameHeight = image.frame.realHeight;
-              const coverScale =
-                Math.max(width / frameWidth, height / frameHeight) * 1.04;
-              image.setScale(coverScale);
-              image.setPosition(width / 2, height / 2);
+              const wholeScene = compact || height < 520;
+              const sceneTop = compact && height >= 520 ? Math.max(70, height * 0.085) : 0;
+              const availableHeight = height - sceneTop;
+              const sceneScale = wholeScene
+                ? Math.min(width / frameWidth, availableHeight / frameHeight)
+                : Math.max(width / frameWidth, height / frameHeight) * 1.04;
+              image.setScale(sceneScale);
+              const displayHeight = frameHeight * sceneScale;
+              image.setPosition(
+                width / 2,
+                wholeScene ? sceneTop + displayHeight / 2 : height / 2,
+              );
             }
 
             // The painted image supplies the far and middle depths. These quiet,
@@ -423,11 +447,11 @@ export default function AdventureQuestScene({
 
           const heroWidth =
             kind === "hike"
-              ? compact
-                ? Math.min(176, width * 0.45)
-                : Math.min(250, width * 0.2)
-              : compact
-                ? Math.min(205, width * 0.53)
+              ? wholeScene
+                ? Math.min(176, width * 0.46, height * 0.42)
+                : Math.min(330, width * 0.25, height * 0.36)
+              : wholeScene
+                ? Math.min(176, width * 0.46, height * 0.42)
                 : Math.min(330, width * 0.28);
           const sourceRatio = kind === "hike" ? 1 : 340 / 420;
           this.hero.setDisplaySize(heroWidth, heroWidth * sourceRatio);
@@ -436,13 +460,17 @@ export default function AdventureQuestScene({
           if (kind === "hike") {
             this.goal.setScale(unit);
           } else {
+            const sceneTop = compact && height >= 520 ? Math.max(70, height * 0.085) : 0;
+            const sceneHeight = this.swimBackdrop
+              ? this.swimBackdrop.frame.realHeight * this.swimBackdrop.scaleY
+              : height;
             this.goal.setPosition(
-              compact ? width * 0.78 : width * 0.54,
-              compact ? height * 0.55 : height * 0.62,
+              wholeScene ? width * 0.76 : width * 0.54,
+              wholeScene ? sceneTop + sceneHeight * 0.55 : height * 0.62,
             );
             this.goal.setScale(1);
-            const chestWidth = compact
-              ? Math.min(238, width * 0.61)
+            const chestWidth = wholeScene
+              ? Math.min(190, width * 0.49, height * 0.46)
               : Math.min(330, width * 0.2);
             this.swimChest?.setDisplaySize(chestWidth, chestWidth * (465 / 423));
             this.swimRewardBaseScale = chestWidth / 250;
@@ -461,6 +489,13 @@ export default function AdventureQuestScene({
             this.positionHikeBackdrop(this.currentProgress);
           }
           const point = this.getRoute(this.currentProgress);
+          if (kind === "hike") {
+            point.x = Phaser.Math.Clamp(
+              point.x,
+              Math.max(this.hero.displayWidth / 2, this.scale.width * 0.08),
+              this.scale.width * 0.7,
+            );
+          }
           this.hero.setPosition(point.x, point.y);
           if (kind === "hike") {
             const width = this.scale.width;

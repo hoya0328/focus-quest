@@ -145,3 +145,23 @@ export function createStudyQuiz(
       safeStart === safeEnd ? `${safeStart}쪽` : `${safeStart}~${safeEnd}쪽`,
   };
 }
+
+export function createUnseenStudyQuiz(
+  source: StudyQuizSource,
+  startPage: number,
+  endPage: number,
+  initialVariant: number,
+  attemptedQuizKeys: ReadonlySet<string>,
+) {
+  for (let offset = 0; offset < 16; offset += 1) {
+    const quiz = createStudyQuiz(
+      source,
+      startPage,
+      endPage,
+      initialVariant + offset,
+    );
+    if (!quiz || attemptedQuizKeys.has(quiz.id)) continue;
+    return quiz;
+  }
+  return null;
+}

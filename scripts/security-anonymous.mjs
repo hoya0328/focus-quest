@@ -26,15 +26,27 @@ const publicHeaders = {
 };
 const checks = [];
 
-async function expectEmptyAnonymousTable(table) {
+function safeNetworkError(error) {
+  const cause = error && typeof error === "object" ? error.cause : null;
+  if (cause && typeof cause === "object" && "code" in cause) {
+    return String(cause.code);
+  }
+  return error instanceof Error ? error.name : "NetworkError";
+}
+
+async function expectAnonymousTableDeniedOrEmpty(table, identityColumn) {
   try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/${table}?select=id&limit=1`, {
-      headers: publicHeaders,
-    });
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/${table}?select=${identityColumn}&limit=1`,
+      { headers: publicHeaders },
+    );
     const data = await response.json().catch(() => null);
+    const explicitlyDenied = response.status === 401 || response.status === 403;
+    const emptyByRls =
+      response.status === 200 && Array.isArray(data) && data.length === 0;
     checks.push({
       boundary: `anonymous:${table}:read`,
-      passed: response.status === 200 && Array.isArray(data) && data.length === 0,
+      passed: explicitlyDenied || emptyByRls,
       status: response.status,
       rows: Array.isArray(data) ? data.length : null,
     });
@@ -43,19 +55,22 @@ async function expectEmptyAnonymousTable(table) {
       boundary: `anonymous:${table}:read`,
       passed: false,
       status: null,
-      error: error instanceof Error ? error.name : "NetworkError",
+      error: safeNetworkError(error),
     });
   }
 }
 
-for (const table of [
-  "focus_quest_cloud_states",
-  "study_subjects",
-  "study_quests",
-  "study_quest_focus_sessions",
-  "study_materials",
-]) {
-  await expectEmptyAnonymousTable(table);
+for (const [table, identityColumn] of Object.entries({
+  focus_quest_cloud_states: "user_id",
+  study_subjects: "id",
+  study_quests: "id",
+  study_quest_focus_sessions: "session_id",
+  study_materials: "id",
+  study_quest_progress: "quest_id",
+  study_quiz_attempts: "id",
+  focus_quest_product_events: "id",
+})) {
+  await expectAnonymousTableDeniedOrEmpty(table, identityColumn);
 }
 
 try {
@@ -82,15 +97,36 @@ try {
     boundary: "anonymous:study-materials:list",
     passed: false,
     status: null,
-    error: error instanceof Error ? error.name : "NetworkError",
+    error: safeNetworkError(error),
   });
 }
 
 const cloudResponse = await fetch(`${PUBLIC_BASE_URL}/api/cloud-state`);
 checks.push({
   boundary: "anonymous:cloud-state-api:read",
-  passed: cloudResponse.status === 401,
+  passed: cloudResponse.status === 401 || cloudResponse.status === 404,
   status: cloudResponse.status,
+});
+
+const accountDeleteResponse = await fetch(`${PUBLIC_BASE_URL}/api/account`, {
+  method: "DELETE",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ confirmation: "delete-my-focus-quest-account" }),
+});
+checks.push({
+  boundary: "anonymous:account-api:delete",
+  passed: accountDeleteResponse.status === 401 || accountDeleteResponse.status === 404,
+  status: accountDeleteResponse.status,
+});
+
+const forgedCloudResponse = await fetch(`${PUBLIC_BASE_URL}/api/cloud-state`, {
+  headers: { "oai-authenticated-user-email": "security-check@example.invalid" },
+});
+checks.push({
+  boundary: "forged-header:cloud-state-api:read",
+  passed:
+    forgedCloudResponse.status === 401 || forgedCloudResponse.status === 404,
+  status: forgedCloudResponse.status,
 });
 
 console.log(JSON.stringify(checks, null, 2));

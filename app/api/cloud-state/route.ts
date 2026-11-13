@@ -15,8 +15,18 @@ type CloudRow = {
   version: number;
 };
 
+function jsonResponse(body: unknown, init: ResponseInit = {}) {
+  const headers = new Headers(init.headers);
+  headers.set("Cache-Control", "no-store");
+  return Response.json(body, { ...init, headers });
+}
+
 function jsonError(message: string, status: number) {
-  return Response.json({ error: message }, { status });
+  return jsonResponse({ error: message }, { status });
+}
+
+function rejectWhenCloudStorageIsUnavailable() {
+  return env.DB ? null : jsonError("찾을 수 없습니다.", 404);
 }
 
 async function userIdForEmail(email: string) {
@@ -81,13 +91,15 @@ async function requireApiUser() {
 }
 
 export async function GET() {
+  const unavailable = rejectWhenCloudStorageIsUnavailable();
+  if (unavailable) return unavailable;
   const identity = await requireApiUser();
   if (!identity) return jsonError("로그인이 필요합니다.", 401);
 
   try {
     await ensureCloudStateTable();
     const cloudState = decodeRow(await readCloudRow(identity.userId));
-    return Response.json({
+    return jsonResponse({
       account: identity.account,
       cloudState,
     });
@@ -97,6 +109,8 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const unavailable = rejectWhenCloudStorageIsUnavailable();
+  if (unavailable) return unavailable;
   const identity = await requireApiUser();
   if (!identity) return jsonError("로그인이 필요합니다.", 401);
 
@@ -129,7 +143,7 @@ export async function PUT(request: Request) {
     const baseVersion = body.baseVersion as number;
 
     if ((currentRow?.version ?? 0) !== baseVersion) {
-      return Response.json(
+      return jsonResponse(
         {
           error: "다른 기기의 기록이 먼저 저장되었습니다.",
           cloudState: currentState,
@@ -150,7 +164,7 @@ export async function PUT(request: Request) {
         .bind(identity.userId, nextVersion, payload, updatedAt)
         .run();
       if (!inserted.meta.changes) {
-        return Response.json(
+        return jsonResponse(
           {
             error: "다른 기기의 기록이 먼저 저장되었습니다.",
             cloudState: decodeRow(await readCloudRow(identity.userId)),
@@ -173,7 +187,7 @@ export async function PUT(request: Request) {
         )
         .run();
       if (!updated.meta.changes) {
-        return Response.json(
+        return jsonResponse(
           {
             error: "다른 기기의 기록이 먼저 저장되었습니다.",
             cloudState: decodeRow(await readCloudRow(identity.userId)),
@@ -183,7 +197,7 @@ export async function PUT(request: Request) {
       }
     }
 
-    return Response.json({
+    return jsonResponse({
       cloudState: {
         version: nextVersion,
         updatedAt,
@@ -196,6 +210,8 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE() {
+  const unavailable = rejectWhenCloudStorageIsUnavailable();
+  if (unavailable) return unavailable;
   const identity = await requireApiUser();
   if (!identity) return jsonError("로그인이 필요합니다.", 401);
 
@@ -206,7 +222,7 @@ export async function DELETE() {
     )
       .bind(identity.userId)
       .run();
-    return Response.json({ deleted: true });
+    return jsonResponse({ deleted: true });
   } catch {
     return jsonError("클라우드 기록을 삭제하지 못했습니다.", 503);
   }

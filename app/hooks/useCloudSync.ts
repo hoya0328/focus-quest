@@ -733,9 +733,66 @@ export function useCloudSync({
     [supabase],
   );
 
+  const deleteAccount = useCallback(async (): Promise<AuthActionResult> => {
+    if (!supabase) {
+      return { message: "공개 계정 연결이 아직 설정되지 않았습니다.", ok: false };
+    }
+    const confirmation = window.prompt(
+      "계정과 PDF, 퀘스트, 집중 기록을 모두 삭제합니다. 계속하려면 ‘계정 삭제’를 입력해 주세요.",
+    );
+    if (confirmation !== "계정 삭제") {
+      return { message: "계정 삭제를 취소했습니다.", ok: false };
+    }
+
+    setStatus("saving");
+    setMessage("계정과 학습 자료 삭제 중");
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) {
+      setStatus("error");
+      setMessage("로그인 정보를 확인하지 못했어요");
+      return { message: "다시 로그인한 뒤 시도해 주세요.", ok: false };
+    }
+
+    try {
+      const result = await fetch("/api/account", {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ confirmation: "delete-my-focus-quest-account" }),
+      });
+      const payload = (await result.json()) as { error?: string };
+      if (!result.ok) throw new Error(payload.error || "계정을 삭제하지 못했습니다.");
+
+      await supabase.auth.signOut({ scope: "local" });
+      for (const key of Object.keys(window.localStorage)) {
+        if (key.startsWith("focus-quest") || key.startsWith("haru-focus")) {
+          window.localStorage.removeItem(key);
+        }
+      }
+      readyRef.current = false;
+      backendRef.current = null;
+      versionRef.current = 0;
+      lastSyncedRef.current = "";
+      applyCloudState(createEmptyCloudState());
+      setStatus("guest");
+      setMessage("계정과 학습 자료를 삭제했습니다");
+      return { message: "계정이 삭제되었습니다.", ok: true };
+    } catch (failure) {
+      const message =
+        failure instanceof Error ? failure.message : "계정을 삭제하지 못했습니다.";
+      setStatus("error");
+      setMessage(message);
+      return { message, ok: false };
+    }
+  }, [applyCloudState, supabase]);
+
   return {
     account,
     authProvider: supabase ? ("supabase" as const) : ("chatgpt" as const),
+    deleteAccount,
     deleteCloudData,
     googleAuthEnabled: Boolean(supabase && isGoogleAuthEnabled),
     message,
