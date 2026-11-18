@@ -11,15 +11,6 @@ export type ExpeditionProgress = {
   breakMinutes: number;
 };
 
-export type RecoveryQuest = {
-  createdAt: string;
-  focusIntent: string;
-  durationMinutes: 5 | 10;
-  adventureId: AdventureId;
-  bgm: BgmId;
-  questId?: string;
-};
-
 export type ActiveSession = {
   version: 1;
   mode: SessionMode;
@@ -37,6 +28,7 @@ export type ActiveSession = {
 
 export type FocusRecord = {
   id: string;
+  startedAt?: string;
   completedAt: string;
   durationMinutes: number;
   adventureId: AdventureId;
@@ -66,7 +58,6 @@ export const ACTIVE_SESSION_KEY = "haru-focus-active-session";
 export const HISTORY_KEY = "haru-focus-history";
 export const MAX_HISTORY_RECORDS = 400;
 export const MAX_FOCUS_INTENT_LENGTH = 80;
-export const RECOVERY_QUEST_KEY = "focus-quest-recovery";
 
 const adventureIds = new Set<AdventureId>(["hike", "swim", "fish"]);
 const bgmIds = new Set<BgmId>(["forest", "waves", "lake", "quiet"]);
@@ -232,6 +223,10 @@ export function parseHistory(raw: string | null): FocusRecord[] {
           typeof record.id === "string" &&
           typeof record.completedAt === "string" &&
           !Number.isNaN(Date.parse(record.completedAt)) &&
+          (record.startedAt === undefined ||
+            (typeof record.startedAt === "string" &&
+              !Number.isNaN(Date.parse(record.startedAt)) &&
+              Date.parse(record.startedAt) <= Date.parse(record.completedAt))) &&
           isFinitePositive(record.durationMinutes) &&
           adventureIds.has(record.adventureId) &&
           (record.questId === undefined ||
@@ -262,6 +257,7 @@ export function createFocusRecord({
   questId,
   focusIntent,
   expedition,
+  startedAt,
   completedAt = new Date(),
 }: {
   durationMinutes: number;
@@ -269,12 +265,17 @@ export function createFocusRecord({
   questId?: string;
   focusIntent?: string;
   expedition?: ExpeditionProgress;
+  startedAt?: Date | string;
   completedAt?: Date;
 }): FocusRecord {
   const iso = completedAt.toISOString();
+  const normalizedStartedAt = startedAt
+    ? new Date(startedAt).toISOString()
+    : undefined;
   const normalizedIntent = normalizeFocusIntent(focusIntent);
   return {
     id: `${completedAt.getTime()}-${adventureId}`,
+    ...(normalizedStartedAt ? { startedAt: normalizedStartedAt } : {}),
     completedAt: iso,
     durationMinutes,
     adventureId,
@@ -393,50 +394,5 @@ export function createExpeditionProgress({
     totalSets: Math.min(8, Math.max(2, Math.round(totalSets))),
     focusMinutes: Math.min(120, Math.max(1, Math.round(focusMinutes))),
     breakMinutes: Math.min(30, Math.max(1, Math.round(breakMinutes))),
-  };
-}
-
-export function parseRecoveryQuest(raw: string | null): RecoveryQuest | null {
-  if (!raw) return null;
-  try {
-    const value = JSON.parse(raw) as Partial<RecoveryQuest>;
-    if (
-      typeof value.createdAt !== "string" ||
-      Number.isNaN(Date.parse(value.createdAt)) ||
-      typeof value.focusIntent !== "string" ||
-      normalizeFocusIntent(value.focusIntent) !== value.focusIntent ||
-      (value.durationMinutes !== 5 && value.durationMinutes !== 10) ||
-      !value.adventureId ||
-      !adventureIds.has(value.adventureId) ||
-      !value.bgm ||
-      !bgmIds.has(value.bgm) ||
-      (value.questId !== undefined &&
-        (typeof value.questId !== "string" || value.questId.length === 0))
-    ) {
-      return null;
-    }
-    return value as RecoveryQuest;
-  } catch {
-    return null;
-  }
-}
-
-export function getBehaviorInsights(history: FocusRecord[]) {
-  if (history.length === 0) {
-    return { favoriteMinutes: null, favoriteHour: null, namedRate: 0 };
-  }
-  const durationCounts = new Map<number, number>();
-  const hourCounts = new Map<number, number>();
-  history.forEach((record) => {
-    durationCounts.set(record.durationMinutes, (durationCounts.get(record.durationMinutes) ?? 0) + 1);
-    const hour = new Date(record.completedAt).getHours();
-    hourCounts.set(hour, (hourCounts.get(hour) ?? 0) + 1);
-  });
-  const topKey = (counts: Map<number, number>) =>
-    [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? null;
-  return {
-    favoriteMinutes: topKey(durationCounts),
-    favoriteHour: topKey(hourCounts),
-    namedRate: Math.round((history.filter((record) => record.focusIntent && record.focusIntent !== "자유 집중").length / history.length) * 100),
   };
 }

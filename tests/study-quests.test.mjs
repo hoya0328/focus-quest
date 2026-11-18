@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 import {
+  getSubjectProgress,
   normalizeQuestDraft,
   normalizeSubjectDraft,
   questProgress,
@@ -79,6 +80,58 @@ test("quest id survives session reload and focus history parsing", () => {
 
   assert.equal(parseActiveSession(JSON.stringify(session), 2_000)?.session.questId, "quest-123");
   assert.equal(parseHistory(JSON.stringify([record]))[0].questId, "quest-123");
+});
+
+test("subject goals use linked quest history for weekly progress and deadline", () => {
+  const subject = {
+    id: "subject-1",
+    userId: "user-1",
+    name: "운영체제",
+    goal: "기말고사 준비",
+    targetDate: "2026-11-20",
+    weeklyMinutes: 100,
+    createdAt: "2026-11-01T00:00:00.000Z",
+    updatedAt: "2026-11-01T00:00:00.000Z",
+  };
+  const quest = {
+    id: "quest-1",
+    userId: "user-1",
+    subjectId: subject.id,
+    title: "프로세스 복습",
+    objective: "",
+    status: "in_progress",
+    adventureId: "hike",
+    focusMinutes: 25,
+    breakMinutes: 5,
+    targetSets: 4,
+    completedSets: 2,
+    materialId: null,
+    sourcePages: "",
+    studyMethod: "",
+    estimatedMinutesMin: null,
+    estimatedMinutesMax: null,
+    questContract: null,
+    createdAt: "2026-11-01T00:00:00.000Z",
+    updatedAt: "2026-11-01T00:00:00.000Z",
+    completedAt: null,
+  };
+  const history = [
+    createFocusRecord({ durationMinutes: 25, adventureId: "hike", questId: quest.id, completedAt: new Date("2026-11-10T10:25:00+09:00") }),
+    createFocusRecord({ durationMinutes: 25, adventureId: "hike", questId: quest.id, completedAt: new Date("2026-11-12T10:25:00+09:00") }),
+    createFocusRecord({ durationMinutes: 40, adventureId: "fish", questId: "other", completedAt: new Date("2026-11-12T12:00:00+09:00") }),
+  ];
+
+  assert.deepEqual(
+    getSubjectProgress({ subject, quests: [quest], history, now: new Date("2026-11-13T12:00:00+09:00") }),
+    {
+      weeklyMinutes: 50,
+      weeklyTarget: 100,
+      weeklyPercent: 50,
+      weeklyRemaining: 50,
+      deadlineLabel: "목표일까지 7일 남았어요",
+      deadlineState: "upcoming",
+    },
+  );
 });
 
 test("database migration isolates users and deduplicates completed sessions", async () => {

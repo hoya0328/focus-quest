@@ -78,6 +78,10 @@ test("server-renders the adventure focus app", async (context) => {
   assert.match(normalizedHtml, /해오름 봉우리/);
   assert.match(normalizedHtml, /유리산호 유적/);
   assert.match(normalizedHtml, /달비늘 호수/);
+  assert.match(normalizedHtml, /모험은 오늘의 집중을 기억해요/);
+  assert.match(normalizedHtml, /각 세계 최대 5단계/);
+  assert.match(normalizedHtml, /집중할수록 잠든 풍경이 깨어나요/);
+  assert.match(normalizedHtml, /집중을 세 번 완주하면 나에게 맞는 리듬을 제안해요/);
   assert.match(normalizedHtml, /이번 주의 발자국/);
   assert.match(normalizedHtml, /집중 모험 기록/);
   assert.doesNotMatch(normalizedHtml, /codex-preview|react-loading-skeleton/);
@@ -103,6 +107,9 @@ test("removes starter preview code and dependencies", async () => {
   assert.doesNotMatch(page, /codex-preview|_sites-preview|SkeletonPreview/);
   assert.match(page, /첫 집중 시작 순서/);
   assert.match(page, /같은 리듬으로 시작/);
+  assert.match(page, /className="complete-hero"/);
+  assert.doesNotMatch(page, /className="complete-halo"|className="badge"/);
+  assert.doesNotMatch(page, /className="focus-status"|와 집중 중/);
   assert.match(page, /lazy\([\s\S]*AdventureQuestScene/);
   assert.doesNotMatch(layout, /codex-preview|_sites-preview|Starter Project/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);

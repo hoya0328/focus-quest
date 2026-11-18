@@ -18,6 +18,1255 @@
   accent-color: var(--color-primary);
 }
 
+/* Completion scene: keep the reward inside the adventure world instead of an
+ * abstract badge-and-halo composition. */
+.focus-quest-app .complete-screen {
+  align-items: start;
+  padding: clamp(18px, 4vw, 48px) var(--gutter);
+  background:
+    linear-gradient(180deg, rgba(8, 10, 20, .7), rgba(8, 10, 20, .94)),
+    var(--page-bg) center / cover fixed no-repeat;
+}
+
+.focus-quest-app .complete-card,
+.focus-quest-app .complete-card:has(.camp-log) {
+  width: min(820px, 100%);
+  overflow: hidden;
+  padding: clamp(22px, 4vw, 40px);
+  border: 1px solid rgba(244, 235, 216, .2);
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--color-surface-raised) 94%, transparent);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, .42);
+}
+
+.focus-quest-app .complete-hero {
+  position: relative;
+  min-height: clamp(290px, 42vw, 390px);
+  margin: calc(clamp(22px, 4vw, 40px) * -1)
+    calc(clamp(22px, 4vw, 40px) * -1) 30px;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(244, 235, 216, .2);
+  background-position: center;
+  background-size: cover;
+  image-rendering: pixelated;
+  isolation: isolate;
+}
+
+.focus-quest-app .complete-hero::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(5, 9, 18, .88) 0 25%, rgba(5, 9, 18, .24) 58%, transparent 78%),
+    linear-gradient(0deg, rgba(5, 9, 18, .68), transparent 46%);
+  pointer-events: none;
+}
+
+.focus-quest-app .complete-scene-copy {
+  position: absolute;
+  z-index: 3;
+  bottom: clamp(24px, 5vw, 46px);
+  left: clamp(22px, 5vw, 48px);
+  display: grid;
+  max-width: 280px;
+  gap: 6px;
+  color: #fff4d8;
+  text-align: left;
+  text-shadow: 0 3px 18px rgba(0, 0, 0, .8);
+}
+
+.focus-quest-app .complete-scene-copy span {
+  color: color-mix(in oklab, var(--accent) 72%, white);
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.focus-quest-app .complete-scene-copy strong {
+  max-width: 12ch;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 3.25rem);
+  line-height: 1.04;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+
+.focus-quest-app .complete-hero .complete-character-wrap {
+  position: absolute;
+  z-index: 2;
+  right: 2%;
+  bottom: -5%;
+  display: block;
+  width: 56%;
+  height: 102%;
+  margin: 0;
+  pointer-events: none;
+}
+
+.focus-quest-app .complete-hero .complete-character-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 18px 18px rgba(0, 0, 0, .5));
+  animation: complete-arrival 680ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.focus-quest-app .complete-hike .complete-hero .complete-character-wrap {
+  right: 1%;
+  width: 51%;
+}
+
+.focus-quest-app .complete-swim .complete-hero .complete-character-wrap {
+  right: -2%;
+  bottom: -2%;
+  width: 61%;
+}
+
+.focus-quest-app .complete-fish .complete-hero .complete-character-wrap {
+  right: -3%;
+  bottom: -7%;
+  width: 63%;
+}
+
+.focus-quest-app .complete-card > h1 {
+  margin: 0 0 10px;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  letter-spacing: -.035em;
+  text-shadow: none;
+}
+
+.focus-quest-app .complete-card > p {
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+}
+
+@keyframes complete-arrival {
+  from {
+    opacity: .35;
+    transform: translate3d(8%, 4%, 0) scale(.94);
+    filter: blur(5px) drop-shadow(0 18px 18px rgba(0, 0, 0, .5));
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0) drop-shadow(0 18px 18px rgba(0, 0, 0, .5));
+  }
+}
+
+@media (max-width: 48rem) {
+  .focus-quest-app .complete-screen {
+    padding: 12px;
+  }
+
+  .focus-quest-app .complete-card,
+  .focus-quest-app .complete-card:has(.camp-log) {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .focus-quest-app .complete-hero {
+    min-height: 280px;
+    margin: -18px -18px 24px;
+    background-position: 42% center;
+  }
+
+  .focus-quest-app .complete-hero::before {
+    background:
+      linear-gradient(0deg, rgba(5, 9, 18, .88) 0 17%, rgba(5, 9, 18, .08) 60%),
+      linear-gradient(90deg, rgba(5, 9, 18, .64), transparent 72%);
+  }
+
+  .focus-quest-app .complete-scene-copy {
+    bottom: 18px;
+    left: 18px;
+    max-width: 52%;
+  }
+
+  .focus-quest-app .complete-scene-copy strong {
+    font-size: clamp(1.55rem, 8vw, 2.25rem);
+  }
+
+  .focus-quest-app .complete-hero .complete-character-wrap,
+  .focus-quest-app .complete-hike .complete-hero .complete-character-wrap,
+  .focus-quest-app .complete-swim .complete-hero .complete-character-wrap,
+  .focus-quest-app .complete-fish .complete-hero .complete-character-wrap {
+    right: -8%;
+    bottom: 3%;
+    width: 68%;
+    height: 92%;
+  }
+
+  .focus-quest-app .complete-fish .complete-hero .complete-character-wrap {
+    right: -2%;
+    bottom: -1%;
+    width: 72%;
+  }
+}
+
+/* Adventure scene suite
+ * Focus, rest and completion now share one place, palette and scale. The
+ * circular timer remains familiar while its material follows each world. */
+.focus-quest-app .focus-hike {
+  --instrument-metal: #d8a84f;
+  --instrument-edge: #ffe0a0;
+  --instrument-ink: #21180d;
+}
+
+.focus-quest-app .focus-swim {
+  --instrument-metal: #4dbac2;
+  --instrument-edge: #b8fff4;
+  --instrument-ink: #061d2a;
+}
+
+.focus-quest-app .focus-fish {
+  --instrument-metal: #c99550;
+  --instrument-edge: #ffe0a0;
+  --instrument-ink: #161524;
+}
+
+.focus-quest-app .phaser-rest-scene {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  overflow: hidden;
+}
+
+.focus-quest-app .phaser-rest-scene canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  image-rendering: pixelated;
+}
+
+.focus-quest-app .session-break .scene-sky,
+.focus-quest-app .session-break .mountain-layer,
+.focus-quest-app .session-break .water-layer,
+.focus-quest-app .session-break .lake-shore,
+.focus-quest-app .session-break .reeds,
+.focus-quest-app .session-break .break-scene,
+.focus-quest-app .session-break .focus-character-rig {
+  display: none;
+}
+
+.focus-quest-app .focus-screen .timer-dial {
+  border: 7px solid var(--instrument-metal);
+  outline: 1px solid var(--instrument-edge);
+  outline-offset: -4px;
+  box-shadow:
+    0 24px 56px rgba(0, 0, 0, .42),
+    inset 0 0 0 2px rgba(7, 13, 22, .7),
+    inset 0 0 24px color-mix(in oklab, var(--instrument-metal) 24%, transparent);
+}
+
+.focus-quest-app .focus-screen .timer-dial::before {
+  inset: 5px;
+  border-color: color-mix(in oklab, var(--instrument-edge) 72%, transparent);
+}
+
+.focus-quest-app .focus-screen .timer-dial-face {
+  border-color: color-mix(in oklab, var(--instrument-edge) 28%, transparent);
+  background: color-mix(in oklab, var(--instrument-ink) 92%, transparent);
+}
+
+.focus-quest-app .focus-screen .timer-dial-marker::after {
+  border-color: var(--instrument-ink);
+  background: var(--instrument-edge);
+}
+
+.focus-quest-app .focus-screen .timer-card {
+  z-index: 8;
+}
+
+.focus-quest-app .session-break .timer-card {
+  gap: 14px;
+}
+
+.focus-quest-app .session-break .timer-dial {
+  width: clamp(286px, 23vw, 344px);
+}
+
+.focus-quest-app .session-break .timer-dial-face {
+  box-shadow: inset 0 0 38px rgba(255, 255, 255, .035);
+}
+
+.focus-quest-app .session-break .timer-adventure-label {
+  color: color-mix(in oklab, var(--instrument-edge) 74%, #f4ebd8);
+  font-size: .8rem;
+}
+
+.focus-quest-app .session-break .timer-percent {
+  color: var(--instrument-edge);
+}
+
+.focus-quest-app .session-break .timer-narration {
+  border: 1px solid rgba(244, 235, 216, .2);
+  border-left-width: 1px;
+  border-radius: 12px;
+  background: rgba(7, 13, 22, .82);
+  color: rgba(244, 235, 216, .86);
+  text-align: center;
+}
+
+.focus-quest-app .session-break .timer-controls {
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: 10px;
+}
+
+.focus-quest-app .session-break .timer-controls .exit-button {
+  order: -1;
+  border-color: var(--instrument-edge);
+  background: var(--color-primary);
+  color: #190f08;
+  font-weight: 850;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .24);
+}
+
+.focus-quest-app .session-break .timer-controls .pause-button {
+  border-color: rgba(244, 235, 216, .28);
+  background: rgba(7, 13, 22, .82);
+  color: #f4ebd8;
+}
+
+.focus-quest-app .session-break .scene-progress-track div {
+  background: var(--instrument-edge);
+}
+
+.focus-quest-app .complete-hike {
+  --complete-accent: #d8a84f;
+}
+
+.focus-quest-app .complete-swim {
+  --complete-accent: #4dbac2;
+}
+
+.focus-quest-app .complete-fish {
+  --complete-accent: #c99550;
+}
+
+.focus-quest-app .complete-screen .complete-hero {
+  border: 1px solid color-mix(in oklab, var(--complete-accent) 64%, transparent);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, .34);
+}
+
+@media (max-width: 48rem) {
+  .focus-quest-app .focus-screen .timer-dial {
+    border-width: 5px;
+  }
+
+  .focus-quest-app .session-break .timer-card {
+    align-items: end;
+    grid-template-columns: minmax(138px, 42vw) minmax(0, 1fr);
+    justify-items: stretch;
+    padding: 10px;
+    border: 1px solid rgba(244, 235, 216, .2);
+    border-radius: 16px;
+    background: rgba(7, 13, 22, .86);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .36);
+  }
+
+  .focus-quest-app .session-break .timer-dial {
+    grid-row: 1 / span 3;
+    width: min(42vw, 176px);
+    align-self: center;
+  }
+
+  .focus-quest-app .session-break .timer-narration,
+  .focus-quest-app .session-break .timer-controls {
+    width: 100%;
+  }
+
+  .focus-quest-app .session-break .timer-narration {
+    padding: 8px 10px;
+    font-size: .7rem;
+  }
+
+  .focus-quest-app .session-break .timer-controls {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .focus-quest-app .session-break .timer-controls button {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 30rem) and (orientation: portrait) {
+  .focus-quest-app .session-break .timer-card {
+    grid-template-columns: minmax(124px, 39vw) minmax(0, 1fr);
+  }
+
+  .focus-quest-app .session-break .timer-dial {
+    width: min(39vw, 156px);
+  }
+
+  .focus-quest-app .session-break .timer-dial strong {
+    font-size: clamp(2.25rem, 11vw, 2.9rem);
+  }
+
+  .focus-quest-app .session-break .timer-adventure-label {
+    font-size: .66rem;
+  }
+
+  .focus-quest-app .session-break .timer-percent {
+    font-size: .62rem;
+  }
+}
+
+/* Shared adventure camp lobby */
+.focus-quest-app .camp-entry-banner {
+  width: min(1180px, 100%);
+  margin: var(--space-xl) auto 0;
+  padding: clamp(20px, 3vw, 32px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-card);
+  background: #0b1d29;
+}
+
+.focus-quest-app .camp-entry-banner h2 {
+  margin: 0 0 8px;
+  color: var(--color-text);
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  letter-spacing: -.025em;
+}
+
+.focus-quest-app .camp-entry-banner p {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--color-text-soft);
+  line-height: 1.65;
+}
+
+.focus-quest-app .camp-entry-meta {
+  min-width: 190px;
+  display: grid;
+  gap: 8px;
+  text-align: right;
+}
+
+.focus-quest-app .camp-entry-meta span {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.focus-quest-app .camp-entry-meta button,
+.focus-quest-app .camp-room-code button,
+.focus-quest-app .camp-create-button,
+.focus-quest-app .camp-code-entry button,
+.focus-quest-app .camp-chat-form button {
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--color-primary);
+  color: #17120b;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.focus-quest-app .camp-lobby {
+  width: min(1420px, calc(100% - 40px));
+  min-height: calc(100vh - 112px);
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 48px) 0 56px;
+  color: var(--color-text);
+}
+
+.focus-quest-app .camp-back {
+  margin: 0 0 var(--space-lg);
+}
+
+.focus-quest-app .camp-lobby-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-bottom: clamp(24px, 4vw, 42px);
+}
+
+.focus-quest-app .camp-lobby-heading h1 {
+  max-width: 14ch;
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(2.25rem, 6vw, 5rem);
+  line-height: .98;
+  letter-spacing: -.04em;
+  text-wrap: balance;
+  word-break: keep-all;
+}
+
+.focus-quest-app .camp-lobby-heading p {
+  max-width: 60ch;
+  margin: 14px 0 0;
+  color: var(--color-text-soft);
+  font-size: clamp(.95rem, 2vw, 1.08rem);
+  line-height: 1.7;
+}
+
+.focus-quest-app .camp-room-code {
+  flex: 0 0 auto;
+  min-width: 250px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 16px;
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-card);
+  background: #0a1722;
+}
+
+.focus-quest-app .camp-room-code span {
+  color: var(--color-text-muted);
+  font-size: .72rem;
+}
+
+.focus-quest-app .camp-room-code strong {
+  grid-column: 1;
+  color: #ffe1a0;
+  font-family: "Courier New", monospace;
+  font-size: 1.35rem;
+  letter-spacing: .08em;
+}
+
+.focus-quest-app .camp-room-code button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  padding-inline: 14px;
+  background: #163746;
+  color: var(--color-text);
+}
+
+.focus-quest-app .camp-entry-layout,
+.focus-quest-app .camp-room-layout {
+  display: grid;
+  gap: clamp(18px, 3vw, 32px);
+}
+
+.focus-quest-app .camp-entry-layout {
+  grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr);
+}
+
+.focus-quest-app .camp-entry-scene,
+.focus-quest-app .camp-party-area {
+  border-radius: var(--radius-card);
+  background-image:
+    linear-gradient(180deg, rgba(5, 15, 24, .12), rgba(4, 12, 20, .86)),
+    var(--page-bg);
+  background-position: center;
+  background-size: cover;
+  overflow: hidden;
+}
+
+.focus-quest-app .camp-entry-scene {
+  min-height: 590px;
+  position: relative;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  padding: 52px;
+}
+
+.focus-quest-app .camp-entry-scene > img {
+  width: min(58%, 380px);
+  height: auto;
+  max-height: 72%;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, .42));
+}
+
+.focus-quest-app .camp-entry-scene > div {
+  position: absolute;
+  right: 26px;
+  bottom: 24px;
+  left: 26px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  border-radius: 14px;
+  background: rgba(5, 14, 22, .9);
+}
+
+.focus-quest-app .camp-entry-scene strong {
+  font-size: 1.2rem;
+}
+
+.focus-quest-app .camp-entry-scene span {
+  color: var(--color-text-soft);
+  font-size: .86rem;
+}
+
+.focus-quest-app .camp-entry-panel {
+  padding: clamp(22px, 4vw, 38px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-card);
+  background: #0a1823;
+}
+
+.focus-quest-app .camp-field,
+.focus-quest-app .camp-code-entry {
+  display: grid;
+  gap: 9px;
+  color: var(--color-text-soft);
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.focus-quest-app .camp-field input,
+.focus-quest-app .camp-code-entry input,
+.focus-quest-app .camp-chat-form input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  outline: 0;
+  background: #06121b;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.focus-quest-app .camp-field input:focus-visible,
+.focus-quest-app .camp-code-entry input:focus-visible,
+.focus-quest-app .camp-chat-form input:focus-visible,
+.focus-quest-app .camp-lobby button:focus-visible {
+  outline: 3px solid #77dce0;
+  outline-offset: 3px;
+}
+
+.focus-quest-app .camp-companion-picker,
+.focus-quest-app .camp-leader-controls fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.focus-quest-app .camp-companion-picker legend,
+.focus-quest-app .camp-leader-controls legend {
+  margin-bottom: 10px;
+  color: var(--color-text-soft);
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.focus-quest-app .camp-companion-picker > div,
+.focus-quest-app .camp-leader-controls fieldset > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.focus-quest-app .camp-companion-picker button {
+  min-height: 118px;
+  padding: 10px;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  border: var(--rule-hair) solid var(--color-border);
+  border-radius: 12px;
+  background: #0c2230;
+  color: var(--color-text-soft);
+  cursor: pointer;
+}
+
+.focus-quest-app .camp-companion-picker button[aria-pressed="true"] {
+  border-color: var(--camp-accent);
+  background: #153242;
+  color: var(--color-text);
+}
+
+.focus-quest-app .camp-companion-picker img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.focus-quest-app .camp-entry-actions {
+  display: grid;
+  gap: 14px;
+}
+
+.focus-quest-app .camp-entry-actions > span {
+  color: var(--color-text-muted);
+  font-size: .72rem;
+  text-align: center;
+}
+
+.focus-quest-app .camp-create-button {
+  width: 100%;
+  min-height: 54px;
+}
+
+.focus-quest-app .camp-code-entry {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.focus-quest-app .camp-code-entry > span {
+  grid-column: 1 / -1;
+}
+
+.focus-quest-app .camp-code-entry button {
+  min-width: 98px;
+  padding-inline: 16px;
+  background: #173848;
+  color: var(--color-text);
+}
+
+.focus-quest-app .camp-connection-message {
+  min-height: 1.5em;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: .82rem;
+}
+
+.focus-quest-app .camp-connection-message.status-error {
+  color: #ff9d8c;
+}
+
+.focus-quest-app .camp-room-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(310px, 360px);
+  align-items: stretch;
+}
+
+.focus-quest-app .camp-party-area {
+  min-height: 680px;
+  padding: clamp(18px, 3vw, 30px);
+  display: flex;
+  flex-direction: column;
+}
+
+.focus-quest-app .camp-party-status {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: rgba(5, 14, 22, .9);
+}
+
+.focus-quest-app .camp-party-status h2,
+.focus-quest-app .camp-chat-heading h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1.15rem;
+}
+
+.focus-quest-app .camp-party-status p {
+  margin: 5px 0 0;
+  color: var(--color-text-soft);
+  font-size: .78rem;
+}
+
+.focus-quest-app .camp-leave-button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: #0b1b27;
+  color: var(--color-text-soft);
+  cursor: pointer;
+}
+
+.focus-quest-app .camp-party-stage {
+  flex: 1;
+  padding: clamp(26px, 4vw, 54px) 0 20px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  align-items: end;
+  gap: 16px;
+}
+
+.focus-quest-app .camp-member,
+.focus-quest-app .camp-empty-slot {
+  min-height: 210px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: end;
+}
+
+.focus-quest-app .camp-member img {
+  width: min(78%, 180px);
+  height: 155px;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 14px rgba(0, 0, 0, .48));
+}
+
+.focus-quest-app .camp-member-name {
+  max-width: calc(100% - 12px);
+  position: absolute;
+  top: 0;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 10px;
+  background: #071722;
+  white-space: nowrap;
+}
+
+.focus-quest-app .camp-member-name strong {
+  max-width: 10ch;
+  overflow: hidden;
+  font-size: .85rem;
+  text-overflow: ellipsis;
+}
+
+.focus-quest-app .camp-member-name span {
+  color: #7ad9d4;
+  font-size: .64rem;
+}
+
+.focus-quest-app .camp-member.is-me .camp-member-name {
+  box-shadow: 0 8px 24px rgba(4, 11, 18, .35);
+}
+
+.focus-quest-app .camp-member small {
+  margin-top: 3px;
+  color: var(--color-text-soft);
+  font-size: .72rem;
+}
+
+.focus-quest-app .camp-empty-slot {
+  min-height: 180px;
+  align-self: end;
+  justify-content: center;
+  border: 1px dashed rgba(204, 230, 222, .32);
+  border-radius: 14px;
+  color: rgba(224, 239, 232, .55);
+  font-size: .72rem;
+}
+
+.focus-quest-app .camp-ready-controls {
+  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, .8fr);
+  gap: 20px;
+  border-radius: 14px;
+  background: rgba(5, 14, 22, .94);
+}
+
+.focus-quest-app .camp-profile-controls {
+  display: grid;
+  grid-template-columns: minmax(150px, .7fr) minmax(220px, 1fr);
+  gap: 14px;
+}
+
+.focus-quest-app .camp-field.compact input {
+  min-height: 44px;
+}
+
+.focus-quest-app .camp-companion-picker.compact button {
+  min-height: 64px;
+  padding: 5px;
+}
+
+.focus-quest-app .camp-companion-picker.compact img {
+  width: 48px;
+  height: 48px;
+}
+
+.focus-quest-app .camp-leader-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, .8fr);
+  gap: 14px;
+}
+
+.focus-quest-app .camp-leader-controls fieldset button {
+  min-height: 44px;
+  border: var(--rule-hair) solid var(--color-border);
+  border-radius: 10px;
+  background: #102736;
+  color: var(--color-text-soft);
+  cursor: pointer;
+}
+
+.focus-quest-app .camp-leader-controls fieldset button[aria-pressed="true"] {
+  border-color: var(--camp-accent);
+  color: var(--color-text);
+}
+
+.focus-quest-app .camp-start-button {
+  min-height: 76px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--color-primary);
+  color: #17120b;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.focus-quest-app .camp-start-button strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.2rem;
+}
+
+.focus-quest-app .camp-waiting-callout {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.focus-quest-app .camp-waiting-callout span {
+  color: var(--color-text-soft);
+  font-size: .78rem;
+}
+
+.focus-quest-app .camp-chat {
+  min-height: 680px;
+  padding: 20px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-card);
+  background: #081722;
+}
+
+.focus-quest-app .camp-chat-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.focus-quest-app .camp-chat-heading span {
+  color: var(--color-text-muted);
+  font-size: .68rem;
+}
+
+.focus-quest-app .camp-chat-safety {
+  margin: 0;
+  color: color-mix(in srgb, var(--color-text-muted) 88%, var(--camp-accent));
+  font-size: .68rem;
+  line-height: 1.55;
+}
+
+.focus-quest-app .camp-chat-log {
+  min-height: 0;
+  padding-right: 4px;
+  overflow-y: auto;
+  scrollbar-color: #315565 #07131d;
+  scrollbar-width: thin;
+}
+
+.focus-quest-app .camp-chat-log > p {
+  margin: 40px 12px;
+  color: var(--color-text-muted);
+  font-size: .78rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.focus-quest-app .camp-chat-log > div:not(:last-child) {
+  margin-bottom: 14px;
+}
+
+.focus-quest-app .camp-chat-log span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--color-text-muted);
+  font-size: .66rem;
+}
+
+.focus-quest-app .camp-chat-log p {
+  width: fit-content;
+  max-width: 92%;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 5px 12px 12px;
+  background: #112b39;
+  color: var(--color-text);
+  font-size: .82rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.focus-quest-app .camp-chat-log .is-mine span {
+  text-align: right;
+}
+
+.focus-quest-app .camp-chat-log .is-mine p {
+  margin-left: auto;
+  border-radius: 12px 5px 12px 12px;
+  background: #264432;
+}
+
+.focus-quest-app .camp-chat-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.focus-quest-app .camp-chat-form button {
+  min-width: 72px;
+  padding-inline: 12px;
+}
+
+.focus-quest-app .camp-lobby button:disabled {
+  cursor: not-allowed;
+  filter: saturate(.3);
+  opacity: .5;
+}
+
+@media (max-width: 68rem) {
+  .focus-quest-app .camp-entry-layout,
+  .focus-quest-app .camp-room-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .focus-quest-app .camp-entry-scene {
+    min-height: 440px;
+  }
+
+  .focus-quest-app .camp-chat {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 48rem) {
+  .focus-quest-app .camp-entry-banner,
+  .focus-quest-app .camp-lobby-heading,
+  .focus-quest-app .camp-party-status {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .focus-quest-app .camp-entry-meta {
+    width: 100%;
+    text-align: left;
+  }
+
+  .focus-quest-app .camp-lobby {
+    width: min(100% - 24px, 1420px);
+    padding-top: 20px;
+  }
+
+  .focus-quest-app .camp-lobby-heading {
+    display: flex;
+  }
+
+  .focus-quest-app .camp-lobby-heading h1 {
+    font-size: clamp(2.25rem, 12vw, 3.7rem);
+  }
+
+  .focus-quest-app .camp-room-code {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .focus-quest-app .camp-entry-scene {
+    min-height: 360px;
+    padding: 26px;
+  }
+
+  .focus-quest-app .camp-entry-scene > div {
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+  }
+
+  .focus-quest-app .camp-party-area {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .focus-quest-app .camp-party-stage {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .focus-quest-app .camp-member,
+  .focus-quest-app .camp-empty-slot {
+    min-height: 180px;
+  }
+
+  .focus-quest-app .camp-ready-controls,
+  .focus-quest-app .camp-profile-controls,
+  .focus-quest-app .camp-leader-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .focus-quest-app .camp-chat {
+    min-height: 380px;
+    max-height: 70vh;
+  }
+}
+
+@media (max-width: 30rem) {
+  .focus-quest-app .camp-entry-scene > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .focus-quest-app .camp-companion-picker button {
+    min-height: 92px;
+  }
+
+  .focus-quest-app .camp-companion-picker img {
+    width: 56px;
+    height: 56px;
+  }
+
+  .focus-quest-app .camp-room-code {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .focus-quest-app .camp-room-code button {
+    grid-column: 1;
+    grid-row: auto;
+    margin-top: 8px;
+  }
+}
+
+/* 2026-11-13 feature truth pass: shared camp, subject goals, world stage. */
+.focus-quest-app .silent-camp-controls {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.focus-quest-app .silent-camp-controls button {
+  min-width: 0;
+  padding-inline: 12px;
+}
+
+.focus-quest-app .silent-camp-message {
+  grid-column: 1 / -1;
+  color: rgba(217, 238, 229, .72);
+  font-size: .76rem;
+  line-height: 1.55;
+}
+
+.focus-quest-app .subject-progress-summary {
+  display: grid;
+  grid-template-columns: minmax(170px, .72fr) minmax(0, 1.3fr);
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+.focus-quest-app .subject-deadline,
+.focus-quest-app .subject-weekly-progress {
+  min-width: 0;
+  padding: 15px 16px;
+  border: 1px solid rgba(154, 209, 199, .18);
+  border-radius: 14px;
+  background: rgba(7, 31, 39, .72);
+}
+
+.focus-quest-app .subject-deadline {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+}
+
+.focus-quest-app .subject-deadline span,
+.focus-quest-app .subject-weekly-progress span,
+.focus-quest-app .subject-weekly-progress small {
+  color: #9fc4c0;
+  font-size: .76rem;
+}
+
+.focus-quest-app .subject-deadline strong,
+.focus-quest-app .subject-weekly-progress strong {
+  color: #f4ebd8;
+  font-size: .92rem;
+}
+
+.focus-quest-app .subject-deadline.state-today strong,
+.focus-quest-app .subject-deadline.state-overdue strong {
+  color: #ffb08f;
+}
+
+.focus-quest-app .subject-weekly-progress {
+  display: grid;
+  gap: 8px;
+}
+
+.focus-quest-app .subject-weekly-progress > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.focus-quest-app .subject-weekly-track {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(3, 18, 24, .82);
+}
+
+.focus-quest-app .subject-weekly-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #65cfc2;
+  transition: width 240ms ease-out;
+}
+
+.focus-quest-app .focus-world-stage {
+  display: block;
+  margin-top: 4px;
+  color: #72d8cc;
+  font-size: .68rem;
+  font-weight: 750;
+}
+
+.focus-quest-app .primary-button:disabled,
+.focus-quest-app .timer-controls button:disabled {
+  cursor: not-allowed;
+  filter: saturate(.35);
+  opacity: .62;
+}
+
+@media (max-width: 48rem) {
+  .focus-quest-app .silent-camp-controls,
+  .focus-quest-app .subject-progress-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .focus-quest-app .silent-camp-controls label,
+  .focus-quest-app .silent-camp-controls button {
+    grid-column: 1;
+  }
+
+  .focus-quest-app .subject-weekly-progress > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .focus-quest-app .focus-world-stage {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-quest-app .phaser-rest-scene canvas {
+    image-rendering: pixelated;
+  }
+}
+
 .focus-quest-app,
 .focus-quest-app * { font-synthesis: none; }
 .focus-quest-app button,
@@ -455,6 +1704,119 @@
 }
 .focus-quest-app :is(.recovery-card button, .install-card button, .quest-primary, .primary-button, .keep-going, .auth-dialog-primary):hover { background: var(--color-primary-strong); transform: translateY(-1px); }
 .focus-quest-app :is(.recovery-card button, .install-card button, .quest-primary, .primary-button, .keep-going, .auth-dialog-primary):active { transform: translateY(0); }
+.focus-quest-app .retention-panel {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  border: var(--rule-hair) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--color-surface) 88%, var(--color-canvas));
+}
+.focus-quest-app .retention-heading,
+.focus-quest-app .world-restoration-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+.focus-quest-app .retention-heading h2,
+.focus-quest-app .world-restoration-heading h3 { margin: var(--space-xs) 0 0; }
+.focus-quest-app .retention-heading > p {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.focus-quest-app .retention-grid {
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+.focus-quest-app .retention-card {
+  padding: var(--space-lg);
+  border: var(--rule-hair) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+.focus-quest-app .retention-card > span,
+.focus-quest-app .world-restoration-heading span {
+  color: var(--color-primary);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+.focus-quest-app .retention-card > strong { display: block; margin-top: var(--space-sm); font-size: var(--text-lg); }
+.focus-quest-app .retention-card > p { margin: var(--space-sm) 0 0; color: var(--color-text-muted); }
+.focus-quest-app .retention-panel .recovery-card {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-top: var(--space-lg);
+  border-color: color-mix(in oklab, var(--color-primary) 48%, var(--color-border));
+}
+.focus-quest-app .retention-panel .recovery-card h3 { margin: var(--space-xs) 0; }
+.focus-quest-app .recovery-card-actions { display: flex; flex-shrink: 0; gap: var(--space-sm); }
+.focus-quest-app .retention-panel .quiet-action {
+  min-height: 42px;
+  padding: 0 var(--space-md);
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-soft);
+  font-weight: 800;
+}
+.focus-quest-app .behavior-report-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+.focus-quest-app .behavior-report-metrics div {
+  padding: var(--space-sm);
+  border-left: 2px solid var(--color-border-strong);
+}
+.focus-quest-app .behavior-report-metrics small { display: block; color: var(--color-text-muted); }
+.focus-quest-app .behavior-report-metrics strong { display: block; margin-top: 2px; }
+.focus-quest-app .behavior-report-card .quiet-action { margin-top: var(--space-md); }
+.focus-quest-app .world-restoration { margin-top: var(--space-xl); }
+.focus-quest-app .world-restoration-heading small { color: var(--color-text-muted); }
+.focus-quest-app .world-restoration-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+.focus-quest-app .world-restoration-card {
+  display: grid;
+  gap: var(--space-sm);
+  min-height: 164px;
+  padding: var(--space-md);
+  border: var(--rule-hair) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-canvas);
+  color: var(--color-text);
+  text-align: left;
+}
+.focus-quest-app .world-restoration-card[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: color-mix(in oklab, var(--color-primary) 8%, var(--color-canvas));
+}
+.focus-quest-app .world-restoration-card > span:first-child { color: var(--color-text-muted); font-size: var(--text-xs); }
+.focus-quest-app .world-restoration-card small { color: var(--color-text-muted); }
+.focus-quest-app .world-progress-track {
+  display: block;
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+}
+.focus-quest-app .world-progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
 .focus-quest-app .silent-camp,
 .focus-quest-app .weekly-summary,
 .focus-quest-app .recent-history,
@@ -527,7 +1889,6 @@
 
 .focus-quest-app .focus-screen { color: var(--color-text); }
 .focus-quest-app .focus-top { top: var(--space-lg); right: var(--space-lg); left: var(--space-lg); }
-.focus-quest-app .focus-status,
 .focus-quest-app .focus-actions button {
   border: var(--rule-hair) solid var(--color-border-strong);
   border-radius: var(--radius-pill);
@@ -535,7 +1896,6 @@
   color: var(--color-text);
   box-shadow: none;
 }
-.focus-quest-app .focus-status { min-height: 44px; padding: 0 var(--space-md); font-family: var(--font-body); letter-spacing: 0; }
 .focus-quest-app .focus-actions button { width: 44px; height: 44px; }
 .focus-quest-app .timer-card {
   border: 0;
@@ -738,11 +2098,19 @@
   .focus-quest-app .recovery-card,
   .focus-quest-app .install-card,
   .focus-quest-app .silent-camp { align-items: stretch; grid-template-columns: minmax(0, 1fr); flex-direction: column; }
+  .focus-quest-app .retention-panel { padding: var(--space-md); }
+  .focus-quest-app .retention-heading,
+  .focus-quest-app .world-restoration-heading,
+  .focus-quest-app .retention-panel .recovery-card { align-items: stretch; flex-direction: column; }
+  .focus-quest-app .retention-grid,
+  .focus-quest-app .world-restoration-grid { grid-template-columns: minmax(0, 1fr); }
+  .focus-quest-app .behavior-report-metrics { grid-template-columns: minmax(0, 1fr); }
+  .focus-quest-app .recovery-card-actions { flex-direction: column; }
+  .focus-quest-app .recovery-card-actions button { width: 100%; }
   .focus-quest-app .settings-panel { padding: var(--space-lg); }
   .focus-quest-app .preview-panel { min-height: 420px; }
   .focus-quest-app .preview-label { right: var(--space-md); bottom: var(--space-md); left: var(--space-md); padding: var(--space-md); }
   .focus-quest-app .focus-top { top: var(--space-md); right: var(--space-md); left: var(--space-md); }
-  .focus-quest-app .focus-status { max-width: calc(100% - 108px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .focus-quest-app .timer-card { right: var(--space-md); bottom: var(--space-md); left: var(--space-md); width: auto; padding: var(--space-lg); }
   .focus-quest-app .weekly-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -1341,19 +2709,13 @@
 /* 2026-11 focus session redesign
  * One honest progress dial; the scene stays dominant and every other surface
  * behaves like quiet field equipment. */
-.focus-quest-app .focus-screen .focus-status {
-  min-height: 42px;
-  padding: 0 14px;
-  border: 0;
-  border-left: 3px solid var(--accent);
-  border-radius: 3px;
-  background: rgba(7, 13, 22, .76);
-  box-shadow: none;
-}
-
 .focus-quest-app .focus-screen .focus-actions button {
   border-color: rgba(244, 235, 216, .45);
   background: rgba(7, 13, 22, .72);
+}
+
+.focus-quest-app .focus-screen .focus-top {
+  justify-content: flex-end;
 }
 
 .focus-quest-app .focus-screen .timer-card {
@@ -1852,6 +3214,16 @@
   line-height: 1.65;
 }
 
+.focus-quest-app .setup-material-toggle {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+  color: var(--text);
+  font-weight: 800;
+}
+
 @media (max-width: 64rem) {
   .focus-quest-app .companion-choice-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1934,5 +3306,236 @@
 
   .focus-quest-app .setup-materials {
     margin-top: 34px;
+  }
+}
+
+/* Final completion theme overrides live after the shared component rules. */
+.focus-quest-app .complete-screen {
+  align-items: start;
+  padding: clamp(18px, 4vw, 48px) var(--gutter);
+  background:
+    linear-gradient(180deg, rgba(8, 10, 20, .7), rgba(8, 10, 20, .94)),
+    var(--page-bg) center / cover fixed no-repeat;
+}
+
+.focus-quest-app .complete-card,
+.focus-quest-app .complete-card:has(.camp-log) {
+  width: min(820px, 100%);
+  overflow: hidden;
+  padding: clamp(22px, 4vw, 40px);
+  border: 1px solid rgba(244, 235, 216, .2);
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--color-surface-raised) 94%, transparent);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, .42);
+}
+
+@media (max-width: 48rem) {
+  .focus-quest-app .complete-screen {
+    padding: 12px;
+  }
+
+  .focus-quest-app .complete-card,
+  .focus-quest-app .complete-card:has(.camp-log) {
+    padding: 18px;
+    border-radius: 14px;
+  }
+}
+
+/* Final adventure HUD overrides. Keep these last so legacy timer rules cannot
+ * reintroduce the old floating dial or the setup-scene placeholder shapes. */
+.focus-quest-app .preview-panel :is(.preview-sun, .preview-cloud) {
+  display: none !important;
+}
+
+.focus-quest-app .focus-screen .timer-card {
+  top: 50%;
+  right: clamp(20px, 3.8vw, 64px);
+  bottom: auto;
+  left: auto;
+  display: grid;
+  width: clamp(340px, 29vw, 410px);
+  padding: 18px;
+  border: 1px solid rgba(244, 235, 216, .22);
+  border-radius: 16px;
+  background: rgba(7, 13, 22, .86);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .42);
+  backdrop-filter: blur(12px);
+  justify-items: stretch;
+  gap: 10px;
+  transform: translateY(-50%);
+}
+
+.focus-quest-app .timer-card-heading {
+  display: grid;
+  min-width: 0;
+  padding: 2px 4px 5px;
+  gap: 3px;
+  text-align: left;
+}
+
+.focus-quest-app .timer-card-heading strong {
+  overflow: hidden;
+  color: #f4ebd8;
+  font-size: 1.08rem;
+  font-weight: 850;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-quest-app .timer-card-heading small {
+  color: color-mix(in oklab, var(--instrument-edge) 64%, #f4ebd8);
+  font-size: .72rem;
+  font-weight: 750;
+}
+
+.focus-quest-app .focus-screen .expedition-route {
+  width: 100%;
+  border-radius: 10px;
+  background: rgba(244, 235, 216, .055);
+}
+
+.focus-quest-app .focus-screen .timer-dial {
+  width: clamp(220px, 18vw, 272px);
+  margin: 2px auto;
+  border: 6px solid var(--instrument-metal);
+  outline: 1px solid var(--instrument-edge);
+  outline-offset: -4px;
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, .36),
+    inset 0 0 0 2px rgba(7, 13, 22, .68),
+    inset 0 0 24px color-mix(in oklab, var(--instrument-metal) 22%, transparent);
+}
+
+.focus-quest-app .focus-screen .timer-dial-face {
+  padding: 24px;
+  border-color: color-mix(in oklab, var(--instrument-edge) 30%, transparent);
+  background: color-mix(in oklab, var(--instrument-ink) 93%, transparent);
+}
+
+.focus-quest-app .focus-screen .timer-dial strong {
+  margin: 10px 0 7px;
+  font-size: clamp(3.2rem, 4.5vw, 4.25rem);
+}
+
+.focus-quest-app .focus-screen .timer-narration {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(244, 235, 216, .16);
+  border-radius: 10px;
+  background: rgba(244, 235, 216, .055);
+  color: rgba(244, 235, 216, .82);
+  text-align: center;
+}
+
+.focus-quest-app .focus-screen .distraction-capture {
+  width: 100%;
+  border-radius: 10px;
+  background: rgba(244, 235, 216, .045);
+}
+
+.focus-quest-app .focus-screen .timer-controls {
+  width: 100%;
+  gap: 8px;
+}
+
+.focus-quest-app .focus-screen .timer-controls button {
+  border-radius: 10px;
+}
+
+.focus-quest-app .session-break .timer-controls .exit-button {
+  order: -1;
+  border-color: var(--instrument-edge);
+  background: var(--color-primary);
+  color: #190f08;
+  font-weight: 850;
+}
+
+.focus-quest-app .session-break .timer-controls .pause-button {
+  border-color: rgba(244, 235, 216, .26);
+  background: rgba(244, 235, 216, .05);
+  color: #f4ebd8;
+}
+
+@media (max-width: 48rem) {
+  .focus-quest-app .focus-screen .timer-card {
+    top: auto;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 12px;
+    width: auto;
+    padding: 11px;
+    grid-template-columns: minmax(128px, 40vw) minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    align-items: center;
+    gap: 7px 10px;
+    transform: none;
+  }
+
+  .focus-quest-app .timer-card-heading {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 0;
+  }
+
+  .focus-quest-app .focus-screen .expedition-route {
+    grid-column: 2;
+    grid-row: 2;
+    padding-block: 6px;
+  }
+
+  .focus-quest-app .focus-screen .timer-dial {
+    width: min(40vw, 168px);
+    grid-column: 1;
+    grid-row: 1 / span 4;
+    margin: 0;
+    border-width: 5px;
+  }
+
+  .focus-quest-app .focus-screen .timer-dial-face {
+    padding: 15px;
+  }
+
+  .focus-quest-app .focus-screen .timer-dial strong {
+    margin: 6px 0 4px;
+    font-size: clamp(2.35rem, 11.5vw, 3.05rem);
+  }
+
+  .focus-quest-app .focus-screen .timer-narration {
+    grid-column: 2;
+    grid-row: 3;
+    padding: 7px 9px;
+    font-size: .68rem;
+  }
+
+  .focus-quest-app .focus-screen .distraction-capture {
+    display: none;
+  }
+
+  .focus-quest-app .focus-screen .timer-controls {
+    grid-column: 2;
+    grid-row: 4;
+  }
+
+  .focus-quest-app .focus-screen .timer-controls button {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 30rem) and (orientation: portrait) {
+  .focus-quest-app .focus-screen .timer-card {
+    grid-template-columns: minmax(118px, 38vw) minmax(0, 1fr);
+  }
+
+  .focus-quest-app .focus-screen .timer-dial {
+    width: min(38vw, 152px);
+  }
+
+  .focus-quest-app .timer-card-heading strong {
+    font-size: .9rem;
+  }
+
+  .focus-quest-app .timer-card-heading small {
+    font-size: .62rem;
   }
 }

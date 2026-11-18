@@ -4,7 +4,9 @@ import { useMemo, useState, type FormEvent } from "react";
 import StudyMaterialLibrary from "@/app/components/StudyMaterialLibrary";
 import { useStudyMaterials } from "@/app/hooks/useStudyMaterials";
 import type { StudyMaterial } from "@/lib/pdf-analysis";
+import type { FocusRecord } from "@/lib/pomodoro";
 import {
+  getSubjectProgress,
   questProgress,
   type QuestDraft,
   type StudyQuest,
@@ -18,6 +20,7 @@ type QuestBoardProps = {
   message: string;
   subjects: StudySubject[];
   quests: StudyQuest[];
+  history: FocusRecord[];
   onLogin: () => void;
   onCreateSubject: (draft: SubjectDraft) => Promise<StudySubject | null>;
   onDeleteSubject: (id: string) => Promise<boolean>;
@@ -56,6 +59,7 @@ export default function QuestBoard({
   message,
   subjects,
   quests,
+  history,
   onLogin,
   onCreateSubject,
   onDeleteSubject,
@@ -83,6 +87,13 @@ export default function QuestBoard({
   const subjectMaterials = useMemo(
     () => materialStore.materials.filter((material) => material.subjectId === effectiveSubjectId),
     [effectiveSubjectId, materialStore.materials],
+  );
+  const activeSubject = subjects.find((subject) => subject.id === effectiveSubjectId) ?? null;
+  const activeSubjectProgress = useMemo(
+    () => activeSubject
+      ? getSubjectProgress({ subject: activeSubject, quests, history })
+      : null,
+    [activeSubject, history, quests],
   );
 
   const submitSubject = async (event: FormEvent) => {
@@ -226,8 +237,8 @@ export default function QuestBoard({
             <>
               <div className="quest-list-heading">
                 <div>
-                  <h3>{subjects.find((subject) => subject.id === effectiveSubjectId)?.name}</h3>
-                  <p>{subjects.find((subject) => subject.id === effectiveSubjectId)?.goal || "이번 과목의 목표를 향해 출발해요."}</p>
+                  <h3>{activeSubject?.name}</h3>
+                  <p>{activeSubject?.goal || "이번 과목의 목표를 향해 출발해요."}</p>
                 </div>
                 <button
                   className="quest-danger"
@@ -242,8 +253,47 @@ export default function QuestBoard({
                 </button>
               </div>
 
+              {activeSubjectProgress && (
+                <section className="subject-progress-summary" aria-label="과목 목표 진행 상황">
+                  <div className={`subject-deadline state-${activeSubjectProgress.deadlineState}`}>
+                    <span>목표일</span>
+                    <strong>{activeSubjectProgress.deadlineLabel}</strong>
+                  </div>
+                  <div className="subject-weekly-progress">
+                    <div>
+                      <span>이번 주 과목 집중</span>
+                      <strong>
+                        {activeSubjectProgress.weeklyMinutes}분
+                        {activeSubjectProgress.weeklyTarget > 0 && ` / ${activeSubjectProgress.weeklyTarget}분`}
+                      </strong>
+                    </div>
+                    {activeSubjectProgress.weeklyTarget > 0 ? (
+                      <>
+                        <span
+                          aria-label={`주간 목표 ${activeSubjectProgress.weeklyPercent}% 달성`}
+                          aria-valuemax={100}
+                          aria-valuemin={0}
+                          aria-valuenow={activeSubjectProgress.weeklyPercent}
+                          className="subject-weekly-track"
+                          role="progressbar"
+                        >
+                          <i style={{ width: `${activeSubjectProgress.weeklyPercent}%` }} />
+                        </span>
+                        <small>
+                          {activeSubjectProgress.weeklyRemaining > 0
+                            ? `${activeSubjectProgress.weeklyRemaining}분 더 집중하면 이번 주 목표에 도착해요.`
+                            : "이번 주 목표를 채웠어요."}
+                        </small>
+                      </>
+                    ) : (
+                      <small>주간 목표를 정하지 않은 과목이에요.</small>
+                    )}
+                  </div>
+                </section>
+              )}
+
               <StudyMaterialLibrary
-                subject={subjects.find((subject) => subject.id === effectiveSubjectId)!}
+                subject={activeSubject!}
                 materials={materialStore.materials}
                 message={materialStore.message}
                 pageProgress={materialStore.pageProgress}

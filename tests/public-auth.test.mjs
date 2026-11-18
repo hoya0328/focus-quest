@@ -18,6 +18,10 @@ const productReadinessMigrationPath = new URL(
   "../supabase/migrations/202611130001_product_readiness.sql",
   import.meta.url,
 );
+const materialPathHardeningMigrationPath = new URL(
+  "../supabase/migrations/202611130003_bind_material_storage_paths.sql",
+  import.meta.url,
+);
 const envExamplePath = new URL("../.env.example", import.meta.url);
 const publicWorkerPath = new URL("../wrangler.public.jsonc", import.meta.url);
 const cloudStateRoutePath = new URL("../app/api/cloud-state/route.ts", import.meta.url);
@@ -94,6 +98,12 @@ test("account deletion verifies the user and removes private storage before Auth
   assert.match(route, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.doesNotMatch(route, /NEXT_PUBLIC_.*SERVICE_ROLE/i);
   assert.match(route, /admin\.auth\.getUser\(token\)/);
+  assert.match(route, /isOwnedStudyMaterialPath\(path, user\.id\)/);
+  assert.match(route, /listOwnedStorageObjects\(admin, user\.id\)/);
+  assert.match(route, /path\.startsWith\(`\$\{userId\}\/`\)/);
+  assert.match(route, /MAX_OWNED_STORAGE_ENTRIES/);
+  assert.match(route, /segments\[0\] === userId/);
+  assert.match(route, /segments\[2\] === "source\.pdf"/);
   assert.match(route, /\.from\("study-materials"\)[\s\S]*\.remove\(/);
   assert.ok(route.indexOf('.remove(') < route.indexOf('admin.auth.admin.deleteUser'));
   assert.match(route, /sameOrigin\(request\)/);
@@ -117,6 +127,10 @@ test("subjects, quests, sessions and completion RPC stay inside the authenticate
 
 test("study PDFs remain private and paths are scoped to the authenticated owner", async () => {
   const migration = await readFile(materialsMigrationPath, "utf8");
+  const hardeningMigration = await readFile(
+    materialPathHardeningMigrationPath,
+    "utf8",
+  );
 
   assert.match(migration, /alter table public\.study_materials enable row level security/i);
   assert.match(migration, /public,\s*file_size_limit,\s*allowed_mime_types[\s\S]*false,\s*15728640,\s*array\['application\/pdf'\]/i);
@@ -125,6 +139,12 @@ test("study PDFs remain private and paths are scoped to the authenticated owner"
   assert.match(migration, /for insert[\s\S]*to authenticated/i);
   assert.match(migration, /for delete[\s\S]*to authenticated/i);
   assert.match(migration, /study_materials\.user_id = \(select auth\.uid\(\)\)/i);
+  assert.match(
+    hardeningMigration,
+    /split_part\(storage_path, '\/', 1\) = user_id::text/i,
+  );
+  assert.match(hardeningMigration, /split_part\(storage_path, '\/', 3\) = 'source\.pdf'/i);
+  assert.match(hardeningMigration, /split_part\(storage_path, '\/', 4\) = ''/i);
 });
 
 test("public worker deployment does not bind the private Sites database", async () => {

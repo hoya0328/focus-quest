@@ -2,6 +2,13 @@
 
 import { useEffect, useRef } from "react";
 
+import {
+  clampWorldLevel,
+  getWorldBackgroundKey,
+  getWorldBackgroundPath,
+  WORLD_LEVEL_MAX,
+} from "@/lib/world-growth";
+
 type SceneKind = "hike" | "swim";
 
 type AdventureQuestSceneProps = {
@@ -9,6 +16,7 @@ type AdventureQuestSceneProps = {
   progress: number;
   paused: boolean;
   celebrating: boolean;
+  worldLevel: number;
   assetBasePath?: string;
 };
 
@@ -16,6 +24,7 @@ type SceneController = {
   setProgress: (value: number) => void;
   setPaused: (value: boolean) => void;
   setCelebrating: (value: boolean) => void;
+  setWorldLevel: (value: number) => void;
 };
 
 export default function AdventureQuestScene({
@@ -23,12 +32,13 @@ export default function AdventureQuestScene({
   progress,
   paused,
   celebrating,
+  worldLevel,
   assetBasePath = "",
 }: AdventureQuestSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<SceneController | null>(null);
-  const latestRef = useRef({ progress, paused, celebrating });
-  latestRef.current = { progress, paused, celebrating };
+  const latestRef = useRef({ progress, paused, celebrating, worldLevel });
+  latestRef.current = { progress, paused, celebrating, worldLevel };
 
   useEffect(() => {
     let disposed = false;
@@ -52,6 +62,7 @@ export default function AdventureQuestScene({
         private ambient: import("phaser").GameObjects.Arc[] = [];
         private swimRewardBaseScale = 1;
         private currentProgress = 0;
+        private currentWorldLevel = 1;
         private isPaused = false;
         private isCelebrating = false;
 
@@ -66,16 +77,13 @@ export default function AdventureQuestScene({
             frameWidth: kind === "hike" ? 360 : 420,
             frameHeight: kind === "hike" ? 360 : 340,
           });
-          if (kind === "hike") {
+          for (let level = 1; level <= WORLD_LEVEL_MAX; level += 1) {
             this.load.image(
-              "hike-pixel-summit",
-              `${assetBasePath}/backgrounds/hike-pixel-summit-v1.png`,
+              getWorldBackgroundKey(kind, level),
+              `${assetBasePath}${getWorldBackgroundPath(kind, level)}`,
             );
-          } else {
-            this.load.image(
-              "swim-pixel-depth",
-              `${assetBasePath}/backgrounds/swim-pixel-depth.png`,
-            );
+          }
+          if (kind === "swim") {
             this.load.spritesheet(
               "swim-treasure",
               `${assetBasePath}/sprites/treasure-chest-swim-v2.png`,
@@ -90,12 +98,12 @@ export default function AdventureQuestScene({
         create() {
           if (kind === "hike") {
             this.hikeBackdrop = this.add
-              .image(0, 0, "hike-pixel-summit")
+              .image(0, 0, getWorldBackgroundKey(kind, this.currentWorldLevel))
               .setOrigin(0.5)
               .setDepth(0);
           } else {
             this.swimBackdrop = this.add
-              .image(0, 0, "swim-pixel-depth")
+              .image(0, 0, getWorldBackgroundKey(kind, this.currentWorldLevel))
               .setOrigin(0.5)
               .setDepth(0);
           }
@@ -222,7 +230,7 @@ export default function AdventureQuestScene({
           this.successLabel = this.add.text(
             0,
             0,
-            kind === "hike" ? "정상에 도착했어요!" : "빛나는 진주를 찾았어요!",
+            kind === "hike" ? "정상에 도착했어요!" : "보물상자를 열었어요!",
             {
               fontFamily: '"Malgun Gothic", "Courier New", monospace',
               fontSize: "17px",
@@ -242,6 +250,7 @@ export default function AdventureQuestScene({
           this.layoutScene();
 
           const initial = latestRef.current;
+          this.setWorldLevel(initial.worldLevel);
           this.setProgress(initial.progress);
           this.setCelebrating(initial.celebrating);
           this.setPaused(initial.paused);
@@ -482,6 +491,27 @@ export default function AdventureQuestScene({
           }
         }
 
+        setWorldLevel(value: number) {
+          const nextLevel = clampWorldLevel(value);
+          this.currentWorldLevel = nextLevel;
+          const image = kind === "hike" ? this.hikeBackdrop : this.swimBackdrop;
+          if (!image) return;
+
+          image.setTexture(getWorldBackgroundKey(kind, nextLevel));
+          image.setAlpha(0.35);
+          this.tweens.add({
+            targets: image,
+            alpha: 1,
+            duration: 420,
+            ease: "Sine.Out",
+          });
+          const visibleAmbient = (kind === "hike" ? 3 : 5) + nextLevel * 2;
+          this.ambient.forEach((particle, index) => {
+            particle.setVisible(index < visibleAmbient);
+          });
+          this.layoutScene();
+        }
+
         setProgress(value: number) {
           this.currentProgress = Phaser.Math.Clamp(value, 0, 1);
           if (!this.hero) return;
@@ -668,6 +698,10 @@ export default function AdventureQuestScene({
 
   useEffect(() => controllerRef.current?.setProgress(progress), [progress]);
   useEffect(() => controllerRef.current?.setPaused(paused), [paused]);
+  useEffect(
+    () => controllerRef.current?.setWorldLevel(worldLevel),
+    [worldLevel],
+  );
   useEffect(
     () => controllerRef.current?.setCelebrating(celebrating),
     [celebrating],

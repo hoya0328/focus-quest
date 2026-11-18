@@ -318,60 +318,6 @@
   margin-bottom: 15px;
 }
 
-.world-growth-markers {
-  position: absolute;
-  z-index: 3;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.world-growth-markers i {
-  position: absolute;
-  left: calc(12% + var(--marker) * 16%);
-  animation: growth-pulse 3s ease-in-out infinite;
-  animation-delay: calc(var(--marker) * -0.4s);
-}
-
-.growth-hike i {
-  bottom: calc(10% + var(--marker) * 3%);
-  width: 4px;
-  height: 34px;
-  background: #f2d495;
-  box-shadow: 4px 0 0 #071522;
-}
-
-.growth-hike i::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 4px;
-  border-top: 8px solid #f0a241;
-  border-right: 14px solid transparent;
-}
-
-.growth-swim i {
-  bottom: calc(8% + var(--marker) * 5%);
-  width: 18px;
-  height: 42px;
-  border-radius: 50% 50% 20% 20%;
-  background: #45d9d3;
-  box-shadow: 0 0 18px #57e1cf;
-}
-
-.growth-fish i {
-  top: calc(13% + var(--marker) * 7%);
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #ffe191;
-  box-shadow: 0 0 14px #ffbd55;
-}
-
-@keyframes growth-pulse {
-  50% { transform: translateY(-5px); filter: brightness(1.25); }
-}
-
 @media (max-width: 700px) {
   .recovery-card {
     width: min(100% - 24px, 1120px);

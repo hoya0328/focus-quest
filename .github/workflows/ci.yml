@@ -33,5 +33,14 @@ jobs:
       - name: Build Cloudflare worker
         run: npm run build
 
+      - name: Scan source, build and history for secrets
+        run: npm run security:secrets
+
       - name: Verify rendered app
         run: node --test tests/rendered-html.test.mjs
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Test guest and responsive journeys
+        run: npm run test:e2e

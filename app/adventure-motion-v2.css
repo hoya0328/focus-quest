@@ -6,7 +6,8 @@
 }
 
 .phaser-fishing-scene,
-.phaser-adventure-scene {
+.phaser-adventure-scene,
+.phaser-rest-scene {
   position: absolute;
   z-index: 4;
   inset: 0;
@@ -15,7 +16,8 @@
 }
 
 .phaser-fishing-scene canvas,
-.phaser-adventure-scene canvas {
+.phaser-adventure-scene canvas,
+.phaser-rest-scene canvas {
   display: block;
   width: 100% !important;
   height: 100% !important;

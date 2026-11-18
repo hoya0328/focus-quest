@@ -23,13 +23,17 @@ function state(
   overrides = {},
   activeSession = null,
   sessionUpdatedAt = emptySessionUpdatedAt,
+  recoveryQuest = null,
+  recoveryUpdatedAt = emptySessionUpdatedAt,
 ) {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     preferences: { ...preferences, ...overrides },
     history,
     activeSession,
     sessionUpdatedAt,
+    recoveryQuest,
+    recoveryUpdatedAt,
   };
 }
 
@@ -54,9 +58,27 @@ test("version 1 cloud data migrates to the current empty-session shape", () => {
   const parsed = parseCloudStateData(legacy);
 
   assert.ok(parsed);
-  assert.equal(parsed.schemaVersion, 2);
+  assert.equal(parsed.schemaVersion, 3);
   assert.equal(parsed.activeSession, null);
   assert.equal(parsed.sessionUpdatedAt, emptySessionUpdatedAt);
+  assert.equal(parsed.recoveryQuest, null);
+  assert.equal(parsed.recoveryUpdatedAt, emptySessionUpdatedAt);
+});
+
+test("version 2 cloud data migrates without inventing a recovery quest", () => {
+  const legacy = {
+    schemaVersion: 2,
+    preferences,
+    history: [],
+    activeSession: null,
+    sessionUpdatedAt: "2026-08-11T08:00:00.000Z",
+  };
+  const parsed = parseCloudStateData(legacy);
+
+  assert.ok(parsed);
+  assert.equal(parsed.schemaVersion, 3);
+  assert.equal(parsed.recoveryQuest, null);
+  assert.equal(parsed.recoveryUpdatedAt, emptySessionUpdatedAt);
 });
 
 test("cloud merge deduplicates sessions and keeps the newest records first", () => {
@@ -142,6 +164,42 @@ test("the most recently changed active-session state wins across devices", () =>
   assert.deepEqual(
     mergeCloudStates(localActiveLater, localClearedLater).activeSession,
     session,
+  );
+});
+
+test("the newest recovery quest or dismissal wins across devices", () => {
+  const recovery = {
+    createdAt: "2026-11-12T08:00:00.000Z",
+    expiresAt: "2026-11-19T08:00:00.000Z",
+    focusIntent: "데이터베이스 복습",
+    durationMinutes: 10,
+    adventureId: "fish",
+    bgm: "lake",
+  };
+  const cloudWithQuest = state(
+    [],
+    {},
+    null,
+    emptySessionUpdatedAt,
+    recovery,
+    "2026-11-12T08:00:00.000Z",
+  );
+  const localDismissed = state(
+    [],
+    {},
+    null,
+    emptySessionUpdatedAt,
+    null,
+    "2026-11-12T09:00:00.000Z",
+  );
+
+  assert.equal(
+    mergeCloudStates(localDismissed, cloudWithQuest).recoveryQuest,
+    null,
+  );
+  assert.deepEqual(
+    mergeCloudStates(cloudWithQuest, localDismissed).recoveryQuest,
+    null,
   );
 });
 
@@ -231,6 +289,7 @@ test("switching accounts never migrates the previous account local records", () 
   assert.deepEqual(resolution.data, createEmptyCloudState());
   assert.equal(resolution.data.history.length, 0);
   assert.equal(resolution.data.activeSession, null);
+  assert.equal(resolution.data.recoveryQuest, null);
 });
 
 test("a relogged account recovers cloud history without an account-local cache", () => {

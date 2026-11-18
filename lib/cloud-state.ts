@@ -7,8 +7,12 @@ import {
   type BgmId,
   type FocusRecord,
 } from "./pomodoro.ts";
+import {
+  parseRecoveryQuest,
+  type RecoveryQuest,
+} from "./retention.ts";
 
-export const CLOUD_STATE_SCHEMA_VERSION = 2;
+export const CLOUD_STATE_SCHEMA_VERSION = 3;
 export const CLOUD_SYNC_DISABLED_KEY = "focus-quest-cloud-sync-disabled";
 export const CLOUD_LOCAL_OWNER_KEY = "focus-quest-cloud-local-owner";
 export const ACTIVE_SESSION_UPDATED_AT_KEY =
@@ -29,6 +33,8 @@ export type CloudStateData = {
   history: FocusRecord[];
   activeSession: ActiveSession | null;
   sessionUpdatedAt: string;
+  recoveryQuest: RecoveryQuest | null;
+  recoveryUpdatedAt: string;
 };
 
 export type CloudStateRecord = {
@@ -63,6 +69,8 @@ export function createEmptyCloudState(): CloudStateData {
     history: [],
     activeSession: null,
     sessionUpdatedAt: EMPTY_SESSION_UPDATED_AT,
+    recoveryQuest: null,
+    recoveryUpdatedAt: EMPTY_SESSION_UPDATED_AT,
   };
 }
 
@@ -138,7 +146,11 @@ export function parseCloudStateData(value: unknown): CloudStateData | null {
   const candidate = value as Partial<
     Omit<CloudStateData, "schemaVersion">
   > & { schemaVersion?: number };
-  if (candidate.schemaVersion !== 1 && candidate.schemaVersion !== 2) {
+  if (
+    candidate.schemaVersion !== 1 &&
+    candidate.schemaVersion !== 2 &&
+    candidate.schemaVersion !== 3
+  ) {
     return null;
   }
 
@@ -150,7 +162,7 @@ export function parseCloudStateData(value: unknown): CloudStateData | null {
 
   let activeSession: ActiveSession | null = null;
   let sessionUpdatedAt = EMPTY_SESSION_UPDATED_AT;
-  if (candidate.schemaVersion === 2) {
+  if (candidate.schemaVersion >= 2) {
     if (
       typeof candidate.sessionUpdatedAt !== "string" ||
       Number.isNaN(Date.parse(candidate.sessionUpdatedAt))
@@ -165,12 +177,31 @@ export function parseCloudStateData(value: unknown): CloudStateData | null {
     }
   }
 
+  let recoveryQuest: RecoveryQuest | null = null;
+  let recoveryUpdatedAt = EMPTY_SESSION_UPDATED_AT;
+  if (candidate.schemaVersion === 3) {
+    if (
+      typeof candidate.recoveryUpdatedAt !== "string" ||
+      Number.isNaN(Date.parse(candidate.recoveryUpdatedAt))
+    ) {
+      return null;
+    }
+    recoveryUpdatedAt = candidate.recoveryUpdatedAt;
+    if (candidate.recoveryQuest !== null) {
+      recoveryQuest = parseRecoveryQuest(
+        JSON.stringify(candidate.recoveryQuest),
+      );
+    }
+  }
+
   return {
     schemaVersion: CLOUD_STATE_SCHEMA_VERSION,
     preferences,
     history,
     activeSession,
     sessionUpdatedAt,
+    recoveryQuest,
+    recoveryUpdatedAt,
   };
 }
 
@@ -203,6 +234,10 @@ export function mergeCloudStates(
   const localSessionIsNewer =
     Date.parse(local.sessionUpdatedAt) > Date.parse(cloud.sessionUpdatedAt);
   const sessionSource = localSessionIsNewer ? local : cloud;
+  const localRecoveryIsNewer =
+    Date.parse(local.recoveryUpdatedAt) >
+    Date.parse(cloud.recoveryUpdatedAt);
+  const recoverySource = localRecoveryIsNewer ? local : cloud;
 
   return {
     schemaVersion: CLOUD_STATE_SCHEMA_VERSION,
@@ -210,5 +245,7 @@ export function mergeCloudStates(
     history,
     activeSession: sessionSource.activeSession,
     sessionUpdatedAt: sessionSource.sessionUpdatedAt,
+    recoveryQuest: recoverySource.recoveryQuest,
+    recoveryUpdatedAt: recoverySource.recoveryUpdatedAt,
   };
 }

@@ -60,7 +60,7 @@ export default function StudyMaterialLibrary({
         <div>
           <span className="eyebrow">STUDY MATERIAL</span>
           <h3 id="study-material-title">집중 범위를 기억하는 자료</h3>
-          <p>PDF를 연결하면 집중이 끝난 페이지 안에서 한 문제, 휴식 뒤에 한 문제를 다시 만나요.</p>
+          <p>문제를 만들 수 있는 텍스트 PDF라면 집중 뒤 한 문제, 휴식 뒤 다른 한 문제로 다시 만나요.</p>
         </div>
         <span className="pdf-limit">PDF · 15MB · 120쪽</span>
       </div>

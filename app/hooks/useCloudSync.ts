@@ -1,14 +1,18 @@
 "use client";
 
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createApiCloudBackend,
+  createSupabaseCloudBackend,
+  type CloudBackend,
+} from "@/lib/cloud-sync-backends";
 import {
   CLOUD_LOCAL_OWNER_KEY,
   CLOUD_SYNC_DISABLED_KEY,
   createEmptyCloudState,
   isCloudSyncDisabledForAccount,
   mergeCloudStates,
-  parseCloudStateData,
   resolveLocalStateForAccount,
   type CloudAccount,
   type CloudStateData,
@@ -33,195 +37,11 @@ export type AuthActionResult = {
   ok: boolean;
 };
 
-type CloudApiResponse = {
-  account?: CloudAccount;
-  cloudState?: CloudStateRecord | null;
-  error?: string;
-};
-
-type CloudBackendResponse = {
-  body: CloudApiResponse;
-  status: number;
-};
-
-type CloudBackend = {
-  delete: () => Promise<CloudBackendResponse>;
-  get: () => Promise<CloudBackendResponse>;
-  put: (
-    baseVersion: number,
-    data: CloudStateData,
-  ) => Promise<CloudBackendResponse>;
-};
-
 type UseCloudSyncOptions = {
   applyCloudState: (data: CloudStateData) => void;
   data: CloudStateData;
   hydrated: boolean;
 };
-
-const SUPABASE_TABLE = "focus_quest_cloud_states";
-
-function accountForSupabaseUser(user: User): CloudAccount {
-  const email = user.email ?? "";
-  const fullName =
-    typeof user.user_metadata?.full_name === "string"
-      ? user.user_metadata.full_name.trim()
-      : "";
-  return {
-    displayName: fullName || email.split("@")[0] || "Focus Quest 사용자",
-    email,
-  };
-}
-
-function decodeSupabaseRow(row: unknown): CloudStateRecord | null {
-  if (!row || typeof row !== "object") return null;
-  const candidate = row as {
-    payload?: unknown;
-    updated_at?: unknown;
-    version?: unknown;
-  };
-  const payload =
-    typeof candidate.payload === "string"
-      ? (() => {
-          try {
-            return JSON.parse(candidate.payload) as unknown;
-          } catch {
-            return null;
-          }
-        })()
-      : candidate.payload;
-  const data = parseCloudStateData(payload);
-  if (
-    !data ||
-    typeof candidate.version !== "number" ||
-    typeof candidate.updated_at !== "string"
-  ) {
-    return null;
-  }
-  return {
-    data,
-    updatedAt: candidate.updated_at,
-    version: candidate.version,
-  };
-}
-
-function createApiBackend(): CloudBackend {
-  const request = async (
-    method: "DELETE" | "GET" | "PUT",
-    body?: unknown,
-  ): Promise<CloudBackendResponse> => {
-    const response = await fetch("/api/cloud-state", {
-      method,
-      headers:
-        body === undefined
-          ? { accept: "application/json" }
-          : {
-              accept: "application/json",
-              "content-type": "application/json",
-            },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    return {
-      body: (await response.json()) as CloudApiResponse,
-      status: response.status,
-    };
-  };
-
-  return {
-    delete: () => request("DELETE"),
-    get: () => request("GET"),
-    put: (baseVersion, data) =>
-      request("PUT", {
-        baseVersion,
-        data,
-      }),
-  };
-}
-
-function createSupabaseBackend(
-  client: SupabaseClient,
-  user: User,
-): CloudBackend {
-  const account = accountForSupabaseUser(user);
-
-  const get = async (): Promise<CloudBackendResponse> => {
-    const { data, error } = await client
-      .from(SUPABASE_TABLE)
-      .select("version,payload,updated_at")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (error) throw error;
-    return {
-      body: {
-        account,
-        cloudState: decodeSupabaseRow(data),
-      },
-      status: 200,
-    };
-  };
-
-  const conflict = async (): Promise<CloudBackendResponse> => {
-    const latest = await get();
-    return {
-      body: {
-        ...latest.body,
-        error: "다른 기기의 기록이 먼저 저장되었습니다.",
-      },
-      status: 409,
-    };
-  };
-
-  return {
-    delete: async () => {
-      const { error } = await client
-        .from(SUPABASE_TABLE)
-        .delete()
-        .eq("user_id", user.id);
-      if (error) throw error;
-      return { body: {}, status: 200 };
-    },
-    get,
-    put: async (baseVersion, cloudData) => {
-      const updatedAt = new Date().toISOString();
-      const version = baseVersion + 1;
-
-      if (baseVersion === 0) {
-        const { data, error } = await client
-          .from(SUPABASE_TABLE)
-          .insert({
-            payload: cloudData,
-            updated_at: updatedAt,
-            user_id: user.id,
-            version,
-          })
-          .select("version,payload,updated_at")
-          .maybeSingle();
-        if (error?.code === "23505") return conflict();
-        if (error) throw error;
-        const cloudState = decodeSupabaseRow(data);
-        if (!cloudState) throw new Error("invalid cloud response");
-        return { body: { account, cloudState }, status: 200 };
-      }
-
-      const { data, error } = await client
-        .from(SUPABASE_TABLE)
-        .update({
-          payload: cloudData,
-          updated_at: updatedAt,
-          version,
-        })
-        .eq("user_id", user.id)
-        .eq("version", baseVersion)
-        .select("version,payload,updated_at")
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) return conflict();
-      const cloudState = decodeSupabaseRow(data);
-      if (!cloudState) throw new Error("invalid cloud response");
-      return { body: { account, cloudState }, status: 200 };
-    },
-  };
-}
 
 export function useCloudSync({
   applyCloudState,
@@ -457,8 +277,8 @@ export function useCloudSync({
 
       const backend =
         supabase && supabaseUser
-          ? createSupabaseBackend(supabase, supabaseUser)
-          : createApiBackend();
+          ? createSupabaseCloudBackend(supabase, supabaseUser)
+          : createApiCloudBackend();
       backendRef.current = backend;
 
       try {

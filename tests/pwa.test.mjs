@@ -23,11 +23,20 @@ test("the service worker provides an offline navigation fallback", async () => {
   assert.match(serviceWorker, /event\.request\.mode === "navigate"/);
   assert.match(serviceWorker, /caches\.match\(OFFLINE_PAGE_KEY\)/);
   assert.match(serviceWorker, /requestUrl\.origin !== self\.location\.origin/);
-  assert.match(serviceWorker, /focus-quest-v3/);
+  assert.match(serviceWorker, /focus-quest-v5/);
   assert.match(serviceWorker, /brand\/focus-quest-logo\.png/);
   assert.match(serviceWorker, /brand\/focus-quest-mark\.png/);
+  assert.match(serviceWorker, /characters\/mori-rest\.png/);
+  assert.match(serviceWorker, /characters\/naru-rest\.png/);
+  assert.match(serviceWorker, /characters\/bori-rest\.png/);
   assert.match(serviceWorker, /cache: "no-store"/);
   assert.match(serviceWorker, /client\.navigate\(client\.url\)/);
+  assert.match(serviceWorker, /isPrivatePath\(requestUrl\)/);
+  assert.match(serviceWorker, /pathname\.startsWith\(`\$\{BASE_PATH\}\/api\/`\)/);
+  assert.match(serviceWorker, /responseAllowsStorage\(response\)/);
+  assert.match(serviceWorker, /policy\.includes\("no-store"\)/);
+  assert.match(serviceWorker, /policy\.includes\("private"\)/);
+  assert.match(serviceWorker, /CACHEABLE_DESTINATIONS/);
   assert.doesNotMatch(
     serviceWorker,
     /const CORE_ASSETS = \[\s*`\$\{BASE_PATH\}\/`,/

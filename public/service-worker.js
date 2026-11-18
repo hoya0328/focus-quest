@@ -1,4 +1,4 @@
-const CACHE_NAME = "focus-quest-v3";
+const CACHE_NAME = "focus-quest-v5";
 const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const OFFLINE_PAGE_KEY = `${BASE_PATH}/__focus-quest-offline`;
 const CORE_ASSETS = [
@@ -7,8 +7,31 @@ const CORE_ASSETS = [
   `${BASE_PATH}/brand/focus-quest-mark.png`,
   `${BASE_PATH}/characters/momo-hiking.png`,
   `${BASE_PATH}/characters/podo-swimming.png`,
-  `${BASE_PATH}/characters/bori-fishing.png`
+  `${BASE_PATH}/characters/bori-fishing.png`,
+  `${BASE_PATH}/characters/mori-rest.png`,
+  `${BASE_PATH}/characters/naru-rest.png`,
+  `${BASE_PATH}/characters/bori-rest.png`
 ];
+const CACHEABLE_DESTINATIONS = new Set([
+  "audio",
+  "font",
+  "image",
+  "manifest",
+  "script",
+  "style",
+  "video",
+  "worker"
+]);
+
+function isPrivatePath(url) {
+  return url.pathname === `${BASE_PATH}/api` ||
+    url.pathname.startsWith(`${BASE_PATH}/api/`);
+}
+
+function responseAllowsStorage(response) {
+  const policy = response.headers.get("cache-control")?.toLowerCase() ?? "";
+  return !policy.includes("no-store") && !policy.includes("private");
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -41,12 +64,13 @@ self.addEventListener("fetch", (event) => {
 
   const requestUrl = new URL(event.request.url);
   if (requestUrl.origin !== self.location.origin) return;
+  if (isPrivatePath(requestUrl)) return;
 
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(new Request(event.request, { cache: "no-store" }))
         .then((response) => {
-          if (response.ok) {
+          if (response.ok && responseAllowsStorage(response)) {
             const copy = response.clone();
             event.waitUntil(
               caches.open(CACHE_NAME).then((cache) => cache.put(OFFLINE_PAGE_KEY, copy))
@@ -64,10 +88,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (!CACHEABLE_DESTINATIONS.has(event.request.destination)) return;
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        if (!response || response.status !== 200) return response;
+        if (
+          !response ||
+          response.status !== 200 ||
+          !responseAllowsStorage(response)
+        ) {
+          return response;
+        }
         const copy = response.clone();
         event.waitUntil(
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy))

@@ -2,10 +2,18 @@
 
 import { useEffect, useRef } from "react";
 
+import {
+  clampWorldLevel,
+  getWorldBackgroundKey,
+  getWorldBackgroundPath,
+  WORLD_LEVEL_MAX,
+} from "@/lib/world-growth";
+
 type FishingQuestSceneProps = {
   progress: number;
   paused: boolean;
   celebrating: boolean;
+  worldLevel: number;
   assetBasePath?: string;
 };
 
@@ -13,19 +21,21 @@ type FishingSceneController = {
   setProgress: (value: number) => void;
   setPaused: (value: boolean) => void;
   setCelebrating: (value: boolean) => void;
+  setWorldLevel: (value: number) => void;
 };
 
 export default function FishingQuestScene({
   progress,
   paused,
   celebrating,
+  worldLevel,
   assetBasePath = "",
 }: FishingQuestSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<FishingSceneController | null>(null);
-  const latestStateRef = useRef({ progress, paused, celebrating });
+  const latestStateRef = useRef({ progress, paused, celebrating, worldLevel });
 
-  latestStateRef.current = { progress, paused, celebrating };
+  latestStateRef.current = { progress, paused, celebrating, worldLevel };
 
   useEffect(() => {
     let disposed = false;
@@ -50,6 +60,7 @@ export default function FishingQuestScene({
         private bobberY = 0;
         private sceneUnit = 1;
         private currentProgress = 0;
+        private currentWorldLevel = 1;
         private isPaused = false;
         private isCelebrating = false;
 
@@ -58,10 +69,12 @@ export default function FishingQuestScene({
         }
 
         preload() {
-          this.load.image(
-            "fishing-pixel-lake",
-            `${assetBasePath}/backgrounds/fish-pixel-lake-v1.png`,
-          );
+          for (let level = 1; level <= WORLD_LEVEL_MAX; level += 1) {
+            this.load.image(
+              getWorldBackgroundKey("fish", level),
+              `${assetBasePath}${getWorldBackgroundPath("fish", level)}`,
+            );
+          }
           this.load.spritesheet(
             "bori-fishing",
             `${assetBasePath}/sprites/bori-fish-phaser.png`,
@@ -75,7 +88,7 @@ export default function FishingQuestScene({
 
         create() {
           this.lakeBackdrop = this.add
-            .image(0, 0, "fishing-pixel-lake")
+            .image(0, 0, getWorldBackgroundKey("fish", this.currentWorldLevel))
             .setOrigin(0.5)
             .setDepth(0);
           this.backdrop = this.add.graphics().setDepth(1);
@@ -202,6 +215,7 @@ export default function FishingQuestScene({
           this.layoutScene();
 
           const initial = latestStateRef.current;
+          this.setWorldLevel(initial.worldLevel);
           this.setProgress(initial.progress);
           this.setCelebrating(initial.celebrating);
           this.setPaused(initial.paused);
@@ -350,6 +364,33 @@ export default function FishingQuestScene({
           );
         }
 
+        setWorldLevel(value: number) {
+          const nextLevel = clampWorldLevel(value);
+          this.currentWorldLevel = nextLevel;
+          if (!this.lakeBackdrop) return;
+
+          this.lakeBackdrop.setTexture(
+            getWorldBackgroundKey("fish", nextLevel),
+          );
+          this.lakeBackdrop.setAlpha(0.35);
+          this.tweens.add({
+            targets: this.lakeBackdrop,
+            alpha: 1,
+            duration: 420,
+            ease: "Sine.Out",
+          });
+          this.waterGlints.forEach((glint, index) => {
+            glint.setVisible(index < 8 + nextLevel * 3);
+          });
+          this.fishShadows.forEach((shadow, index) => {
+            shadow.setVisible(index < Math.min(3, nextLevel));
+          });
+          this.fireflies.forEach((firefly, index) => {
+            firefly.setVisible(index < 2 + nextLevel * 2);
+          });
+          this.layoutScene();
+        }
+
         setProgress(value: number) {
           this.currentProgress = Phaser.Math.Clamp(value, 0, 1);
           const dusk = 1 - this.currentProgress * 0.18;
@@ -487,6 +528,10 @@ export default function FishingQuestScene({
   useEffect(() => {
     controllerRef.current?.setPaused(paused);
   }, [paused]);
+
+  useEffect(() => {
+    controllerRef.current?.setWorldLevel(worldLevel);
+  }, [worldLevel]);
 
   useEffect(() => {
     controllerRef.current?.setCelebrating(celebrating);
