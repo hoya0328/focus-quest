@@ -38,6 +38,13 @@ export type SilentCampTimer = {
   bgm: BgmId;
 };
 
+export type SilentCampResumeState = {
+  version: 1;
+  code: string;
+  memberId: string;
+  joinedAt: string;
+};
+
 export function normalizeCampCode(value: string) {
   return value.replace(/[^a-z0-9]/gi, "").slice(0, 8).toUpperCase();
 }
@@ -82,6 +89,31 @@ export function normalizeCampNickname(value: string) {
 
 export function normalizeCampChatMessage(value: string) {
   return value.trim().replace(/\s+/g, " ").slice(0, 120);
+}
+
+export function parseSilentCampResumeState(
+  value: unknown,
+): SilentCampResumeState | null {
+  if (!value || typeof value !== "object") return null;
+  const state = value as Partial<SilentCampResumeState>;
+  const code = normalizeCampCode(state.code ?? "");
+  if (
+    state.version !== 1 ||
+    code.length < 6 ||
+    typeof state.memberId !== "string" ||
+    state.memberId.length < 1 ||
+    state.memberId.length > 64 ||
+    typeof state.joinedAt !== "string" ||
+    Number.isNaN(Date.parse(state.joinedAt))
+  ) {
+    return null;
+  }
+  return {
+    version: 1,
+    code,
+    memberId: state.memberId,
+    joinedAt: state.joinedAt,
+  };
 }
 
 export function parseSilentCampMember(value: unknown): SilentCampMember | null {

@@ -207,7 +207,7 @@ export default function CampLobby({
                   type="button"
                   onClick={onJoin}
                 >
-                  들어가기
+                  {status === "error" ? "다시 연결" : "들어가기"}
                 </button>
               </label>
             </div>

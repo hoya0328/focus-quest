@@ -261,6 +261,18 @@ test.describe("isolated Supabase staging", () => {
       .getByRole("button", { name: /이 범위에서 한 문제 받기/ })
       .click();
     await expect(page.getByRole("group", { name: "퀴즈 선택지" })).toBeVisible();
+    await page
+      .getByRole("group", { name: "퀴즈 선택지" })
+      .getByRole("button")
+      .first()
+      .click();
+    await page
+      .getByRole("group", { name: "문제 품질 평가" })
+      .getByRole("button", { name: "도움 됨" })
+      .click();
+    await expect(
+      page.getByText("기록했어요. 다음 문제를 고르는 데 반영할게요."),
+    ).toBeVisible();
   });
 
   test("account deletion removes the generated staging user", async ({

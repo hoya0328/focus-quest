@@ -11,6 +11,7 @@ import {
   normalizeCampNickname,
   parseSilentCampChatMessage,
   parseSilentCampMember,
+  parseSilentCampResumeState,
   parseSilentCampTimer,
   readCampCodeFromUrl,
   type SilentCampChatMessage,
@@ -26,6 +27,30 @@ export type CampRole = "leader" | "member" | null;
 const MAX_CHAT_MESSAGES = 50;
 const CHAT_COOLDOWN_MS = 700;
 const REMOTE_CHAT_COOLDOWN_MS = 250;
+const CAMP_RESUME_KEY = "focus-quest-camp-resume";
+
+function readCampResumeState() {
+  try {
+    const raw = window.sessionStorage.getItem(CAMP_RESUME_KEY);
+    return raw ? parseSilentCampResumeState(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCampResumeState(
+  state: Parameters<typeof parseSilentCampResumeState>[0] | null,
+) {
+  try {
+    if (state) {
+      window.sessionStorage.setItem(CAMP_RESUME_KEY, JSON.stringify(state));
+    } else {
+      window.sessionStorage.removeItem(CAMP_RESUME_KEY);
+    }
+  } catch {
+    // Private browsing can disable storage. Realtime camp still works for this page.
+  }
+}
 
 export function useSilentCamp({
   activeTimer,
@@ -51,6 +76,7 @@ export function useSilentCamp({
   const channelRef = useRef<RealtimeChannel | null>(null);
   const memberIdRef = useRef("");
   const joinedAtRef = useRef("");
+  const connectedCodeRef = useRef("");
   const leaderIdRef = useRef<string | null>(null);
   const membersRef = useRef<SilentCampMember[]>([]);
   const lastChatAtRef = useRef(0);
@@ -79,6 +105,9 @@ export function useSilentCamp({
       await client.removeChannel(channelRef.current);
     }
     channelRef.current = null;
+    connectedCodeRef.current = "";
+    memberIdRef.current = "";
+    joinedAtRef.current = "";
     leaderIdRef.current = null;
     membersRef.current = [];
     lastRemoteChatAtRef.current.clear();
@@ -89,6 +118,7 @@ export function useSilentCamp({
     setMembers([]);
     setChatMessages([]);
     setMessage("캠프를 나왔어요. 개인 집중 기록은 그대로 남아 있어요.");
+    writeCampResumeState(null);
   }, []);
 
   const join = useCallback(
@@ -108,8 +138,14 @@ export function useSilentCamp({
       }
       if (channelRef.current) await client.removeChannel(channelRef.current);
 
-      const memberId = memberIdRef.current || crypto.randomUUID();
-      const joinedAt = new Date().toISOString();
+      const isReconnect = connectedCodeRef.current === nextCode;
+      const memberId = isReconnect && memberIdRef.current
+        ? memberIdRef.current
+        : crypto.randomUUID();
+      const joinedAt = isReconnect && joinedAtRef.current
+        ? joinedAtRef.current
+        : new Date().toISOString();
+      connectedCodeRef.current = nextCode;
       memberIdRef.current = memberId;
       setCurrentMemberId(memberId);
       joinedAtRef.current = joinedAt;
@@ -194,6 +230,12 @@ export function useSilentCamp({
             focusMinutes,
           });
           setStatus("joined");
+          writeCampResumeState({
+            version: 1,
+            code: nextCode,
+            memberId,
+            joinedAt,
+          });
         } else if (
           channelStatus === "CHANNEL_ERROR" ||
           channelStatus === "TIMED_OUT"
@@ -213,8 +255,15 @@ export function useSilentCamp({
 
   useEffect(() => {
     const inviteCode = readCampCodeFromUrl(window.location.href);
-    if (inviteCode.length < 6) return;
-    const timer = window.setTimeout(() => void joinRef.current(inviteCode), 0);
+    const resume = readCampResumeState();
+    const nextCode = inviteCode.length >= 6 ? inviteCode : resume?.code ?? "";
+    if (nextCode.length < 6) return;
+    if (resume?.code === nextCode) {
+      connectedCodeRef.current = resume.code;
+      memberIdRef.current = resume.memberId;
+      joinedAtRef.current = resume.joinedAt;
+    }
+    const timer = window.setTimeout(() => void joinRef.current(nextCode), 0);
     return () => window.clearTimeout(timer);
   }, []);
 

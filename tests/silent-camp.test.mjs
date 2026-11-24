@@ -12,6 +12,7 @@ import {
   normalizeCampNickname,
   parseSilentCampChatMessage,
   parseSilentCampMember,
+  parseSilentCampResumeState,
   parseSilentCampTimer,
   readCampCodeFromUrl,
   toSilentCampTimer,
@@ -82,6 +83,28 @@ test("camp profiles and chat are bounded before realtime use", () => {
       body: "   ",
       sentAt: "2026-11-13T10:00:00.000Z",
     }),
+    null,
+  );
+});
+
+test("camp reconnect state restores only bounded session identity", () => {
+  const restored = parseSilentCampResumeState({
+    version: 1,
+    code: " abcd-2345 ",
+    memberId: "member-1",
+    joinedAt: "2026-11-13T10:00:00.000Z",
+    chatMessages: ["must not persist"],
+  });
+
+  assert.deepEqual(restored, {
+    version: 1,
+    code: "ABCD2345",
+    memberId: "member-1",
+    joinedAt: "2026-11-13T10:00:00.000Z",
+  });
+  assert.equal(parseSilentCampResumeState({ ...restored, code: "BAD" }), null);
+  assert.equal(
+    parseSilentCampResumeState({ ...restored, memberId: "x".repeat(65) }),
     null,
   );
 });

@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import type { AdventureId } from "@/lib/pomodoro";
+import type {
+  QuizFeedbackStage,
+  QuizFeedbackValue,
+} from "@/lib/quiz-feedback";
 import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 
 export type ProductEventName =
@@ -13,6 +17,7 @@ export type ProductEventName =
   | "focus_abandoned"
   | "quiz_answered"
   | "quiz_skipped"
+  | "quiz_feedback_submitted"
   | "client_error";
 
 type ProductEvent = {
@@ -21,6 +26,9 @@ type ProductEvent = {
   questId?: string | null;
   outcome?: "completed" | "abandoned" | "correct" | "incorrect" | "skipped";
   errorCode?: string;
+  quizKey?: string;
+  quizStage?: QuizFeedbackStage;
+  feedbackValue?: QuizFeedbackValue;
 };
 
 const LAST_OPENED_KEY = "focus-quest-telemetry-last-opened";
@@ -44,6 +52,9 @@ export function useProductTelemetry(enabled: boolean) {
         quest_id: event.questId ?? null,
         outcome: event.outcome ?? null,
         error_code: event.errorCode?.slice(0, 80) ?? null,
+        quiz_key: event.quizKey?.slice(0, 160) ?? null,
+        quiz_stage: event.quizStage ?? null,
+        feedback_value: event.feedbackValue ?? null,
       });
       return !error;
     },

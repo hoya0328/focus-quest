@@ -5,9 +5,11 @@ import { readFile } from "node:fs/promises";
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("release telemetry measures the bounded funnel without study content", async () => {
-  const [hook, migration] = await Promise.all([
+  const [hook, migration, feedbackMigration, panel] = await Promise.all([
     read("app/hooks/useProductTelemetry.ts"),
     read("supabase/migrations/202611240001_release_observability.sql"),
+    read("supabase/migrations/202611240002_quiz_quality_feedback.sql"),
+    read("app/components/StudyQuizPanel.tsx"),
   ]);
 
   for (const event of ["app_opened", "returned_after_7d", "feedback_opened"]) {
@@ -15,6 +17,11 @@ test("release telemetry measures the bounded funnel without study content", asyn
     assert.match(migration, new RegExp(`'${event}'`));
   }
   assert.doesNotMatch(hook, /focusIntent|question|fileName|reflectionNote/);
+  assert.match(hook, /quiz_feedback_submitted/);
+  assert.match(feedbackMigration, /quiz_feedback_submitted/);
+  assert.match(feedbackMigration, /'helpful', 'unclear', 'out_of_scope'/);
+  assert.match(panel, /문제 품질 평가/);
+  assert.doesNotMatch(hook, /explanation|sourcePages|options/);
 });
 
 test("server failures are structured and omit identity and payload fields", async () => {

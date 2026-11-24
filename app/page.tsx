@@ -82,6 +82,12 @@ import {
   type StudyQuiz,
 } from "@/lib/study-quiz";
 import {
+  emptyQuizFeedback,
+  type QuizFeedbackStage,
+  type QuizFeedbackState,
+  type QuizFeedbackValue,
+} from "@/lib/quiz-feedback";
+import {
   createLocalCampSession,
   normalizeCampNickname,
   readCampCodeFromUrl,
@@ -506,6 +512,10 @@ export default function Home() {
   const [checkpointMessage, setCheckpointMessage] = useState("");
   const [reviewQuiz, setReviewQuiz] = useState<StudyQuiz | null>(null);
   const [reviewAnswer, setReviewAnswer] = useState<number | null>(null);
+  const [checkpointFeedback, setCheckpointFeedback] =
+    useState<QuizFeedbackState>(emptyQuizFeedback);
+  const [reviewFeedback, setReviewFeedback] =
+    useState<QuizFeedbackState>(emptyQuizFeedback);
   const [distractionDraft, setDistractionDraft] = useState("");
   const [distractionNotes, setDistractionNotes] = useState<string[]>([]);
   const audioRef = useRef<AmbientAudioContext | null>(null);
@@ -1366,6 +1376,8 @@ export default function Home() {
     setActiveStudyMaterial(null);
     setCheckpointQuiz(null);
     setReviewQuiz(null);
+    setCheckpointFeedback(emptyQuizFeedback());
+    setReviewFeedback(emptyQuizFeedback());
     setSelectedId(id);
     setBgm(adventureBgms[id]);
     setSessionMode("focus");
@@ -1471,6 +1483,8 @@ export default function Home() {
       setCheckpointMessage("");
       setReviewQuiz(null);
       setReviewAnswer(null);
+      setCheckpointFeedback(emptyQuizFeedback());
+      setReviewFeedback(emptyQuizFeedback());
     }
     if (
       completionMode === "break" &&
@@ -1515,6 +1529,8 @@ export default function Home() {
     setActiveStudyMaterial(null);
     setCheckpointQuiz(null);
     setReviewQuiz(null);
+    setCheckpointFeedback(emptyQuizFeedback());
+    setReviewFeedback(emptyQuizFeedback());
     beginSession("focus", {
       durationMinutes: record.durationMinutes,
       questId:
@@ -1769,6 +1785,7 @@ export default function Home() {
     }
     setCheckpointQuiz(quiz);
     setCheckpointAnswer(null);
+    setCheckpointFeedback(emptyQuizFeedback());
     setReviewQuiz(
       createUnseenStudyQuiz(
         source,
@@ -1779,6 +1796,7 @@ export default function Home() {
       ),
     );
     setReviewAnswer(null);
+    setReviewFeedback(emptyQuizFeedback());
     setCheckpointMessage("");
   };
 
@@ -1826,6 +1844,28 @@ export default function Home() {
     });
   };
 
+  const submitQuizFeedback = async (
+    stage: QuizFeedbackStage,
+    quiz: StudyQuiz,
+    value: QuizFeedbackValue,
+  ) => {
+    const current = stage === "checkpoint" ? checkpointFeedback : reviewFeedback;
+    if (current.status === "saving" || current.status === "saved") return;
+    const setFeedback =
+      stage === "checkpoint" ? setCheckpointFeedback : setReviewFeedback;
+    setFeedback({ value, status: "saving" });
+    const saved = Boolean(completedQuestId) && await trackProductEvent(
+      "quiz_feedback_submitted",
+      {
+        feedbackValue: value,
+        questId: completedQuestId,
+        quizKey: quiz.id,
+        quizStage: stage,
+      },
+    );
+    setFeedback({ value, status: saved ? "saved" : "error" });
+  };
+
   const beginCampFollowUp = (durationMinutes: number, split = false) => {
     const nextIntent = split
       ? normalizeFocusIntent(`${focusIntent || "자유 집중"} · 작은 한 조각`)
@@ -1863,6 +1903,8 @@ export default function Home() {
     setCheckpointMessage("");
     setReviewQuiz(null);
     setReviewAnswer(null);
+    setCheckpointFeedback(emptyQuizFeedback());
+    setReviewFeedback(emptyQuizFeedback());
     setFocusIntent(quest.title);
     setSelectedId(quest.adventureId);
     setBgm(adventureBgms[quest.adventureId]);
@@ -2937,9 +2979,15 @@ export default function Home() {
               <StudyCheckpointPanel
                 answer={checkpointAnswer}
                 endPage={studyRangeEnd}
+                feedback={checkpointFeedback}
                 message={checkpointMessage}
                 onAnswer={answerCheckpointQuiz}
                 onBuildQuiz={prepareCheckpointQuiz}
+                onFeedback={(value) => {
+                  if (checkpointQuiz) {
+                    void submitQuizFeedback("checkpoint", checkpointQuiz, value);
+                  }
+                }}
                 onSkip={skipCheckpointQuiz}
                 quiz={checkpointQuiz}
                 reachedPage={reachedPage}
@@ -3077,8 +3125,12 @@ export default function Home() {
                     ? `${completedExpedition.currentSet + 1}번째 구간 시작`
                     : `${focusMinutes}분 집중 시작`
                 }
+                feedback={reviewFeedback}
                 onAnswer={answerReviewQuiz}
                 onContinue={beginFocus}
+                onFeedback={(value) => {
+                  void submitQuizFeedback("review", reviewQuiz, value);
+                }}
                 quiz={reviewQuiz}
               />
             ) : (

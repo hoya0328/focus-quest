@@ -18,6 +18,10 @@ const productReadinessMigrationPath = new URL(
   "../supabase/migrations/202611130001_product_readiness.sql",
   import.meta.url,
 );
+const quizFeedbackMigrationPath = new URL(
+  "../supabase/migrations/202611240002_quiz_quality_feedback.sql",
+  import.meta.url,
+);
 const materialPathHardeningMigrationPath = new URL(
   "../supabase/migrations/202611130003_bind_material_storage_paths.sql",
   import.meta.url,
@@ -61,7 +65,10 @@ test("service-role configuration stays server-only", async () => {
 });
 
 test("quiz progress, attempts and telemetry are owner-isolated", async () => {
-  const migration = await readFile(productReadinessMigrationPath, "utf8");
+  const [migration, quizFeedbackMigration] = await Promise.all([
+    readFile(productReadinessMigrationPath, "utf8"),
+    readFile(quizFeedbackMigrationPath, "utf8"),
+  ]);
 
   for (const table of [
     "study_quest_progress",
@@ -79,6 +86,18 @@ test("quiz progress, attempts and telemetry are owner-isolated", async () => {
   assert.match(migration, /security invoker/i);
   assert.match(migration, /auth\.uid\(\)\) = user_id/g);
   assert.doesNotMatch(migration, /goal|file_name|question|explanation/i);
+  assert.match(
+    quizFeedbackMigration,
+    /event_name = 'quiz_feedback_submitted'[\s\S]*quest_id is not null[\s\S]*quiz_key is not null/i,
+  );
+  assert.match(
+    quizFeedbackMigration,
+    /feedback_value in \('helpful', 'unclear', 'out_of_scope'\)/i,
+  );
+  assert.doesNotMatch(
+    quizFeedbackMigration,
+    /question|explanation|source_pages|file_name/i,
+  );
 });
 
 test("the RLS event trigger cannot be called through the public Data API", async () => {
