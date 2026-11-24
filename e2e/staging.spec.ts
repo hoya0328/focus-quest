@@ -203,7 +203,9 @@ test.describe("isolated Supabase staging", () => {
 
     await page.getByText("+ 새 과목").click();
     await page.getByLabel("과목명").fill("데이터베이스 E2E");
-    await page.getByLabel("목표").fill("트랜잭션과 조인 복습");
+    await page
+      .getByRole("textbox", { name: "목표", exact: true })
+      .fill("트랜잭션과 조인 복습");
     await page.getByRole("button", { name: "과목 저장" }).click();
     await expect(page.getByRole("heading", { name: "데이터베이스 E2E" })).toBeVisible();
 

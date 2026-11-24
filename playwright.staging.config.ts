@@ -1,8 +1,30 @@
 import { defineConfig, devices } from "@playwright/test";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:3210";
 const remoteBaseURL = Boolean(process.env.E2E_BASE_URL);
 const localChrome = process.env.CI ? {} : { channel: "chrome" as const };
+const workerEnvPath = join(
+  process.cwd(),
+  ".wrangler",
+  "e2e-staging-worker.env",
+);
+
+if (!remoteBaseURL) {
+  const supabaseUrl = process.env.E2E_SUPABASE_URL;
+  const serviceRoleKey = process.env.E2E_SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Isolated Worker credentials are required.");
+  }
+  mkdirSync(dirname(workerEnvPath), { recursive: true });
+  writeFileSync(
+    workerEnvPath,
+    `SUPABASE_URL=${JSON.stringify(supabaseUrl)}\nSUPABASE_SERVICE_ROLE_KEY=${JSON.stringify(serviceRoleKey)}\n`,
+    { mode: 0o600 },
+  );
+  process.once("exit", () => rmSync(workerEnvPath, { force: true }));
+}
 
 export default defineConfig({
   testDir: "./e2e",
@@ -26,7 +48,7 @@ export default defineConfig({
     ? undefined
     : {
         command:
-          "npx wrangler dev --cwd dist/server --config wrangler.json --ip 127.0.0.1 --port 3210 --local",
+          `npx wrangler dev --cwd dist/server --config wrangler.json --ip 127.0.0.1 --port 3210 --local --env-file "${workerEnvPath}"`,
         env: {
           CLOUDFLARE_DEV_REGISTRY_PATH: `${process.cwd()}/.wrangler/e2e-staging-registry`,
           XDG_CONFIG_HOME: `${process.cwd()}/.wrangler/xdg-e2e-staging`,
