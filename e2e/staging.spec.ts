@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
 
 type TestUser = {
+  displayName: string;
   email: string;
   id: string;
   password: string;
@@ -27,6 +28,7 @@ function userClient() {
 async function createTestUser(label: string): Promise<TestUser> {
   const suffix = randomUUID();
   const user = {
+    displayName: `E2E ${label.toUpperCase()}`,
     email: `focus-quest-${label}-${suffix}@example.com`,
     password: `Fq!${suffix}Aa9`,
   };
@@ -34,7 +36,7 @@ async function createTestUser(label: string): Promise<TestUser> {
     email: user.email,
     email_confirm: true,
     password: user.password,
-    user_metadata: { full_name: `E2E ${label.toUpperCase()}` },
+    user_metadata: { full_name: user.displayName },
   });
   if (error || !data.user) throw error ?? new Error("Test user was not created");
   const created = { ...user, id: data.user.id };
@@ -58,7 +60,7 @@ async function signInPage(page: Page, user: TestUser) {
   await page.getByLabel("비밀번호").fill(user.password);
   await page.getByRole("button", { name: "로그인하고 이어하기" }).click();
   await expect(page.locator("summary.account-chip")).toContainText(
-    user.email.split("@")[0],
+    user.displayName,
   );
 }
 
