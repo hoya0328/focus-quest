@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState, type FormEvent } from "react";
 import StudyMaterialLibrary from "@/app/components/StudyMaterialLibrary";
 import PlusInterestPanel from "@/app/components/PlusInterestPanel";
+import ExamExpeditionPanel from "@/app/components/ExamExpeditionPanel";
 import { useStudyMaterials } from "@/app/hooks/useStudyMaterials";
 import type { StudyMaterial } from "@/lib/pdf-analysis";
 import type { FocusRecord } from "@/lib/pomodoro";
@@ -148,10 +149,6 @@ export default function QuestBoard({
         })
       : null,
     [activeSubject, history, visibleQuests],
-  );
-  const examReportPeak = Math.max(
-    1,
-    ...(examReport?.weeks.map((week) => week.minutes) ?? []),
   );
   const recommendedQuest = useMemo(
     () => getRecommendedQuest(visibleQuests, getEffectiveLearningSignal),
@@ -360,71 +357,8 @@ export default function QuestBoard({
                 </section>
               )}
 
-              {examExpedition && examExpedition.totalSets > 0 && (
-                <section className={`exam-expedition state-${examExpedition.risk}`} aria-labelledby="exam-expedition-title">
-                  <div className="exam-expedition-copy">
-                    <span>EXAM EXPEDITION</span>
-                    <h3 id="exam-expedition-title">{examExpedition.label}</h3>
-                    <p>{examExpedition.message}</p>
-                  </div>
-                  <div className="exam-expedition-stats">
-                    <div>
-                      <strong>{examExpedition.completedSets}/{examExpedition.totalSets}</strong>
-                      <span>통과한 구간</span>
-                    </div>
-                    <div>
-                      <strong>{examExpedition.dailyMinutes}분</strong>
-                      <span>하루 권장</span>
-                    </div>
-                  </div>
-                  <span
-                    aria-label={`시험 원정 ${examExpedition.totalSets > 0 ? Math.round((examExpedition.completedSets / examExpedition.totalSets) * 100) : 0}% 완료`}
-                    aria-valuemax={100}
-                    aria-valuemin={0}
-                    aria-valuenow={examExpedition.totalSets > 0 ? Math.round((examExpedition.completedSets / examExpedition.totalSets) * 100) : 0}
-                    className="exam-expedition-track"
-                    role="progressbar"
-                  >
-                    <i style={{ width: `${examExpedition.totalSets > 0 ? (examExpedition.completedSets / examExpedition.totalSets) * 100 : 0}%` }} />
-                  </span>
-                </section>
-              )}
-
-              {examReport && examExpedition && examExpedition.totalSets > 0 && (
-                <section
-                  className={`expedition-report state-${examReport.status}`}
-                  aria-labelledby="expedition-report-title"
-                >
-                  <div className="expedition-report-heading">
-                    <div>
-                      <span>4-WEEK ROUTE</span>
-                      <h3 id="expedition-report-title">{examReport.headline}</h3>
-                      <p>{examReport.message}</p>
-                    </div>
-                    <div className="expedition-report-trend" aria-label="최근 7일 변화">
-                      <strong>{examReport.recentMinutes}분</strong>
-                      <small>
-                        {examReport.trendMinutes === 0
-                          ? "지난주와 같아요"
-                          : `${examReport.trendMinutes > 0 ? "+" : ""}${examReport.trendMinutes}분`}
-                      </small>
-                    </div>
-                  </div>
-                  <div className="expedition-week-chart" aria-label="최근 4주 과목 집중 시간">
-                    {examReport.weeks.map((week) => {
-                      return (
-                        <div key={week.label}>
-                          <span
-                            aria-label={`${week.label} ${week.minutes}분`}
-                            style={{ height: `${Math.max(6, (week.minutes / examReportPeak) * 100)}%` }}
-                          />
-                          <strong>{week.minutes}분</strong>
-                          <small>{week.label}</small>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
+              {examExpedition && examReport && examExpedition.totalSets > 0 && (
+                <ExamExpeditionPanel expedition={examExpedition} report={examReport} />
               )}
 
               {recommendedQuest && (

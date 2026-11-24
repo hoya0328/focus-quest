@@ -165,6 +165,57 @@ test.describe("isolated Supabase staging", () => {
     expect(forbiddenDownload.error).not.toBeNull();
   });
 
+  test("Plus interest is writable by its owner and hidden from another account", async () => {
+    const clientA = await signInClient(userA);
+    const clientB = await signInClient(userB);
+    const ownerInsert = await clientA
+      .from("focus_quest_plus_interest")
+      .insert({
+        user_id: userA.id,
+        interest_level: "interested",
+        price_band: 5900,
+      })
+      .select("user_id,interest_level,price_band")
+      .single();
+    expect(ownerInsert.error).toBeNull();
+    expect(ownerInsert.data).toEqual({
+      user_id: userA.id,
+      interest_level: "interested",
+      price_band: 5900,
+    });
+
+    const ownerUpdate = await clientA
+      .from("focus_quest_plus_interest")
+      .update({ price_band: 6900 })
+      .eq("user_id", userA.id)
+      .select("price_band")
+      .single();
+    expect(ownerUpdate.error).toBeNull();
+    expect(ownerUpdate.data?.price_band).toBe(6900);
+
+    const crossRead = await clientB
+      .from("focus_quest_plus_interest")
+      .select("user_id,price_band")
+      .eq("user_id", userA.id);
+    expect(crossRead.error).toBeNull();
+    expect(crossRead.data).toEqual([]);
+
+    const crossUpdate = await clientB
+      .from("focus_quest_plus_interest")
+      .update({ price_band: 4900 })
+      .eq("user_id", userA.id)
+      .select("user_id");
+    expect(crossUpdate.error).toBeNull();
+    expect(crossUpdate.data).toEqual([]);
+
+    const forgedInsert = await clientA.from("focus_quest_plus_interest").insert({
+      user_id: userB.id,
+      interest_level: "interested",
+      price_band: 4900,
+    });
+    expect(forgedInsert.error).not.toBeNull();
+  });
+
   test("a record saved on one browser is restored on another", async ({
     browser,
   }) => {

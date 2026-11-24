@@ -1,5 +1,6 @@
 import {
   getWeeklySummary,
+  localDateKey,
   type AdventureId,
   type FocusRecord,
 } from "./pomodoro.ts";
@@ -355,18 +356,19 @@ export function getExamExpeditionReport({
   const projectedDays = recentMinutes > 0 && expedition.remainingMinutes > 0
     ? Math.ceil(expedition.remainingMinutes / (recentMinutes / 7))
     : null;
-  const projectedDate = projectedDays === null
-    ? null
-    : new Date(nowMs + projectedDays * dayMs).toISOString().slice(0, 10);
-  const targetMs = subject.targetDate
-    ? Date.parse(`${subject.targetDate}T23:59:59Z`)
-    : Number.NaN;
+  const projectedDate = (() => {
+    if (projectedDays === null) return null;
+    const projected = new Date(now);
+    projected.setHours(12, 0, 0, 0);
+    projected.setDate(projected.getDate() + projectedDays);
+    return localDateKey(projected);
+  })();
   const status = expedition.remainingMinutes === 0
     ? "complete"
     : recentMinutes === 0
       ? "no_pace"
-      : Number.isFinite(targetMs) && projectedDate
-        ? Date.parse(`${projectedDate}T23:59:59Z`) <= targetMs
+      : subject.targetDate && projectedDate
+        ? projectedDate <= subject.targetDate
           ? "on_track"
           : "at_risk"
         : requiredWeeklyMinutes > 0 && recentMinutes < requiredWeeklyMinutes
