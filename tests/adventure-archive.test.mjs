@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getAdventureArchive, getNextMasteryTarget } from "../lib/adventure-archive.ts";
+import {
+  getAdventureArchive,
+  getNextMasteryTarget,
+  isAdventureArchiveUnlocked,
+} from "../lib/adventure-archive.ts";
 
 function records(count, adventureId = "hike") {
   return Array.from({ length: count }, (_, index) => ({
@@ -28,4 +32,18 @@ test("archive ignores short recovery sessions and other worlds", () => {
   const archive = getAdventureArchive(history, "swim");
   assert.equal(archive.completed, 124);
   assert.equal(archive.unlockedRelics, 0);
+});
+
+test("archive stays hidden until at least one world is fully restored", () => {
+  const locked = ["hike", "swim", "fish"].map((id) =>
+    getAdventureArchive(records(99, id), id),
+  );
+  const unlocked = [
+    getAdventureArchive(records(100, "hike"), "hike"),
+    getAdventureArchive([], "swim"),
+    getAdventureArchive([], "fish"),
+  ];
+
+  assert.equal(isAdventureArchiveUnlocked(locked), false);
+  assert.equal(isAdventureArchiveUnlocked(unlocked), true);
 });

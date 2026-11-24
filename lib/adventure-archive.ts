@@ -18,6 +18,10 @@ export type AdventureArchive = {
   nextRelic: ArchiveRelic | null;
 };
 
+export function isAdventureArchiveUnlocked(archives: AdventureArchive[]) {
+  return archives.some((archive) => archive.completed >= 100);
+}
+
 const archiveRelics: Record<AdventureId, readonly Omit<ArchiveRelic, "unlocked">[]> = {
   hike: [
     { id: "hike-sun-compass", name: "햇살 나침반", description: "안개 속에서도 정상의 방향을 알려줘요.", requiredCompletions: 125 },

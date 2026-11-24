@@ -1,7 +1,10 @@
 "use client";
 
 import type { AdventureArchive as AdventureArchiveState } from "@/lib/adventure-archive";
-import { getNextMasteryTarget } from "@/lib/adventure-archive";
+import {
+  getNextMasteryTarget,
+  isAdventureArchiveUnlocked,
+} from "@/lib/adventure-archive";
 import type { AdventureId } from "@/lib/pomodoro";
 import { getSeasonalWorldEvent } from "@/lib/seasonal-events";
 
@@ -18,6 +21,7 @@ const worldNames: Record<AdventureId, string> = {
 };
 
 export default function AdventureArchive({ archives, selectedId, onSelect }: AdventureArchiveProps) {
+  if (!isAdventureArchiveUnlocked(archives)) return null;
   const selected = archives.find((archive) => archive.adventureId === selectedId) ?? archives[0];
   if (!selected) return null;
   const target = getNextMasteryTarget(selected.completed);

@@ -11,6 +11,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent,
 } from "react";
 import Image from "next/image";
 import AuthDialog from "@/app/components/AuthDialog";
@@ -1408,7 +1409,7 @@ export default function Home() {
   }, [isCelebrating]);
 
   useEffect(() => {
-    if (screen === "camp" || screen === "complete") {
+    if (screen === "camp" || screen === "complete" || screen === "focus") {
       window.scrollTo({ top: 0, behavior: "auto" });
     }
   }, [screen]);
@@ -1442,6 +1443,36 @@ export default function Home() {
     setSessionDurationMinutes(focusMinutes);
     setRemaining(focusMinutes * 60);
     void trackProductEvent("companion_selected", { adventureId: id });
+  };
+
+  const handleCompanionKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    id: AdventureId,
+  ) => {
+    const currentIndex = adventures.findIndex((adventure) => adventure.id === id);
+    let nextIndex = currentIndex;
+
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      nextIndex = (currentIndex + 1) % adventures.length;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      nextIndex = (currentIndex - 1 + adventures.length) % adventures.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = adventures.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    const radioGroup = event.currentTarget.closest('[role="radiogroup"]');
+    const nextAdventure = adventures[nextIndex];
+    chooseAdventure(nextAdventure.id);
+    requestAnimationFrame(() => {
+      radioGroup
+        ?.querySelector<HTMLButtonElement>(`[data-companion-id="${nextAdventure.id}"]`)
+        ?.focus();
+    });
   };
 
   const commitRecoveryQuest = useCallback(
@@ -2286,8 +2317,10 @@ export default function Home() {
                   <button
                     aria-checked={active}
                     className={`companion-choice theme-${adventure.id} ${active ? "is-active" : ""}`}
+                    data-companion-id={adventure.id}
                     key={adventure.id}
                     onClick={() => chooseAdventure(adventure.id)}
+                    onKeyDown={(event) => handleCompanionKeyDown(event, adventure.id)}
                     role="radio"
                     style={
                       {
@@ -2295,6 +2328,7 @@ export default function Home() {
                         "--choice-bg": `url("${adventure.background}")`,
                       } as React.CSSProperties
                     }
+                    tabIndex={active ? 0 : -1}
                     type="button"
                   >
                     <span className="companion-choice-world" aria-hidden="true">
@@ -2483,6 +2517,7 @@ export default function Home() {
 
       {screen === "camp" && (
         <CampLobby
+          authenticated={questLoggedIn}
           chatMessages={silentCampChatMessages}
           code={silentCampCode}
           companions={adventures}
@@ -2511,6 +2546,7 @@ export default function Home() {
             setRemaining(minutes * 60);
           }}
           onJoin={(campCode) => void joinSilentCamp(campCode)}
+          onLogin={() => setShowAuthDialog(true)}
           onInviteContact={inviteSilentCampContact}
           onLeave={() => void leaveSilentCamp()}
           onNicknameChange={(value) => setCampNickname(value.slice(0, 12))}

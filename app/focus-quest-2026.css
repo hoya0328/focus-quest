@@ -3026,7 +3026,7 @@
   .focus-quest-app .setup-layout { grid-template-columns: minmax(0, 1fr); }
   .focus-quest-app .quick-start-copy,
   .focus-quest-app .quick-companion { min-height: auto; }
-  .focus-quest-app .preview-panel { position: relative; top: auto; min-height: 520px; }
+  .focus-quest-app .preview-panel { position: relative; top: auto; min-height: 360px; }
   .focus-quest-app .quick-companion-stage { min-height: 340px; }
 }
 
@@ -3084,7 +3084,7 @@
   .focus-quest-app .recovery-card-actions { flex-direction: column; }
   .focus-quest-app .recovery-card-actions button { width: 100%; }
   .focus-quest-app .settings-panel { padding: var(--space-lg); }
-  .focus-quest-app .preview-panel { min-height: 420px; }
+  .focus-quest-app .preview-panel { min-height: 300px; }
   .focus-quest-app .preview-label { right: var(--space-md); bottom: var(--space-md); left: var(--space-md); padding: var(--space-md); }
   .focus-quest-app .focus-top { top: var(--space-md); right: var(--space-md); left: var(--space-md); }
   .focus-quest-app .timer-card { right: var(--space-md); bottom: var(--space-md); left: var(--space-md); width: auto; padding: var(--space-lg); }

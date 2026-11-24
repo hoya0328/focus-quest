@@ -26,6 +26,7 @@ export type CampCompanion = {
 };
 
 type CampLobbyProps = {
+  authenticated: boolean;
   chatMessages: SilentCampChatMessage[];
   code: string;
   companions: CampCompanion[];
@@ -47,6 +48,7 @@ type CampLobbyProps = {
   onCreate: () => void;
   onFocusMinutesChange: (minutes: number) => void;
   onJoin: (code?: string) => void;
+  onLogin: () => void;
   onInviteContact: (userId: string) => Promise<boolean>;
   onLeave: () => void;
   onNicknameChange: (value: string) => void;
@@ -72,6 +74,7 @@ function formatChatTime(value: string) {
 }
 
 export default function CampLobby({
+  authenticated,
   chatMessages,
   code,
   companions,
@@ -93,6 +96,7 @@ export default function CampLobby({
   onCreate,
   onFocusMinutesChange,
   onJoin,
+  onLogin,
   onInviteContact,
   onLeave,
   onNicknameChange,
@@ -170,8 +174,9 @@ export default function CampLobby({
 
           <div className="camp-entry-panel">
             <p className="camp-beta-notice">
-              로그인한 초대 멤버만 캠프에 연결돼요. 목표와 공부 자료는 공유되지 않으며,
-              대화에는 개인정보를 남기지 않는 것이 좋아요.
+              {authenticated
+                ? "초대 멤버만 캠프에 연결돼요. 목표와 공부 자료는 공유되지 않으며, 대화에는 개인정보를 남기지 않는 것이 좋아요."
+                : "캠프는 로그인한 초대 멤버끼리만 연결돼요. 먼저 로그인하면 새 캠프를 만들거나 받은 코드로 참가할 수 있어요."}
             </p>
             <label className="camp-field">
               <span>캠프에서 사용할 이름</span>
@@ -206,34 +211,45 @@ export default function CampLobby({
               </div>
             </fieldset>
 
-            <div className="camp-entry-actions">
-              <button
-                className="camp-create-button"
-                disabled={isConnecting}
-                type="button"
-                onClick={onCreate}
-              >
-                {isConnecting ? "캠프 여는 중…" : "새 캠프 만들기"}
-              </button>
-              <span>또는</span>
-              <label className="camp-code-entry">
-                <span>받은 코드</span>
-                <input
-                  inputMode="text"
-                  maxLength={8}
-                  value={code}
-                  onChange={(event) => onCodeChange(event.target.value)}
-                  placeholder="CAMP1234"
-                />
+            {authenticated ? (
+              <div className="camp-entry-actions">
                 <button
-                  disabled={isConnecting || code.length < 6}
+                  className="camp-create-button"
+                  disabled={isConnecting}
                   type="button"
-                  onClick={() => onJoin()}
+                  onClick={onCreate}
                 >
-                  {status === "error" ? "다시 연결" : "들어가기"}
+                  {isConnecting ? "캠프 여는 중…" : "새 캠프 만들기"}
                 </button>
-              </label>
-            </div>
+                <span>또는</span>
+                <label className="camp-code-entry">
+                  <span>받은 코드</span>
+                  <input
+                    inputMode="text"
+                    maxLength={8}
+                    value={code}
+                    onChange={(event) => onCodeChange(event.target.value)}
+                    placeholder="CAMP1234"
+                  />
+                  <button
+                    disabled={isConnecting || code.length < 6}
+                    type="button"
+                    onClick={() => onJoin()}
+                  >
+                    {status === "error" ? "다시 연결" : "들어가기"}
+                  </button>
+                </label>
+              </div>
+            ) : (
+              <div className="camp-entry-actions">
+                <button className="camp-create-button" type="button" onClick={onLogin}>
+                  로그인하고 캠프 시작
+                </button>
+                <small className="camp-connection-message">
+                  받은 초대 코드는 로그인 뒤에도 그대로 유지돼요.
+                </small>
+              </div>
+            )}
             <p className={`camp-connection-message status-${status}`} role="status">
               {message}
             </p>

@@ -213,8 +213,17 @@ export default function RestQuestScene({
                 ? { x: 0.21, y: 0.69 }
                 : { x: 0.22, y: 0.71 };
 
+          const desiredX = sceneLeft + sceneWidth * anchor.x;
+          const horizontalMargin = compact ? 12 : 24;
+          const companionHalfWidth = companionWidth / 2;
+          const safeX = Phaser.Math.Clamp(
+            desiredX,
+            companionHalfWidth + horizontalMargin,
+            width - companionHalfWidth - horizontalMargin,
+          );
+
           this.companion.setPosition(
-            sceneLeft + sceneWidth * anchor.x,
+            safeX,
             sceneTop + sceneHeight * anchor.y,
           );
           this.companionBaseY = this.companion.y;
