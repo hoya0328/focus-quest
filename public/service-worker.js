@@ -1,19 +1,22 @@
-const CACHE_NAME = "focus-quest-v6";
+const CACHE_NAME = "focus-quest-v7";
 const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const OFFLINE_PAGE_KEY = `${BASE_PATH}/__focus-quest-offline`;
 const CORE_ASSETS = [
   `${BASE_PATH}/manifest.webmanifest`,
   `${BASE_PATH}/brand/focus-quest-logo.png`,
   `${BASE_PATH}/brand/focus-quest-mark.png`,
-  `${BASE_PATH}/characters/momo-hiking.png`,
-  `${BASE_PATH}/characters/podo-swimming.png`,
-  `${BASE_PATH}/characters/bori-fishing.png`,
-  `${BASE_PATH}/characters/mori-rest.png`,
-  `${BASE_PATH}/characters/naru-rest.png`,
-  `${BASE_PATH}/characters/bori-rest.png`,
-  `${BASE_PATH}/characters/evolution/mori-evolution-v1.png`,
-  `${BASE_PATH}/characters/evolution/naru-evolution-v1.png`,
-  `${BASE_PATH}/characters/evolution/bori-evolution-v1.png`
+  `${BASE_PATH}/brand/focus-quest-192.png`,
+  `${BASE_PATH}/brand/focus-quest-512.png`,
+  `${BASE_PATH}/brand/focus-quest-maskable-512.png`,
+  `${BASE_PATH}/characters/momo-hiking.webp`,
+  `${BASE_PATH}/characters/podo-swimming.webp`,
+  `${BASE_PATH}/characters/bori-fishing.webp`,
+  `${BASE_PATH}/characters/mori-rest.webp`,
+  `${BASE_PATH}/characters/naru-rest.webp`,
+  `${BASE_PATH}/characters/bori-rest.webp`,
+  `${BASE_PATH}/characters/evolution/mori-evolution-v1.webp`,
+  `${BASE_PATH}/characters/evolution/naru-evolution-v1.webp`,
+  `${BASE_PATH}/characters/evolution/bori-evolution-v1.webp`
 ];
 const CACHEABLE_DESTINATIONS = new Set([
   "audio",

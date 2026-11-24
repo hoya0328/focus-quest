@@ -22,6 +22,27 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 
 export type CampStatus = "idle" | "connecting" | "joined" | "error";
 export type CampRole = "leader" | "member" | null;
+export type CampContact = {
+  userId: string;
+  nickname: string;
+  adventureId: AdventureId;
+  sessionsTogether: number;
+  lastMetAt: string;
+};
+export type CampHistoryEntry = {
+  campId: string;
+  code: string;
+  adventureId: AdventureId;
+  durationMinutes: number;
+  memberCount: number;
+  completedAt: string;
+};
+export type CampInvitation = {
+  campId: string;
+  code: string;
+  inviterNickname: string;
+  expiresAt: string;
+};
 
 type CampRoom = {
   camp_id: string;
@@ -86,12 +107,14 @@ export function useSilentCamp({
   adventureId,
   focusMinutes,
   nickname,
+  onJoined,
   onRemoteTimer,
 }: {
   activeTimer: SilentCampTimer | null;
   adventureId: AdventureId;
   focusMinutes: number;
   nickname: string;
+  onJoined?: (created: boolean) => void;
   onRemoteTimer: (timer: SilentCampTimer) => void;
 }) {
   const [code, setCodeState] = useState("");
@@ -102,6 +125,10 @@ export function useSilentCamp({
   const [leaderId, setLeaderId] = useState<string | null>(null);
   const [role, setRole] = useState<CampRole>(null);
   const [message, setMessage] = useState("캠프를 만들거나 받은 코드로 들어가세요.");
+  const [contacts, setContacts] = useState<CampContact[]>([]);
+  const [history, setHistory] = useState<CampHistoryEntry[]>([]);
+  const [invitations, setInvitations] = useState<CampInvitation[]>([]);
+  const [campId, setCampId] = useState("");
   const channelRef = useRef<RealtimeChannel | null>(null);
   const campIdRef = useRef("");
   const memberIdRef = useRef("");
@@ -111,11 +138,63 @@ export function useSilentCamp({
   const lastChatAtRef = useRef(0);
   const lastRemoteChatAtRef = useRef(new Map<string, number>());
   const onRemoteTimerRef = useRef(onRemoteTimer);
+  const onJoinedRef = useRef(onJoined);
   const joinRef = useRef<(requestedCode?: string) => Promise<void>>(async () => {});
+
+  const refreshCommunity = useCallback(async () => {
+    const client = getSupabaseBrowserClient();
+    if (!client) return;
+    const user = (await client.auth.getUser()).data.user;
+    if (!user) {
+      setContacts([]);
+      setHistory([]);
+      setInvitations([]);
+      return;
+    }
+    const [contactResult, historyResult, invitationResult] = await Promise.all([
+      client.from("focus_quest_camp_contacts")
+        .select("contact_user_id,nickname,adventure_id,sessions_together,last_met_at")
+        .order("last_met_at", { ascending: false }).limit(12),
+      client.from("focus_quest_camp_history")
+        .select("camp_id,camp_code,adventure_id,duration_minutes,member_count,completed_at")
+        .order("completed_at", { ascending: false }).limit(8),
+      client.from("focus_quest_camp_invitations")
+        .select("camp_id,camp_code,inviter_nickname,expires_at,accepted_at")
+        .eq("invitee_user_id", user.id)
+        .is("accepted_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false }).limit(8),
+    ]);
+    if (!contactResult.error) setContacts((contactResult.data ?? []).map((row) => ({
+      userId: row.contact_user_id as string,
+      nickname: row.nickname as string,
+      adventureId: row.adventure_id as AdventureId,
+      sessionsTogether: row.sessions_together as number,
+      lastMetAt: row.last_met_at as string,
+    })));
+    if (!historyResult.error) setHistory((historyResult.data ?? []).map((row) => ({
+      campId: row.camp_id as string,
+      code: row.camp_code as string,
+      adventureId: row.adventure_id as AdventureId,
+      durationMinutes: row.duration_minutes as number,
+      memberCount: row.member_count as number,
+      completedAt: row.completed_at as string,
+    })));
+    if (!invitationResult.error) setInvitations((invitationResult.data ?? []).map((row) => ({
+      campId: row.camp_id as string,
+      code: row.camp_code as string,
+      inviterNickname: row.inviter_nickname as string,
+      expiresAt: row.expires_at as string,
+    })));
+  }, []);
 
   useEffect(() => {
     onRemoteTimerRef.current = onRemoteTimer;
   }, [onRemoteTimer]);
+
+  useEffect(() => {
+    onJoinedRef.current = onJoined;
+  }, [onJoined]);
 
   const setCode = useCallback((value: string) => {
     setCodeState(normalizeCampCode(value));
@@ -133,6 +212,7 @@ export function useSilentCamp({
     if (client && channelRef.current) await client.removeChannel(channelRef.current);
     channelRef.current = null;
     campIdRef.current = "";
+    setCampId("");
     memberIdRef.current = "";
     joinedAtRef.current = "";
     leaderIdRef.current = null;
@@ -185,6 +265,7 @@ export function useSilentCamp({
         return;
       }
       const requested = normalizeCampCode(requestedCode ?? code);
+      const creatingRoom = requested.length === 0;
       if (requested && requested.length < 6) {
         setStatus("error");
         setMessage("캠프 코드는 6자 이상 입력해 주세요.");
@@ -214,6 +295,7 @@ export function useSilentCamp({
         const memberId = user.id;
         const joinedAt = new Date().toISOString();
         campIdRef.current = room.camp_id;
+        setCampId(room.camp_id);
         memberIdRef.current = memberId;
         joinedAtRef.current = joinedAt;
         leaderIdRef.current = room.leader_user_id;
@@ -284,6 +366,11 @@ export function useSilentCamp({
               focusMinutes,
             });
             setStatus("joined");
+            void client.rpc("accept_focus_quest_camp_invitation", {
+              requested_camp_id: room.camp_id,
+            });
+            void refreshCommunity();
+            onJoinedRef.current?.(creatingRoom);
             writeCampResumeState({ version: 1, code: room.code, memberId, joinedAt });
           } else if (channelStatus === "CHANNEL_ERROR" || channelStatus === "TIMED_OUT") {
             setStatus("error");
@@ -296,7 +383,7 @@ export function useSilentCamp({
         setMessage(campFailureMessage(failure instanceof Error ? failure.message : ""));
       }
     },
-    [adventureId, appendChatMessage, code, focusMinutes, nickname, refreshLeader, resetLocalCamp],
+    [adventureId, appendChatMessage, code, focusMinutes, nickname, refreshCommunity, refreshLeader, resetLocalCamp],
   );
 
   useEffect(() => {
@@ -311,6 +398,11 @@ export function useSilentCamp({
     const timer = window.setTimeout(() => void joinRef.current(nextCode), 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void refreshCommunity(), 0);
+    return () => window.clearTimeout(timer);
+  }, [refreshCommunity]);
 
   useEffect(() => {
     if (status !== "joined" || !channelRef.current || !campIdRef.current) return;
@@ -410,6 +502,72 @@ export function useSilentCamp({
     return true;
   }, [appendChatMessage, nickname, status]);
 
+  const inviteContact = useCallback(async (contactUserId: string) => {
+    const client = getSupabaseBrowserClient();
+    if (!client || !campIdRef.current || role !== "leader") return false;
+    const result = await client.rpc("invite_focus_quest_camp_contact", {
+      requested_camp_id: campIdRef.current,
+      requested_contact_user_id: contactUserId,
+    });
+    setMessage(result.error ? "초대를 보내지 못했어요. 잠시 후 다시 시도해 주세요." : "함께했던 친구에게 초대를 보냈어요.");
+    return !result.error;
+  }, [role]);
+
+  const reportMember = useCallback(async (
+    targetUserId: string,
+    reason: "spam" | "harassment" | "privacy" | "other",
+  ) => {
+    const client = getSupabaseBrowserClient();
+    if (!client || !campIdRef.current) return false;
+    const result = await client.rpc("report_focus_quest_camp_member", {
+      requested_camp_id: campIdRef.current,
+      requested_reason: reason,
+      requested_user_id: targetUserId,
+    });
+    setMessage(result.error ? "신고를 접수하지 못했어요." : "신고를 접수했어요. 같은 내용은 한 번만 저장돼요.");
+    return !result.error;
+  }, []);
+
+  const recordCompletion = useCallback(async (durationMinutes: number) => {
+    const client = getSupabaseBrowserClient();
+    if (!client || !campIdRef.current || role !== "leader") return false;
+    const result = await client.rpc("record_focus_quest_camp_completion", {
+      requested_camp_id: campIdRef.current,
+      requested_duration_minutes: durationMinutes,
+    });
+    if (!result.error) await refreshCommunity();
+    return !result.error;
+  }, [refreshCommunity, role]);
+
+  const reopenCamp = useCallback(async (previousCampId: string) => {
+    const client = getSupabaseBrowserClient();
+    if (!client) return false;
+    setStatus("connecting");
+    setMessage("지난 동료들에게 보낼 새 캠프를 준비하고 있어요.");
+    try {
+      const cleanNickname = normalizeCampNickname(nickname) || "모험가";
+      let room: CampRoom | null = null;
+      for (let attempt = 0; attempt < 3 && !room; attempt += 1) {
+        const result = await client.rpc("reopen_focus_quest_camp", {
+          previous_camp_id: previousCampId,
+          requested_adventure_id: adventureId,
+          requested_code: createSecureCampCode(),
+          requested_focus_minutes: focusMinutes,
+          requested_nickname: cleanNickname,
+        });
+        if (!result.error) room = (result.data?.[0] ?? null) as CampRoom | null;
+        else if (!result.error.message.includes("duplicate key")) throw result.error;
+      }
+      if (!room) throw new Error("duplicate key");
+      await join(room.code);
+      return true;
+    } catch (failure) {
+      setStatus("error");
+      setMessage(campFailureMessage(failure instanceof Error ? failure.message : ""));
+      return false;
+    }
+  }, [adventureId, focusMinutes, join, nickname]);
+
   const copyInvite = useCallback(async () => {
     await navigator.clipboard.writeText(createCampInviteUrl(window.location.href, code));
     setMessage("초대 링크를 복사했어요.");
@@ -422,15 +580,24 @@ export function useSilentCamp({
 
   return {
     chatMessages,
+    campId,
     code,
+    contacts,
     copyInvite,
     count: members.length,
     currentMemberId,
     join,
+    history,
+    invitations,
+    inviteContact,
     leaderId,
     leave,
     members,
     message,
+    recordCompletion,
+    refreshCommunity,
+    reopenCamp,
+    reportMember,
     removeMember,
     role,
     sendChat,

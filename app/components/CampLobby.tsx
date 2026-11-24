@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import type { CampRole, CampStatus } from "@/app/hooks/useSilentCamp";
+import type {
+  CampContact,
+  CampHistoryEntry,
+  CampInvitation,
+  CampRole,
+  CampStatus,
+} from "@/app/hooks/useSilentCamp";
 import type { AdventureId } from "@/lib/pomodoro";
 import type {
   SilentCampChatMessage,
@@ -23,8 +29,11 @@ type CampLobbyProps = {
   chatMessages: SilentCampChatMessage[];
   code: string;
   companions: CampCompanion[];
+  contacts: CampContact[];
   currentMemberId: string;
   focusMinutes: number;
+  history: CampHistoryEntry[];
+  invitations: CampInvitation[];
   leaderId: string | null;
   members: SilentCampMember[];
   message: string;
@@ -37,10 +46,16 @@ type CampLobbyProps = {
   onCopyInvite: () => void;
   onCreate: () => void;
   onFocusMinutesChange: (minutes: number) => void;
-  onJoin: () => void;
+  onJoin: (code?: string) => void;
+  onInviteContact: (userId: string) => Promise<boolean>;
   onLeave: () => void;
   onNicknameChange: (value: string) => void;
   onRemoveMember: (memberId: string, shouldBlock: boolean) => Promise<boolean>;
+  onReopenCamp: (campId: string) => Promise<boolean>;
+  onReportMember: (
+    memberId: string,
+    reason: "spam" | "harassment" | "privacy" | "other",
+  ) => Promise<boolean>;
   onSelectCompanion: (id: AdventureId) => void;
   onSendChat: (message: string) => Promise<boolean>;
   onStart: () => void;
@@ -60,8 +75,11 @@ export default function CampLobby({
   chatMessages,
   code,
   companions,
+  contacts,
   currentMemberId,
   focusMinutes,
+  history,
+  invitations,
   leaderId,
   members,
   message,
@@ -75,9 +93,12 @@ export default function CampLobby({
   onCreate,
   onFocusMinutesChange,
   onJoin,
+  onInviteContact,
   onLeave,
   onNicknameChange,
   onRemoveMember,
+  onReopenCamp,
+  onReportMember,
   onSelectCompanion,
   onSendChat,
   onStart,
@@ -117,7 +138,7 @@ export default function CampLobby({
 
       <div className="camp-lobby-heading">
         <div>
-          <span className="camp-beta-badge">초대 전용 베타</span>
+          <span className="camp-beta-badge">비공개 집중 캠프</span>
           <h1>친구와 함께 모험하기</h1>
           <p>각자 좋아하는 친구를 고르고, 같은 순간에 집중을 시작해요.</p>
         </div>
@@ -149,8 +170,8 @@ export default function CampLobby({
 
           <div className="camp-entry-panel">
             <p className="camp-beta-notice">
-              캠프 코드를 아는 사람은 들어올 수 있어요. 링크는 아는 친구에게만 보내고,
-              개인정보나 계정 정보는 채팅에 남기지 마세요.
+              로그인한 초대 멤버만 캠프에 연결돼요. 목표와 공부 자료는 공유되지 않으며,
+              대화에는 개인정보를 남기지 않는 것이 좋아요.
             </p>
             <label className="camp-field">
               <span>캠프에서 사용할 이름</span>
@@ -207,7 +228,7 @@ export default function CampLobby({
                 <button
                   disabled={isConnecting || code.length < 6}
                   type="button"
-                  onClick={onJoin}
+                  onClick={() => onJoin()}
                 >
                   {status === "error" ? "다시 연결" : "들어가기"}
                 </button>
@@ -216,6 +237,30 @@ export default function CampLobby({
             <p className={`camp-connection-message status-${status}`} role="status">
               {message}
             </p>
+
+            {(invitations.length > 0 || history.length > 0) && (
+              <section className="camp-returning" aria-labelledby="camp-returning-title">
+                <h2 id="camp-returning-title">다시 모일 수 있는 캠프</h2>
+                {invitations.map((invitation) => (
+                  <article key={invitation.campId}>
+                    <div>
+                      <strong>{invitation.inviterNickname}의 초대</strong>
+                      <span>캠프 {invitation.code}</span>
+                    </div>
+                    <button type="button" onClick={() => onJoin(invitation.code)}>참가하기</button>
+                  </article>
+                ))}
+                {history.slice(0, 3).map((entry) => (
+                  <article key={entry.campId}>
+                    <div>
+                      <strong>{entry.memberCount}명이 함께한 {entry.durationMinutes}분</strong>
+                      <span>{new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric" }).format(new Date(entry.completedAt))}</span>
+                    </div>
+                    <button type="button" onClick={() => void onReopenCamp(entry.campId)}>다시 모이기</button>
+                  </article>
+                ))}
+              </section>
+            )}
           </div>
         </div>
       ) : (
@@ -265,6 +310,16 @@ export default function CampLobby({
                           차단
                         </button>
                       </div>
+                    )}
+                    {!isMe && (
+                      <details className="camp-report-menu">
+                        <summary>신고</summary>
+                        <div>
+                          <button type="button" onClick={() => void onReportMember(member.memberId, "spam")}>반복 메시지</button>
+                          <button type="button" onClick={() => void onReportMember(member.memberId, "harassment")}>불쾌한 행동</button>
+                          <button type="button" onClick={() => void onReportMember(member.memberId, "privacy")}>개인정보 문제</button>
+                        </div>
+                      </details>
                     )}
                   </article>
                 );
@@ -347,8 +402,19 @@ export default function CampLobby({
               <span>접속 중에만 보여요</span>
             </div>
             <p className="camp-chat-safety">
-              초대 전용 베타예요. 채팅은 저장되지 않으며 참가자의 실제 신원을 확인하지 않아요.
+              채팅은 저장되지 않아요. 불편한 행동은 참가자 카드에서 범주만 골라 신고할 수 있어요.
             </p>
+            {role === "leader" && contacts.length > 0 && (
+              <section className="camp-known-friends" aria-labelledby="camp-known-friends-title">
+                <h3 id="camp-known-friends-title">함께했던 친구</h3>
+                {contacts.slice(0, 4).map((contact) => (
+                  <div key={contact.userId}>
+                    <span><strong>{contact.nickname}</strong> · {contact.sessionsTogether}회</span>
+                    <button type="button" onClick={() => void onInviteContact(contact.userId)}>초대</button>
+                  </div>
+                ))}
+              </section>
+            )}
             <div className="camp-chat-log" aria-live="polite">
               {chatMessages.length === 0 ? (
                 <p>친구가 오면 짧게 인사를 건네 보세요.</p>

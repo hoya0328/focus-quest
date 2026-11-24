@@ -73,6 +73,10 @@ for (const [table, identityColumn] of Object.entries({
   focus_quest_camps: "id",
   focus_quest_camp_members: "camp_id",
   focus_quest_camp_blocks: "camp_id",
+  focus_quest_camp_history: "camp_id",
+  focus_quest_camp_contacts: "user_id",
+  focus_quest_camp_invitations: "camp_id",
+  focus_quest_camp_reports: "id",
   focus_quest_push_subscriptions: "id",
 })) {
   await expectAnonymousTableDeniedOrEmpty(table, identityColumn);
@@ -153,6 +157,26 @@ for (const rpc of [
   }],
   ["is_active_focus_quest_camp_member", {
     requested_camp_id: "00000000-0000-4000-8000-000000000000",
+  }],
+  ["record_focus_quest_camp_completion", {
+    requested_camp_id: "00000000-0000-4000-8000-000000000000",
+    requested_duration_minutes: 25,
+  }],
+  ["invite_focus_quest_camp_contact", {
+    requested_camp_id: "00000000-0000-4000-8000-000000000000",
+    requested_contact_user_id: "00000000-0000-4000-8000-000000000000",
+  }],
+  ["report_focus_quest_camp_member", {
+    requested_camp_id: "00000000-0000-4000-8000-000000000000",
+    requested_user_id: "00000000-0000-4000-8000-000000000000",
+    requested_reason: "other",
+  }],
+  ["reopen_focus_quest_camp", {
+    previous_camp_id: "00000000-0000-4000-8000-000000000000",
+    requested_code: "ABC23456",
+    requested_nickname: "probe",
+    requested_adventure_id: "hike",
+    requested_focus_minutes: 25,
   }],
 ]) {
   const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${rpc[0]}`, {

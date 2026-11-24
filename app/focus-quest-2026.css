@@ -475,7 +475,7 @@
   border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(7, 41, 52, .88), rgba(8, 27, 39, .92)),
-    url("/backgrounds/fish-pixel-lake-v1.png") center 42% / cover;
+    url("/backgrounds/fish-pixel-lake-v1.webp") center 42% / cover;
 }
 
 .focus-quest-app .expedition-week-route {
@@ -4515,3 +4515,18 @@
     font-size: .62rem;
   }
 }
+
+/* Long-range archive and no-cost product completion */
+.focus-quest-app .adventure-archive{margin-top:48px;padding:clamp(20px,4vw,40px);border:1px solid #24484c;border-radius:16px;background:#120d19;color:#f7edda;content-visibility:auto}
+.focus-quest-app .adventure-archive-heading{display:flex;justify-content:space-between;gap:24px;padding-bottom:20px;border-bottom:1px solid #24484c}
+.focus-quest-app .adventure-archive-heading nav{display:flex;gap:7px;flex-wrap:wrap}
+.focus-quest-app .adventure-archive-map{--archive-accent:#eab356;display:grid;grid-template-columns:minmax(220px,.7fr) minmax(0,1.7fr);gap:28px;margin-top:24px;padding:clamp(20px,3vw,36px);border-radius:14px;background:#081b22}.focus-quest-app .archive-swim{--archive-accent:#65d5d0}.focus-quest-app .archive-fish{--archive-accent:#ef9a5b}
+.focus-quest-app .archive-mastery :is(span,strong,small){display:block}.focus-quest-app .archive-mastery strong{font-size:clamp(24px,3vw,38px)}
+.focus-quest-app .archive-progress{height:7px;overflow:hidden;border-radius:7px;background:#23363b}.focus-quest-app .archive-progress i{display:block;height:100%;background:var(--archive-accent)}
+.focus-quest-app .archive-relic-path{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0;padding:0;list-style:none}.focus-quest-app .archive-relic-path li{display:grid;grid-template-columns:42px 1fr;gap:10px;padding:13px;border-radius:12px;background:#07151b;color:#78908f}.focus-quest-app .archive-relic-path .is-unlocked{color:#f6e9ce}
+.focus-quest-app .archive-relic-path p{margin:4px 0;font-size:13px}
+.focus-quest-app .archive-seasonal-event{grid-column:1/-1;display:flex;gap:12px;padding-top:16px;border-top:1px solid #24484c}
+.focus-quest-app :is(.camp-returning,.local-study-guide){margin-top:18px;padding-top:16px;border-top:1px solid #24484c}.focus-quest-app .camp-known-friends{margin-bottom:16px;padding:14px;background:#081d24}.focus-quest-app :is(.camp-returning article,.camp-known-friends>div){display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0}
+.focus-quest-app :is(.camp-returning button,.camp-known-friends button){min-height:44px;padding:8px 12px;border:1px solid #3f817f;border-radius:10px;background:#10252c;color:#bde7df}
+.focus-quest-app .install-guide{display:grid;grid-template-columns:1fr auto;align-items:center;gap:20px;margin-top:22px;padding:22px;border:1px solid #24484c;border-radius:14px;background:#0d1820}
+@media(max-width:760px){.focus-quest-app :is(.adventure-archive-heading,.archive-seasonal-event){display:grid}.focus-quest-app :is(.adventure-archive-map,.archive-relic-path,.install-guide){grid-template-columns:1fr}}

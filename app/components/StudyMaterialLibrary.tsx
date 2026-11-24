@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, type FormEvent } from "react";
 import type { MaterialPhase } from "@/app/hooks/useStudyMaterials";
 import type { StudyMaterial } from "@/lib/pdf-analysis";
 import type { StudySubject } from "@/lib/study-quests";
+import { createLocalStudyGuide } from "@/lib/local-study-coach";
 
 type Props = {
   subject: StudySubject;
@@ -58,7 +59,6 @@ export default function StudyMaterialLibrary({
     <section className="pdf-builder" aria-labelledby="study-material-title">
       <div className="pdf-builder-heading">
         <div>
-          <span className="eyebrow">STUDY MATERIAL</span>
           <h3 id="study-material-title">집중 범위를 기억하는 자료</h3>
           <p>문제를 만들 수 있는 텍스트 PDF라면 집중 뒤 한 문제, 휴식 뒤 다른 한 문제로 다시 만나요.</p>
         </div>
@@ -94,13 +94,27 @@ export default function StudyMaterialLibrary({
 
       {subjectMaterials.length > 0 && (
         <div className="material-library" aria-label="업로드한 공부 자료">
-          {subjectMaterials.map((material) => (
+          {subjectMaterials.map((material) => {
+            const guide = material.quizSource ? createLocalStudyGuide(material.quizSource) : null;
+            return (
             <article key={material.id}>
-              <div>
+              <div className="material-library-copy">
                 <strong>{material.fileName}</strong>
                 <small>
                   {material.pageCount}쪽 · {material.quizSource ? "복습 퀴즈 준비됨" : "기존 분석 자료"}
                 </small>
+                {guide && (
+                  <div className="local-study-guide">
+                    <span>{guide.label}</span>
+                    <p>{guide.method}</p>
+                    <small>{guide.focusMinutes}분 집중 · {guide.breakMinutes}분 휴식 · {guide.checkpoint}</small>
+                    {guide.keywords.length > 0 && (
+                      <ul aria-label="자료에서 자주 나타난 말">
+                        {guide.keywords.map((keyword) => <li key={keyword}>{keyword}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
               <button
                 className="quest-danger"
@@ -114,7 +128,7 @@ export default function StudyMaterialLibrary({
                 PDF 삭제
               </button>
             </article>
-          ))}
+          )})}
         </div>
       )}
     </section>

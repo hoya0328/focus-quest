@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { CompanionStage } from "@/lib/companion-growth";
+import { getSeasonalWorldEvent } from "@/lib/seasonal-events";
 
 import {
   clampWorldLevel,
@@ -16,6 +18,7 @@ type AdventureQuestSceneProps = {
   progress: number;
   paused: boolean;
   celebrating: boolean;
+  companionStage: CompanionStage;
   worldLevel: number;
   assetBasePath?: string;
 };
@@ -24,6 +27,7 @@ type SceneController = {
   setProgress: (value: number) => void;
   setPaused: (value: boolean) => void;
   setCelebrating: (value: boolean) => void;
+  setCompanionStage: (value: CompanionStage) => void;
   setWorldLevel: (value: number) => void;
 };
 
@@ -32,13 +36,14 @@ export default function AdventureQuestScene({
   progress,
   paused,
   celebrating,
+  companionStage,
   worldLevel,
   assetBasePath = "",
 }: AdventureQuestSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<SceneController | null>(null);
-  const latestRef = useRef({ progress, paused, celebrating, worldLevel });
-  latestRef.current = { progress, paused, celebrating, worldLevel };
+  const latestRef = useRef({ progress, paused, celebrating, companionStage, worldLevel });
+  latestRef.current = { progress, paused, celebrating, companionStage, worldLevel };
 
   useEffect(() => {
     let disposed = false;
@@ -53,6 +58,7 @@ export default function AdventureQuestScene({
         private swimBackdrop?: import("phaser").GameObjects.Image;
         private backdrop!: import("phaser").GameObjects.Graphics;
         private hero!: import("phaser").GameObjects.Sprite;
+        private evolvedHero!: import("phaser").GameObjects.Sprite;
         private swimChest?: import("phaser").GameObjects.Sprite;
         private hikePole?: import("phaser").GameObjects.Rectangle;
         private hikeFlag?: import("phaser").GameObjects.Polygon;
@@ -63,6 +69,7 @@ export default function AdventureQuestScene({
         private swimRewardBaseScale = 1;
         private currentProgress = 0;
         private currentWorldLevel = 1;
+        private currentCompanionStage: CompanionStage = 1;
         private isPaused = false;
         private isCelebrating = false;
 
@@ -77,6 +84,14 @@ export default function AdventureQuestScene({
             frameWidth: kind === "hike" ? 360 : 420,
             frameHeight: kind === "hike" ? 360 : 340,
           });
+          const evolutionSheet = kind === "hike"
+            ? "mori-evolution-v1.webp"
+            : "naru-evolution-v1.webp";
+          this.load.spritesheet(
+            "evolved-hero",
+            `${assetBasePath}/characters/evolution/${evolutionSheet}`,
+            { frameWidth: 543, frameHeight: 724 },
+          );
           for (let level = 1; level <= WORLD_LEVEL_MAX; level += 1) {
             this.load.image(
               getWorldBackgroundKey(kind, level),
@@ -110,11 +125,12 @@ export default function AdventureQuestScene({
           this.backdrop = this.add.graphics().setDepth(1);
 
           for (let index = 0; index < (kind === "hike" ? 13 : 16); index += 1) {
+            const seasonal = getSeasonalWorldEvent(kind);
             const particle = this.add.circle(
               0,
               0,
               kind === "hike" ? 3 + (index % 3) : 3 + (index % 4),
-              kind === "hike" ? 0xe5ad4d : 0x9ee8e0,
+              seasonal.particleColor,
               0.42,
             );
             particle.setDepth(7);
@@ -164,6 +180,8 @@ export default function AdventureQuestScene({
           this.hero = this.add.sprite(0, 0, "quest-hero", 0);
           this.hero.setDepth(12);
           this.hero.play(`${kind}-motion`);
+          this.evolvedHero = this.add.sprite(0, 0, "evolved-hero", 0);
+          this.evolvedHero.setDepth(12).setVisible(false);
 
           const goalGraphics = this.add.graphics();
           if (kind === "hike") {
@@ -251,10 +269,17 @@ export default function AdventureQuestScene({
 
           const initial = latestRef.current;
           this.setWorldLevel(initial.worldLevel);
+          this.setCompanionStage(initial.companionStage);
           this.setProgress(initial.progress);
           this.setCelebrating(initial.celebrating);
           this.setPaused(initial.paused);
           controllerRef.current = this;
+        }
+
+        update(time: number) {
+          if (this.currentCompanionStage > 1 && !this.isPaused && !this.isCelebrating) {
+            this.evolvedHero.setAngle(Math.sin(time / (kind === "hike" ? 260 : 390)) * 1.2);
+          }
         }
 
         private getHikeSourcePoint(progress: number) {
@@ -464,6 +489,11 @@ export default function AdventureQuestScene({
                 : Math.min(330, width * 0.28);
           const sourceRatio = kind === "hike" ? 1 : 340 / 420;
           this.hero.setDisplaySize(heroWidth, heroWidth * sourceRatio);
+          const evolvedHeight = Math.min(
+            wholeScene ? height * 0.43 : height * 0.39,
+            heroWidth * 1.18,
+          );
+          this.evolvedHero.setDisplaySize(evolvedHeight * (543 / 724), evolvedHeight);
           this.setProgress(this.currentProgress);
 
           if (kind === "hike") {
@@ -512,6 +542,19 @@ export default function AdventureQuestScene({
           this.layoutScene();
         }
 
+        setCompanionStage(value: CompanionStage) {
+          this.currentCompanionStage = Math.min(4, Math.max(1, value)) as CompanionStage;
+          const evolved = this.currentCompanionStage > 1;
+          this.hero.setVisible(!evolved);
+          this.evolvedHero
+            .setFrame(this.currentCompanionStage - 1)
+            .setVisible(evolved);
+          if (!evolved && !this.isPaused && !this.isCelebrating && !this.hero.anims.isPlaying) {
+            this.hero.play(`${kind}-motion`);
+          }
+          this.setProgress(this.currentProgress);
+        }
+
         setProgress(value: number) {
           this.currentProgress = Phaser.Math.Clamp(value, 0, 1);
           if (!this.hero) return;
@@ -527,6 +570,7 @@ export default function AdventureQuestScene({
             );
           }
           this.hero.setPosition(point.x, point.y);
+          this.evolvedHero.setPosition(point.x, point.y);
           if (kind === "hike") {
             const width = this.scale.width;
             const unit = Math.max(
@@ -572,10 +616,13 @@ export default function AdventureQuestScene({
         setCelebrating(value: boolean) {
           if (this.isCelebrating === value) return;
           this.isCelebrating = value;
+          const activeHero = this.currentCompanionStage > 1 ? this.evolvedHero : this.hero;
           if (!value) {
             this.tweens.killTweensOf(this.reward);
             this.tweens.killTweensOf(this.hero);
+            this.tweens.killTweensOf(this.evolvedHero);
             this.hero.setAngle(0);
+            this.evolvedHero.setAngle(0);
             if (this.swimChest) {
               this.swimChest.anims.stop();
               this.swimChest.setFrame(0);
@@ -590,12 +637,14 @@ export default function AdventureQuestScene({
             }
             this.reward.setVisible(false);
             this.successLabel.setVisible(false);
-            if (!this.hero.anims.isPlaying) this.hero.play(`${kind}-motion`);
+            if (this.currentCompanionStage === 1 && !this.hero.anims.isPlaying) {
+              this.hero.play(`${kind}-motion`);
+            }
             return;
           }
 
           this.hero.anims.stop();
-          this.hero.setFrame(kind === "hike" ? 4 : 2);
+          if (this.currentCompanionStage === 1) this.hero.setFrame(kind === "hike" ? 4 : 2);
           this.setProgress(1);
           this.swimChest?.play("swim-chest-open");
           this.reward.setVisible(true);
@@ -604,7 +653,7 @@ export default function AdventureQuestScene({
             this.hikePole.setVisible(true).setScale(1, 0);
             this.hikeFlag.setVisible(true).setScale(0, 1).setAlpha(0);
             this.tweens.add({
-              targets: this.hero,
+              targets: activeHero,
               angle: 7,
               x: "+=12",
               y: "+=6",
@@ -698,6 +747,10 @@ export default function AdventureQuestScene({
 
   useEffect(() => controllerRef.current?.setProgress(progress), [progress]);
   useEffect(() => controllerRef.current?.setPaused(paused), [paused]);
+  useEffect(
+    () => controllerRef.current?.setCompanionStage(companionStage),
+    [companionStage],
+  );
   useEffect(
     () => controllerRef.current?.setWorldLevel(worldLevel),
     [worldLevel],

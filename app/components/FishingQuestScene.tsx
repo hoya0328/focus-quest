@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { CompanionStage } from "@/lib/companion-growth";
+import { getSeasonalWorldEvent } from "@/lib/seasonal-events";
 
 import {
   clampWorldLevel,
@@ -13,6 +15,7 @@ type FishingQuestSceneProps = {
   progress: number;
   paused: boolean;
   celebrating: boolean;
+  companionStage: CompanionStage;
   worldLevel: number;
   assetBasePath?: string;
 };
@@ -21,6 +24,7 @@ type FishingSceneController = {
   setProgress: (value: number) => void;
   setPaused: (value: boolean) => void;
   setCelebrating: (value: boolean) => void;
+  setCompanionStage: (value: CompanionStage) => void;
   setWorldLevel: (value: number) => void;
 };
 
@@ -28,14 +32,15 @@ export default function FishingQuestScene({
   progress,
   paused,
   celebrating,
+  companionStage,
   worldLevel,
   assetBasePath = "",
 }: FishingQuestSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<FishingSceneController | null>(null);
-  const latestStateRef = useRef({ progress, paused, celebrating, worldLevel });
+  const latestStateRef = useRef({ progress, paused, celebrating, companionStage, worldLevel });
 
-  latestStateRef.current = { progress, paused, celebrating, worldLevel };
+  latestStateRef.current = { progress, paused, celebrating, companionStage, worldLevel };
 
   useEffect(() => {
     let disposed = false;
@@ -53,6 +58,7 @@ export default function FishingQuestScene({
         private fireflies: import("phaser").GameObjects.Arc[] = [];
         private bobberRipples: import("phaser").GameObjects.Ellipse[] = [];
         private angler!: import("phaser").GameObjects.Sprite;
+        private evolvedAngler!: import("phaser").GameObjects.Sprite;
         private goldenCatch!: import("phaser").GameObjects.Image;
         private catchSplash!: import("phaser").GameObjects.Container;
         private successLabel!: import("phaser").GameObjects.Text;
@@ -61,6 +67,7 @@ export default function FishingQuestScene({
         private sceneUnit = 1;
         private currentProgress = 0;
         private currentWorldLevel = 1;
+        private currentCompanionStage: CompanionStage = 1;
         private isPaused = false;
         private isCelebrating = false;
 
@@ -80,6 +87,11 @@ export default function FishingQuestScene({
             `${assetBasePath}/sprites/bori-fish-phaser.png`,
             { frameWidth: 520, frameHeight: 430 },
           );
+          this.load.spritesheet(
+            "bori-evolution",
+            `${assetBasePath}/characters/evolution/bori-evolution-v1.webp`,
+            { frameWidth: 543, frameHeight: 724 },
+          );
           this.load.image(
             "golden-carp",
             `${assetBasePath}/sprites/golden-carp-jump-v1.png`,
@@ -87,6 +99,7 @@ export default function FishingQuestScene({
         }
 
         create() {
+          const seasonal = getSeasonalWorldEvent("fish");
           this.lakeBackdrop = this.add
             .image(0, 0, getWorldBackgroundKey("fish", this.currentWorldLevel))
             .setOrigin(0.5)
@@ -123,7 +136,7 @@ export default function FishingQuestScene({
           }
 
           for (let index = 0; index < 9; index += 1) {
-            const glow = this.add.circle(0, 0, 2 + (index % 2), 0xffe3a0, 0.55);
+            const glow = this.add.circle(0, 0, 2 + (index % 2), seasonal.particleColor, 0.55);
             this.fireflies.push(glow);
             this.tweens.add({
               targets: glow,
@@ -159,6 +172,8 @@ export default function FishingQuestScene({
           this.angler.setOrigin(0.5);
           this.angler.setDepth(12);
           this.angler.play("bori-cast-loop");
+          this.evolvedAngler = this.add.sprite(0, 0, "bori-evolution", 0);
+          this.evolvedAngler.setOrigin(0.5).setDepth(12).setVisible(false);
 
           for (let index = 0; index < 3; index += 1) {
             const ripple = this.add
@@ -216,6 +231,7 @@ export default function FishingQuestScene({
 
           const initial = latestStateRef.current;
           this.setWorldLevel(initial.worldLevel);
+          this.setCompanionStage(initial.companionStage);
           this.setProgress(initial.progress);
           this.setCelebrating(initial.celebrating);
           this.setPaused(initial.paused);
@@ -223,11 +239,15 @@ export default function FishingQuestScene({
         }
 
         update() {
-          const bobberSettled =
-            !this.isCelebrating && Number(this.angler.frame.name) === 0;
+          const bobberSettled = !this.isCelebrating && (
+            this.currentCompanionStage > 1 || Number(this.angler.frame.name) === 0
+          );
           this.bobberRipples.forEach((ripple) => {
             ripple.setVisible(bobberSettled);
           });
+          if (this.currentCompanionStage > 1 && !this.isPaused && !this.isCelebrating) {
+            this.evolvedAngler.setAngle(Math.sin(this.time.now / 420) * 1.1);
+          }
         }
 
         private positionLakeBackdrop() {
@@ -340,6 +360,9 @@ export default function FishingQuestScene({
           const anglerY = bobberTarget.y - displayHeight * 0.316;
           this.angler.setPosition(anglerX, anglerY);
           this.angler.setDisplaySize(displayWidth, displayHeight);
+          const evolvedHeight = Math.min(height * 0.42, displayHeight * 1.18);
+          this.evolvedAngler.setPosition(anglerX, anglerY - evolvedHeight * 0.06);
+          this.evolvedAngler.setDisplaySize(evolvedHeight * (543 / 724), evolvedHeight);
 
           this.bobberX = bobberTarget.x;
           this.bobberY = bobberTarget.y;
@@ -391,6 +414,18 @@ export default function FishingQuestScene({
           this.layoutScene();
         }
 
+        setCompanionStage(value: CompanionStage) {
+          this.currentCompanionStage = Math.min(4, Math.max(1, value)) as CompanionStage;
+          const evolved = this.currentCompanionStage > 1;
+          this.angler.setVisible(!evolved);
+          this.evolvedAngler
+            .setFrame(this.currentCompanionStage - 1)
+            .setVisible(evolved);
+          if (!evolved && !this.isPaused && !this.isCelebrating && !this.angler.anims.isPlaying) {
+            this.angler.play("bori-cast-loop");
+          }
+        }
+
         setProgress(value: number) {
           this.currentProgress = Phaser.Math.Clamp(value, 0, 1);
           const dusk = 1 - this.currentProgress * 0.18;
@@ -412,6 +447,7 @@ export default function FishingQuestScene({
         setCelebrating(value: boolean) {
           if (this.isCelebrating === value) return;
           this.isCelebrating = value;
+          const activeAngler = this.currentCompanionStage > 1 ? this.evolvedAngler : this.angler;
 
           if (!value) {
             this.tweens.killTweensOf(this.goldenCatch);
@@ -427,11 +463,23 @@ export default function FishingQuestScene({
               );
             this.catchSplash.setVisible(false).setAlpha(0);
             this.successLabel.setVisible(false);
-            if (!this.angler.anims.isPlaying) this.angler.play("bori-cast-loop");
+            this.evolvedAngler.setAngle(0);
+            if (this.currentCompanionStage === 1 && !this.angler.anims.isPlaying) {
+              this.angler.play("bori-cast-loop");
+            }
             return;
           }
 
-          this.angler.play("bori-catch");
+          if (this.currentCompanionStage === 1) this.angler.play("bori-catch");
+          this.tweens.add({
+            targets: activeAngler,
+            angle: { from: -2, to: 5 },
+            y: "-=8",
+            duration: 260,
+            yoyo: true,
+            hold: 160,
+            ease: "Sine.InOut",
+          });
           this.goldenCatch
             .setVisible(true)
             .setPosition(
@@ -528,6 +576,10 @@ export default function FishingQuestScene({
   useEffect(() => {
     controllerRef.current?.setPaused(paused);
   }, [paused]);
+
+  useEffect(() => {
+    controllerRef.current?.setCompanionStage(companionStage);
+  }, [companionStage]);
 
   useEffect(() => {
     controllerRef.current?.setWorldLevel(worldLevel);

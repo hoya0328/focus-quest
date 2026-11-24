@@ -56,5 +56,6 @@ next-env.d.ts
 /.github/hooks/
 /.github/skills/
 /reports/
+/backups/
 /skills-lock.json
 /supabase/.temp/

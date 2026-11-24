@@ -3,7 +3,7 @@
   <desc id="description">다시 시작하는 집중을 위한 픽셀 모험. 오른쪽은 실제 등산 모험에 사용하는 배경 아트입니다.</desc>
   <defs><clipPath id="art"><rect x="660" width="540" height="454"/></clipPath></defs>
   <rect width="1200" height="520" fill="#ECF9FA"/>
-  <image href="../../public/backgrounds/hike-pixel-summit-v1.png" x="660" width="540" height="454" preserveAspectRatio="xMidYMid slice" clip-path="url(#art)"/>
+  <image href="../source-assets/backgrounds/hike-pixel-summit-v1.png" x="660" width="540" height="454" preserveAspectRatio="xMidYMid slice" clip-path="url(#art)"/>
   <g font-family="Segoe UI,Malgun Gothic,Arial,sans-serif" letter-spacing="0">
     <path d="M52 49H80" stroke="#126879" stroke-width="4"/>
     <text x="92" y="55" font-size="15" font-weight="600" fill="#126879">03 / FOCUS &amp; PIXEL ADVENTURE</text>

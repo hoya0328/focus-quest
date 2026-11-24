@@ -211,7 +211,7 @@ test("every world level resolves to a stable Phaser texture and asset path", () 
   assert.equal(getWorldBackgroundKey("hike", 3), "world-hike-3");
   assert.equal(
     getWorldBackgroundPath("hike", 1),
-    "/backgrounds/hike-pixel-summit-v1.png",
+    "/backgrounds/hike-pixel-summit-v1.webp",
   );
   assert.equal(
     getWorldBackgroundPath("swim", 4),

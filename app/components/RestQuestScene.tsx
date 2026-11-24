@@ -26,15 +26,15 @@ const sceneAssets: Record<
   { companion: string; label: string }
 > = {
   hike: {
-    companion: "mori-rest.png",
+    companion: "mori-rest.webp",
     label: "모리가 해오름 봉우리 능선에서 따뜻한 차를 마시며 쉬는 장면",
   },
   swim: {
-    companion: "naru-rest.png",
+    companion: "naru-rest.webp",
     label: "나루가 유리산호 유적의 기포 정원에서 쉬는 장면",
   },
   fish: {
-    companion: "bori-rest.png",
+    companion: "bori-rest.webp",
     label: "보리가 달비늘 호수의 달빛 부두에서 차를 마시며 쉬는 장면",
   },
 };

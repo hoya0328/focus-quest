@@ -2,9 +2,9 @@ import type { AdventureId } from "@/lib/pomodoro";
 import type { CompanionStage } from "@/lib/companion-growth";
 
 const evolutionSheets: Record<AdventureId, string> = {
-  hike: "/characters/evolution/mori-evolution-v1.png",
-  swim: "/characters/evolution/naru-evolution-v1.png",
-  fish: "/characters/evolution/bori-evolution-v1.png",
+  hike: "/characters/evolution/mori-evolution-v1.webp",
+  swim: "/characters/evolution/naru-evolution-v1.webp",
+  fish: "/characters/evolution/bori-evolution-v1.webp",
 };
 
 type CompanionEvolutionSpriteProps = {

@@ -14,10 +14,12 @@ import {
 } from "react";
 import Image from "next/image";
 import AuthDialog from "@/app/components/AuthDialog";
+import AdventureArchive from "@/app/components/AdventureArchive";
 import CampLobby from "@/app/components/CampLobby";
 import CampReflectionPanel from "@/app/components/CampReflectionPanel";
 import RetentionPanel from "@/app/components/RetentionPanel";
 import WeeklyAdventureLog from "@/app/components/WeeklyAdventureLog";
+import InstallGuide from "@/app/components/InstallGuide";
 import CompanionEvolutionSprite from "@/app/components/CompanionEvolutionSprite";
 import { StudyCheckpointPanel, StudyRecallPanel } from "@/app/components/StudyQuizPanel";
 import { useCloudSync } from "@/app/hooks/useCloudSync";
@@ -31,6 +33,7 @@ import {
   EMPTY_SESSION_UPDATED_AT,
   type CloudStateData,
 } from "@/lib/cloud-state";
+import { getAdventureArchive } from "@/lib/adventure-archive";
 import {
   COMPANION_GROWTH_STORAGE_KEY,
   growthEntriesFromHistory,
@@ -230,10 +233,10 @@ const adventures: Adventure[] = [
     reward: "정상에 깃발 세우기",
     description:
       "한 걸음씩 오를수록 숲이 걷히고, 마지막엔 바람 부는 정상에서 깃발이 펼쳐져요.",
-    image: `${publicBasePath}/characters/momo-hiking.png`,
+    image: `${publicBasePath}/characters/momo-hiking.webp`,
     imageWidth: 1254,
     imageHeight: 1254,
-    background: `${publicBasePath}/backgrounds/hike-pixel-summit-v1.png`,
+    background: `${publicBasePath}/backgrounds/hike-pixel-summit-v1.webp`,
     color: "#f0b13e",
     soft: "#173d37",
     icon: "산길",
@@ -248,10 +251,10 @@ const adventures: Adventure[] = [
     reward: "황금 보물상자 열기",
     description:
       "햇빛이 스미는 해저 유적을 건너면, 잠들어 있던 보물상자가 황금빛으로 열려요.",
-    image: `${publicBasePath}/characters/podo-swimming.png`,
+    image: `${publicBasePath}/characters/podo-swimming.webp`,
     imageWidth: 1402,
     imageHeight: 1122,
-    background: `${publicBasePath}/backgrounds/swim-pixel-depth.png`,
+    background: `${publicBasePath}/backgrounds/swim-pixel-depth.webp`,
     color: "#36c4ce",
     soft: "#103b50",
     icon: "해저",
@@ -266,10 +269,10 @@ const adventures: Adventure[] = [
     reward: "황금 잉어 낚기",
     description:
       "잔잔한 수면에 낚싯줄을 드리우고 기다리면, 마지막엔 황금 잉어가 힘차게 뛰어올라요.",
-    image: `${publicBasePath}/characters/bori-fishing.png`,
+    image: `${publicBasePath}/characters/bori-fishing.webp`,
     imageWidth: 1448,
     imageHeight: 1086,
-    background: `${publicBasePath}/backgrounds/fish-pixel-lake-v1.png`,
+    background: `${publicBasePath}/backgrounds/fish-pixel-lake-v1.webp`,
     color: "#ef8b47",
     soft: "#204847",
     icon: "호수",
@@ -629,6 +632,10 @@ export default function Home() {
         progress: getWorldProgress(longTermGrowthHistory, adventure.id),
         trace: getAdventureTraceProgress(longTermGrowthHistory, adventure.id),
       })),
+    [longTermGrowthHistory],
+  );
+  const adventureArchives = useMemo(
+    () => adventures.map((adventure) => getAdventureArchive(longTermGrowthHistory, adventure.id)),
     [longTermGrowthHistory],
   );
   const selectedWorld =
@@ -1434,6 +1441,7 @@ export default function Home() {
     setSessionMode("focus");
     setSessionDurationMinutes(focusMinutes);
     setRemaining(focusMinutes * 60);
+    void trackProductEvent("companion_selected", { adventureId: id });
   };
 
   const commitRecoveryQuest = useCallback(
@@ -1639,6 +1647,7 @@ export default function Home() {
     try {
       await saveBackgroundReminder(nextTime);
       setPushReminderMessage("앱을 닫아도 이 시간에 알려드려요.");
+      void trackProductEvent("push_enabled");
     } catch (failure) {
       setPushReminderMessage(
         failure instanceof Error ? failure.message : "알림을 켜지 못했어요.",
@@ -1714,16 +1723,23 @@ export default function Home() {
   );
   const {
     chatMessages: silentCampChatMessages,
+    contacts: silentCampContacts,
     code: silentCampCode,
     copyInvite: copySilentCampLink,
     count: silentCampCount,
     currentMemberId: silentCampMemberId,
     join: joinSilentCamp,
+    history: silentCampHistory,
+    invitations: silentCampInvitations,
+    inviteContact: inviteSilentCampContact,
     leaderId: silentCampLeaderId,
     leave: leaveSilentCamp,
     members: silentCampMembers,
     message: silentCampMessage,
+    recordCompletion: recordSilentCampCompletion,
     removeMember: removeSilentCampMember,
+    reopenCamp: reopenSilentCamp,
+    reportMember: reportSilentCampMember,
     role: silentCampRole,
     sendChat: sendSilentCampChat,
     setCode: setSilentCampCode,
@@ -1733,8 +1749,34 @@ export default function Home() {
     adventureId: selectedId,
     focusMinutes,
     nickname: campNickname,
+    onJoined: (created) => {
+      void trackProductEvent(created ? "camp_created" : "camp_joined", {
+        adventureId: selectedId,
+        durationMinutes: focusMinutes,
+      });
+    },
     onRemoteTimer: applySilentCampTimer,
   });
+
+  const recordedCampCompletionsRef = useRef(new Set<string>());
+  useEffect(() => {
+    if (
+      screen !== "complete"
+      || completionMode !== "focus"
+      || silentCampRole !== "leader"
+      || !completedRecordId
+      || recordedCampCompletionsRef.current.has(completedRecordId)
+    ) return;
+    recordedCampCompletionsRef.current.add(completedRecordId);
+    void recordSilentCampCompletion(sessionDurationMinutes);
+  }, [
+    completedRecordId,
+    completionMode,
+    recordSilentCampCompletion,
+    screen,
+    sessionDurationMinutes,
+    silentCampRole,
+  ]);
 
   useEffect(() => {
     if (
@@ -2296,6 +2338,7 @@ export default function Home() {
                 onClick={() => {
                   setActiveQuestId(null);
                   setScreen("setup");
+                  void trackProductEvent("setup_opened", { adventureId: selectedId });
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
                 type="button"
@@ -2356,6 +2399,7 @@ export default function Home() {
               setSessionDurationMinutes(minutes);
               setRemaining(minutes * 60);
               setScreen("setup");
+              void trackProductEvent("setup_opened", { adventureId: selectedId });
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             recoveryQuest={recoveryQuest}
@@ -2400,7 +2444,10 @@ export default function Home() {
             adventures={adventures}
             focusStreak={focusStreak}
             onRestart={restartAdventure}
-            onStartFirst={() => setScreen("setup")}
+            onStartFirst={() => {
+              setScreen("setup");
+              void trackProductEvent("setup_opened", { adventureId: selectedId });
+            }}
             recentAdventures={recentAdventures}
             selectedAdventure={selected}
             syncMessage={
@@ -2410,6 +2457,14 @@ export default function Home() {
             }
             weeklySummary={weeklySummary}
           />
+
+          <AdventureArchive
+            archives={adventureArchives}
+            onSelect={chooseAdventure}
+            selectedId={selectedId}
+          />
+
+          <InstallGuide />
 
           <footer className="support-footer">
             <div>
@@ -2431,8 +2486,11 @@ export default function Home() {
           chatMessages={silentCampChatMessages}
           code={silentCampCode}
           companions={adventures}
+          contacts={silentCampContacts}
           currentMemberId={silentCampMemberId}
           focusMinutes={focusMinutes}
+          history={silentCampHistory}
+          invitations={silentCampInvitations}
           leaderId={silentCampLeaderId}
           members={silentCampMembers}
           message={silentCampMessage}
@@ -2452,10 +2510,13 @@ export default function Home() {
             setSessionDurationMinutes(minutes);
             setRemaining(minutes * 60);
           }}
-          onJoin={() => void joinSilentCamp()}
+          onJoin={(campCode) => void joinSilentCamp(campCode)}
+          onInviteContact={inviteSilentCampContact}
           onLeave={() => void leaveSilentCamp()}
           onNicknameChange={(value) => setCampNickname(value.slice(0, 12))}
           onRemoveMember={removeSilentCampMember}
+          onReopenCamp={reopenSilentCamp}
+          onReportMember={reportSilentCampMember}
           onSelectCompanion={chooseAdventure}
           onSendChat={sendSilentCampChat}
           onStart={beginCampFocus}
@@ -2701,6 +2762,7 @@ export default function Home() {
                 progress={progress}
                 paused={paused}
                 celebrating={isCelebrating}
+                companionStage={selectedCompanionGrowth.stage}
                 worldLevel={selectedWorldLevel}
                 assetBasePath={publicBasePath}
               />
@@ -2711,6 +2773,7 @@ export default function Home() {
                 progress={progress}
                 paused={paused}
                 celebrating={isCelebrating}
+                companionStage={selectedCompanionGrowth.stage}
                 worldLevel={selectedWorldLevel}
                 assetBasePath={publicBasePath}
               />

@@ -66,7 +66,8 @@ function trackedFiles() {
 function scanTracked(findings) {
   for (const file of trackedFiles()) {
     const path = join(root, file);
-    const stats = statSync(path);
+    const stats = statSafe(path);
+    if (!stats) continue;
     if (stats.size > maxFileBytes || !textExtensions.has(extname(file).toLowerCase())) continue;
     const source = readFileSync(path, "utf8");
     if (!source.includes("\0")) scanText(source, `tracked:${file}`, findings);

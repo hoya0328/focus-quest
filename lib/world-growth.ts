@@ -4,9 +4,9 @@ export const WORLD_LEVEL_MIN = 1;
 export const WORLD_LEVEL_MAX = 5;
 
 const baseBackgrounds: Record<AdventureId, string> = {
-  hike: "hike-pixel-summit-v1.png",
-  swim: "swim-pixel-depth.png",
-  fish: "fish-pixel-lake-v1.png",
+  hike: "hike-pixel-summit-v1.webp",
+  swim: "swim-pixel-depth.webp",
+  fish: "fish-pixel-lake-v1.webp",
 };
 
 export function clampWorldLevel(level: number): number {
