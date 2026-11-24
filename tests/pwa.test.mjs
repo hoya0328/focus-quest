@@ -23,7 +23,10 @@ test("the service worker provides an offline navigation fallback", async () => {
   assert.match(serviceWorker, /event\.request\.mode === "navigate"/);
   assert.match(serviceWorker, /caches\.match\(OFFLINE_PAGE_KEY\)/);
   assert.match(serviceWorker, /requestUrl\.origin !== self\.location\.origin/);
-  assert.match(serviceWorker, /focus-quest-v5/);
+  assert.match(serviceWorker, /focus-quest-v6/);
+  assert.match(serviceWorker, /addEventListener\("push"/);
+  assert.match(serviceWorker, /showNotification/);
+  assert.match(serviceWorker, /addEventListener\("notificationclick"/);
   assert.match(serviceWorker, /brand\/focus-quest-logo\.png/);
   assert.match(serviceWorker, /brand\/focus-quest-mark\.png/);
   assert.match(serviceWorker, /characters\/mori-rest\.png/);

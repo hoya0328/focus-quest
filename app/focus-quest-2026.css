@@ -416,6 +416,375 @@
   }
 }
 
+/* Expedition log — one continuous route instead of a generic stats dashboard. */
+.focus-quest-app .expedition-log {
+  width: min(1120px, calc(100% - (var(--gutter) * 2)));
+  margin: clamp(52px, 7vw, 92px) auto 76px;
+  padding: clamp(24px, 4vw, 44px);
+  overflow: hidden;
+  border: var(--rule-hair) solid rgba(214, 194, 231, .2);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 15% 8%, rgba(69, 186, 190, .12), transparent 29%),
+    radial-gradient(circle at 88% 16%, rgba(239, 161, 68, .09), transparent 26%),
+    #100b18;
+  box-shadow: 0 28px 72px rgba(0, 0, 0, .28);
+}
+
+.focus-quest-app .expedition-log-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding-bottom: var(--space-xl);
+}
+
+.focus-quest-app .expedition-log-heading h2 {
+  margin: 0;
+  color: #f4eee4;
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  letter-spacing: -.055em;
+}
+
+.focus-quest-app .expedition-log-heading p {
+  max-width: 58ch;
+  margin: var(--space-xs) 0 0;
+  color: #aea7b7;
+  font-size: var(--text-sm);
+  line-height: 1.65;
+}
+
+.focus-quest-app .expedition-sync-state {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 0 12px;
+  border: var(--rule-hair) solid rgba(78, 194, 198, .3);
+  border-radius: var(--radius-pill);
+  color: #8fd1d1;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.focus-quest-app .expedition-log-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: clamp(24px, 4vw, 48px);
+  padding: clamp(24px, 4vw, 36px);
+  border: var(--rule-hair) solid rgba(79, 178, 184, .24);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(7, 41, 52, .88), rgba(8, 27, 39, .92)),
+    url("/backgrounds/fish-pixel-lake-v1.png") center 42% / cover;
+}
+
+.focus-quest-app .expedition-week-route {
+  position: relative;
+  display: grid;
+  min-height: 176px;
+  grid-template-columns: repeat(7, minmax(54px, 1fr));
+  align-items: end;
+  gap: 8px;
+  isolation: isolate;
+}
+
+.focus-quest-app .expedition-route-line {
+  position: absolute;
+  z-index: -1;
+  right: 5%;
+  bottom: 62px;
+  left: 5%;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(132, 210, 209, .62) 0 9px, transparent 9px 15px);
+}
+
+.focus-quest-app .expedition-route-day {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: 1fr auto auto;
+  justify-items: center;
+  gap: 6px;
+  color: #7d94a0;
+  text-align: center;
+}
+
+.focus-quest-app .expedition-waypoint {
+  display: flex;
+  width: 100%;
+  min-height: 104px;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: calc(14px + var(--waypoint-rise));
+}
+
+.focus-quest-app .expedition-waypoint i {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #668d95;
+  border-radius: 50%;
+  background: #0a2633;
+  box-shadow: 0 0 0 5px rgba(7, 27, 38, .7);
+}
+
+.focus-quest-app .expedition-route-day.is-visited .expedition-waypoint i {
+  width: 18px;
+  height: 18px;
+  border-color: #ffd074;
+  background: #ee9841;
+  box-shadow: 0 0 0 5px rgba(238, 152, 65, .14), 0 0 22px rgba(255, 186, 84, .5);
+}
+
+.focus-quest-app .expedition-route-day strong {
+  color: #e9e1d6;
+  font-size: var(--text-sm);
+}
+
+.focus-quest-app .expedition-route-day small {
+  min-height: 1.4em;
+  font-size: .68rem;
+}
+
+.focus-quest-app .expedition-log-facts {
+  display: grid;
+  align-content: center;
+  gap: 0;
+  margin: 0;
+  border-top: var(--rule-hair) solid rgba(117, 181, 185, .24);
+  border-bottom: var(--rule-hair) solid rgba(117, 181, 185, .24);
+}
+
+.focus-quest-app .expedition-log-facts div {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.focus-quest-app .expedition-log-facts div + div {
+  border-top: var(--rule-hair) solid rgba(117, 181, 185, .18);
+}
+
+.focus-quest-app .expedition-log-facts dt {
+  color: #8aa9ad;
+  font-size: var(--text-xs);
+}
+
+.focus-quest-app .expedition-log-facts dd {
+  margin: 0;
+  color: #f8d184;
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+}
+
+.focus-quest-app .expedition-log-facts dd small {
+  margin-left: 3px;
+  color: #9faeb0;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+}
+
+.focus-quest-app .expedition-recent {
+  margin-top: var(--space-xl);
+}
+
+.focus-quest-app .expedition-recent h3 {
+  margin: 0 0 var(--space-md);
+  color: #e8e0d4;
+  font-size: 1rem;
+}
+
+.focus-quest-app .expedition-recent ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.focus-quest-app .expedition-recent li {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-top: var(--rule-hair) solid rgba(218, 204, 232, .17);
+}
+
+.focus-quest-app .expedition-history-portrait {
+  position: relative;
+  display: grid;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 50%;
+  background: #163741;
+}
+
+.focus-quest-app .expedition-history-portrait img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.focus-quest-app .expedition-recent li > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.focus-quest-app .expedition-recent li strong,
+.focus-quest-app .expedition-recent li small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-quest-app .expedition-recent li strong { color: #eae5db; font-size: var(--text-sm); }
+.focus-quest-app .expedition-recent li small { color: #86818e; font-size: var(--text-xs); }
+.focus-quest-app .expedition-recent button {
+  min-height: 42px;
+  padding: 0 13px;
+  border: var(--rule-hair) solid rgba(239, 176, 76, .5);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: #f4c56f;
+  font-weight: 700;
+}
+
+.focus-quest-app .expedition-empty-state {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-top: var(--rule-hair) solid rgba(218, 204, 232, .17);
+}
+
+.focus-quest-app .expedition-empty-companion {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  overflow: hidden;
+  place-items: center;
+}
+
+.focus-quest-app .expedition-empty-companion img { width: 92px; height: 92px; object-fit: contain; }
+.focus-quest-app .expedition-empty-state strong { color: #eee7de; }
+.focus-quest-app .expedition-empty-state p { margin: 5px 0 0; color: #918a99; font-size: var(--text-sm); }
+
+/* The current growth stage now has a real silhouette, not a numeric badge. */
+.focus-quest-app .companion-stage-portrait {
+  display: grid;
+  min-width: 176px;
+  justify-items: center;
+  align-self: stretch;
+  padding: 8px 8px 0;
+  overflow: hidden;
+  border-right: var(--rule-hair) solid var(--color-border);
+  background: radial-gradient(circle at 50% 74%, rgba(241, 177, 67, .16), transparent 43%);
+}
+
+.focus-quest-app .companion-stage-portrait > span:last-child {
+  margin-top: -12px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.focus-quest-app .companion-evolution-sprite {
+  display: block;
+  width: 150px;
+  aspect-ratio: 3 / 4;
+  background-repeat: no-repeat;
+  background-size: 430% 100%;
+  filter: drop-shadow(0 13px 10px rgba(0, 0, 0, .28));
+}
+
+.focus-quest-app .companion-evolution-stage-1 { clip-path: inset(0 10% 0 0); }
+.focus-quest-app .companion-evolution-stage-2,
+.focus-quest-app .companion-evolution-stage-3 { clip-path: inset(0 5%); }
+.focus-quest-app .companion-evolution-stage-4 { clip-path: inset(0 0 0 8%); }
+
+.focus-quest-app .camp-member-actions {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.focus-quest-app .camp-member-actions button {
+  min-height: 30px;
+  padding: 0 8px;
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: rgba(8, 20, 31, .78);
+  color: var(--color-text-muted);
+  font-size: .66rem;
+}
+
+.focus-quest-app .camp-member-actions button:last-child {
+  border-color: rgba(239, 112, 90, .42);
+  color: #f3a28f;
+}
+
+.focus-quest-app .companion-choice-character.companion-evolution-sprite {
+  width: 42%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: unset;
+}
+
+.focus-quest-app .companion-choice.theme-swim .companion-choice-character.companion-evolution-sprite {
+  bottom: -7%;
+  left: 42%;
+  width: 42%;
+  height: auto;
+}
+
+.focus-quest-app .companion-choice.theme-fish .companion-choice-character.companion-evolution-sprite {
+  bottom: -8%;
+  left: 42%;
+  width: 46%;
+  height: auto;
+}
+
+.focus-quest-app .setup-character-evolution {
+  width: min(54%, 330px);
+  height: auto;
+  aspect-ratio: 3 / 4;
+}
+
+.focus-quest-app .complete-hero .complete-character-wrap .complete-evolution-sprite {
+  position: absolute;
+  right: 8%;
+  bottom: 0;
+  width: min(72%, 280px);
+  height: auto;
+  aspect-ratio: 3 / 4;
+  animation: complete-arrival 680ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+@media (max-width: 48rem) {
+  .focus-quest-app .expedition-log { width: calc(100% - (var(--gutter) * 2)); padding: var(--space-lg) var(--space-md); }
+  .focus-quest-app .expedition-log-heading { align-items: flex-start; flex-direction: column; }
+  .focus-quest-app .expedition-log-body { grid-template-columns: minmax(0, 1fr); padding: var(--space-md); }
+  .focus-quest-app .expedition-week-route { grid-template-columns: repeat(7, minmax(36px, 1fr)); }
+  .focus-quest-app .expedition-log-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); border: 0; }
+  .focus-quest-app .expedition-log-facts div { min-height: 70px; align-items: flex-start; flex-direction: column; justify-content: center; gap: 4px; padding-left: 10px; border-left: var(--rule-hair) solid rgba(117, 181, 185, .18); }
+  .focus-quest-app .expedition-log-facts div + div { border-top: 0; }
+  .focus-quest-app .expedition-recent ul { grid-template-columns: minmax(0, 1fr); }
+  .focus-quest-app .expedition-recent li { grid-template-columns: 48px minmax(0, 1fr); }
+  .focus-quest-app .expedition-recent li button { grid-column: 2; justify-self: start; }
+  .focus-quest-app .expedition-empty-state { grid-template-columns: 66px minmax(0, 1fr); }
+  .focus-quest-app .expedition-empty-state button { grid-column: 2; justify-self: start; }
+  .focus-quest-app .companion-memory-card { grid-template-columns: minmax(0, 1fr); }
+  .focus-quest-app .companion-stage-portrait { min-width: 0; border-right: 0; border-bottom: var(--rule-hair) solid var(--color-border); }
+}
+
 /* 2026-11-24: study route, advanced Camp Log, and companion growth. */
 .focus-quest-app .companion-memory-card {
   display: grid;

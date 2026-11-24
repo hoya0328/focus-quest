@@ -40,6 +40,7 @@ type CampLobbyProps = {
   onJoin: () => void;
   onLeave: () => void;
   onNicknameChange: (value: string) => void;
+  onRemoveMember: (memberId: string, shouldBlock: boolean) => Promise<boolean>;
   onSelectCompanion: (id: AdventureId) => void;
   onSendChat: (message: string) => Promise<boolean>;
   onStart: () => void;
@@ -76,6 +77,7 @@ export default function CampLobby({
   onJoin,
   onLeave,
   onNicknameChange,
+  onRemoveMember,
   onSelectCompanion,
   onSendChat,
   onStart,
@@ -248,6 +250,22 @@ export default function CampLobby({
                       unoptimized
                     />
                     <small>{companion.friend}</small>
+                    {role === "leader" && !isMe && (
+                      <div className="camp-member-actions">
+                        <button
+                          type="button"
+                          onClick={() => void onRemoveMember(member.memberId, false)}
+                        >
+                          내보내기
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void onRemoveMember(member.memberId, true)}
+                        >
+                          차단
+                        </button>
+                      </div>
+                    )}
                   </article>
                 );
               })}

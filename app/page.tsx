@@ -17,6 +17,8 @@ import AuthDialog from "@/app/components/AuthDialog";
 import CampLobby from "@/app/components/CampLobby";
 import CampReflectionPanel from "@/app/components/CampReflectionPanel";
 import RetentionPanel from "@/app/components/RetentionPanel";
+import WeeklyAdventureLog from "@/app/components/WeeklyAdventureLog";
+import CompanionEvolutionSprite from "@/app/components/CompanionEvolutionSprite";
 import { StudyCheckpointPanel, StudyRecallPanel } from "@/app/components/StudyQuizPanel";
 import { useCloudSync } from "@/app/hooks/useCloudSync";
 import { useProductTelemetry } from "@/app/hooks/useProductTelemetry";
@@ -94,6 +96,13 @@ import {
   toSilentCampTimer,
   type SilentCampTimer,
 } from "@/lib/silent-camp";
+import {
+  VAPID_PUBLIC_KEY,
+  nextReminderAt,
+  parsePushSubscription,
+  urlBase64ToUint8Array,
+} from "@/lib/push-reminders";
+import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 
 const AdventureQuestScene = lazy(
   () => import("@/app/components/AdventureQuestScene"),
@@ -113,7 +122,6 @@ const FOCUS_INTENT_KEY = "focus-quest-focus-intent";
 const EXPEDITION_SETS_KEY = "focus-quest-expedition-sets";
 const NOTIFICATION_KEY = "focus-quest-notifications";
 const REMINDER_TIME_KEY = "focus-quest-reminder-time";
-const REMINDER_SENT_KEY = "focus-quest-reminder-sent";
 const DISTRACTION_NOTES_KEY = "focus-quest-distraction-notes";
 const CAMP_NICKNAME_KEY = "focus-quest-camp-nickname";
 type BeforeInstallPromptEvent = Event & {
@@ -155,6 +163,61 @@ type Adventure = {
   soft: string;
   icon: string;
 };
+
+async function saveBackgroundReminder(reminderTime: string) {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    throw new Error("이 브라우저는 백그라운드 알림을 지원하지 않아요.");
+  }
+  const client = getSupabaseBrowserClient();
+  const session = await client?.auth.getSession();
+  const token = session?.data.session?.access_token;
+  if (!token) throw new Error("로그인하면 앱을 닫은 뒤에도 알림을 받을 수 있어요.");
+  const registration = await navigator.serviceWorker.ready;
+  const existing = await registration.pushManager.getSubscription();
+  const subscription = existing ?? await registration.pushManager.subscribe({
+    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    userVisibleOnly: true,
+  });
+  const payload = parsePushSubscription(subscription);
+  const dueAt = nextReminderAt(reminderTime);
+  if (!payload || !dueAt) throw new Error("알림 시간을 저장하지 못했어요.");
+  const response = await fetch("/api/push-subscriptions", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      nextDueAt: dueAt,
+      reminderTime,
+      subscription: payload,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Seoul",
+    }),
+  });
+  const result = (await response.json().catch(() => null)) as { error?: string } | null;
+  if (!response.ok) throw new Error(result?.error || "알림 시간을 저장하지 못했어요.");
+}
+
+async function removeBackgroundReminder() {
+  if (!("serviceWorker" in navigator)) return;
+  const registration = await navigator.serviceWorker.ready;
+  const subscription = await registration.pushManager.getSubscription();
+  if (!subscription) return;
+  const client = getSupabaseBrowserClient();
+  const session = await client?.auth.getSession();
+  const token = session?.data.session?.access_token;
+  if (token) {
+    await fetch("/api/push-subscriptions", {
+      method: "DELETE",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ endpoint: subscription.endpoint }),
+    });
+  }
+  await subscription.unsubscribe();
+}
 
 const adventures: Adventure[] = [
   {
@@ -501,6 +564,7 @@ export default function Home() {
   );
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState("");
+  const [pushReminderMessage, setPushReminderMessage] = useState("");
   const [miniTimerSupported, setMiniTimerSupported] = useState(false);
   const [activeStudyMaterial, setActiveStudyMaterial] = useState<StudyMaterial | null>(null);
   const [studyRangeStart, setStudyRangeStart] = useState(1);
@@ -602,10 +666,6 @@ export default function Home() {
     [completedRecord, longTermGrowthHistory],
   );
   const selectedWorldLevel = selectedWorld.progress.level;
-  const maxDayMinutes = Math.max(
-    1,
-    ...weeklySummary.days.map((day) => day.minutes),
-  );
   const cloudData = useMemo<CloudStateData>(
     () => ({
       schemaVersion: CLOUD_STATE_SCHEMA_VERSION,
@@ -1162,26 +1222,17 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated || !notificationsEnabled || !reminderTime) return;
-    const checkReminder = () => {
-      const now = new Date();
-      const current = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-      const today = now.toDateString();
-      if (
-        current === reminderTime &&
-        window.localStorage.getItem(REMINDER_SENT_KEY) !== today &&
-        Notification.permission === "granted"
-      ) {
-        new Notification("Focus Quest 출발 시간", {
-          body: `${selected.friend}가 오늘의 한 가지를 기다리고 있어요.`,
-          icon: `${publicBasePath}/brand/focus-quest-mark.png`,
+    const timer = window.setTimeout(() => {
+      void saveBackgroundReminder(reminderTime)
+        .then(() => setPushReminderMessage("앱을 닫아도 이 시간에 알려드려요."))
+        .catch((failure: unknown) => {
+          setPushReminderMessage(
+            failure instanceof Error ? failure.message : "알림 시간을 저장하지 못했어요.",
+          );
         });
-        window.localStorage.setItem(REMINDER_SENT_KEY, today);
-      }
-    };
-    checkReminder();
-    const timer = window.setInterval(checkReminder, 30_000);
-    return () => window.clearInterval(timer);
-  }, [hydrated, notificationsEnabled, reminderTime, selected.friend]);
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [hydrated, notificationsEnabled, reminderTime]);
 
   useEffect(() => {
     const miniWindow = miniTimerWindowRef.current;
@@ -1571,12 +1622,29 @@ export default function Home() {
   const toggleNotifications = async () => {
     if (!("Notification" in window)) return;
     if (notificationsEnabled) {
+      await removeBackgroundReminder();
       setNotificationsEnabled(false);
       window.localStorage.setItem(NOTIFICATION_KEY, "false");
+      setPushReminderMessage("출발 알림을 껐어요.");
       return;
     }
     const permission = await Notification.requestPermission();
     const enabled = permission === "granted";
+    if (!enabled) {
+      setPushReminderMessage("브라우저 설정에서 알림을 허용해 주세요.");
+      return;
+    }
+    const nextTime = reminderTime || "20:00";
+    setReminderTime(nextTime);
+    try {
+      await saveBackgroundReminder(nextTime);
+      setPushReminderMessage("앱을 닫아도 이 시간에 알려드려요.");
+    } catch (failure) {
+      setPushReminderMessage(
+        failure instanceof Error ? failure.message : "알림을 켜지 못했어요.",
+      );
+      return;
+    }
     setNotificationsEnabled(enabled);
     window.localStorage.setItem(NOTIFICATION_KEY, String(enabled));
   };
@@ -1655,6 +1723,7 @@ export default function Home() {
     leave: leaveSilentCamp,
     members: silentCampMembers,
     message: silentCampMessage,
+    removeMember: removeSilentCampMember,
     role: silentCampRole,
     sendChat: sendSilentCampChat,
     setCode: setSilentCampCode,
@@ -2196,14 +2265,11 @@ export default function Home() {
                         unoptimized
                         width={1672}
                       />
-                      <Image
+                      <CompanionEvolutionSprite
+                        adventureId={adventure.id}
                         className="companion-choice-character"
-                        src={adventure.image}
-                        alt=""
-                        height={adventure.imageHeight}
-                        priority
-                        unoptimized
-                        width={adventure.imageWidth}
+                        friend={adventure.friend}
+                        stage={getCompanionGrowth(companionGrowth, adventure.id).stage}
                       />
                     </span>
                     <span className="companion-choice-copy">
@@ -2330,104 +2396,20 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="weekly-summary" aria-labelledby="weekly-title">
-            <div className="weekly-heading">
-              <div>
-                <span className="section-intro">이번 주의 발자국</span>
-                <h2 id="weekly-title">집중 모험 기록</h2>
-              </div>
-              <p>
-                {cloudSync.account && cloudSync.status !== "disabled"
-                  ? cloudSync.message
-                  : "로그인하면 다른 기기에서도 기록이 이어져요."}
-              </p>
-            </div>
-
-            <div className="weekly-metrics">
-              <div>
-                <strong>{weeklySummary.minutes}</strong>
-                <span>집중한 분</span>
-              </div>
-              <div>
-                <strong>{weeklySummary.sessions}</strong>
-                <span>완료한 칸</span>
-              </div>
-              <div>
-                <strong>{weeklySummary.activeDays}</strong>
-                <span>모험한 날</span>
-              </div>
-              <div>
-                <strong>{focusStreak}</strong>
-                <span>연속 집중일</span>
-              </div>
-            </div>
-
-            <div className="week-chart" aria-label="요일별 집중 시간">
-              {weeklySummary.days.map((day) => (
-                <div className="week-day" key={day.date}>
-                  <span className="bar-track">
-                    <i
-                      style={{
-                        height: `${Math.max(
-                          day.minutes > 0 ? 12 : 2,
-                          (day.minutes / maxDayMinutes) * 100,
-                        )}%`,
-                      }}
-                    />
-                  </span>
-                  <strong>{day.label}</strong>
-                  <small>{day.minutes > 0 ? `${day.minutes}분` : "·"}</small>
-                </div>
-              ))}
-            </div>
-
-            <div className="recent-history">
-              <h3>최근 모험</h3>
-              {history.length === 0 ? (
-                <p className="empty-history">
-                  첫 집중을 마치면 이곳에 모험 기록이 생겨요.
-                </p>
-              ) : (
-                <ul>
-                  {recentAdventures.map((record) => {
-                    const adventure =
-                      adventures.find((item) => item.id === record.adventureId) ??
-                      adventures[0];
-                    const completedAt = new Date(record.completedAt);
-                    return (
-                      <li key={record.id}>
-                        <span>{adventure.icon}</span>
-                        <div>
-                          <strong>{record.focusIntent || adventure.name}</strong>
-                          <small>
-                            {record.focusIntent ? `${adventure.name} · ` : ""}
-                            {completedAt.toLocaleDateString("ko-KR", {
-                              month: "short",
-                              day: "numeric",
-                            })}{" "}
-                            · {record.durationMinutes}분
-                            {record.expeditionTotal && ` × ${record.expeditionTotal}세트 원정`}
-                            {record.campOutcome === "finished" && " · 완주"}
-                            {record.campOutcome === "unfinished" && " · 조금 남음"}
-                            {record.campOutcome === "split" && " · 나눠서 계속"}
-                          </small>
-                        </div>
-                        <button
-                          className="restart-adventure"
-                          onClick={() => restartAdventure(record)}
-                          type="button"
-                        >
-                          {record.campOutcome === "unfinished" || record.campOutcome === "split"
-                            ? "이어가기"
-                            : "다시 도전"}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </section>
+          <WeeklyAdventureLog
+            adventures={adventures}
+            focusStreak={focusStreak}
+            onRestart={restartAdventure}
+            onStartFirst={() => setScreen("setup")}
+            recentAdventures={recentAdventures}
+            selectedAdventure={selected}
+            syncMessage={
+              cloudSync.account && cloudSync.status !== "disabled"
+                ? cloudSync.message
+                : "로그인하면 다른 기기에서도 이어져요"
+            }
+            weeklySummary={weeklySummary}
+          />
 
           <footer className="support-footer">
             <div>
@@ -2473,6 +2455,7 @@ export default function Home() {
           onJoin={() => void joinSilentCamp()}
           onLeave={() => void leaveSilentCamp()}
           onNicknameChange={(value) => setCampNickname(value.slice(0, 12))}
+          onRemoveMember={removeSilentCampMember}
           onSelectCompanion={chooseAdventure}
           onSendChat={sendSilentCampChat}
           onStart={beginCampFocus}
@@ -2488,13 +2471,11 @@ export default function Home() {
           <div className="setup-layout">
             <div className={`preview-panel theme-${selected.id}`}>
               <div className="preview-ground" />
-              <Image
-                src={selected.image}
-                alt={selected.friend}
-                className="setup-character"
-                height={selected.imageHeight}
-                unoptimized
-                width={selected.imageWidth}
+              <CompanionEvolutionSprite
+                adventureId={selectedId}
+                className="setup-character setup-character-evolution"
+                friend={selected.friend}
+                stage={selectedCompanionGrowth.stage}
               />
               <div className="preview-label">
                 <span>{selected.icon} 오늘의 모험</span>
@@ -2635,7 +2616,7 @@ export default function Home() {
                   </label>
                 </div>
                 <small className="setting-help">
-                  앱이 열려 있을 때 설정한 시간과 세션 종료를 알려드려요.
+                  {pushReminderMessage || "로그인 후 허용하면 앱을 닫아도 설정한 시간에 알려드려요."}
                 </small>
               </fieldset>
 
@@ -2946,16 +2927,11 @@ export default function Home() {
                 </strong>
               </div>
               <div className="complete-character-wrap">
-                <Image
-                  src={selected.image}
-                  alt={
-                    completionMode === "focus"
-                      ? `${selected.friend} 모험 완료`
-                      : `${selected.friend} 휴식 완료`
-                  }
-                  height={selected.imageHeight}
-                  unoptimized
-                  width={selected.imageWidth}
+                <CompanionEvolutionSprite
+                  adventureId={selectedId}
+                  className="complete-evolution-sprite"
+                  friend={selected.friend}
+                  stage={selectedCompanionGrowth.stage}
                 />
               </div>
             </div>

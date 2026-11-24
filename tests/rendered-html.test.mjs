@@ -82,8 +82,9 @@ test("server-renders the adventure focus app", async (context) => {
   assert.match(normalizedHtml, /각 세계 최대 5단계/);
   assert.match(normalizedHtml, /집중할수록 잠든 풍경이 깨어나요/);
   assert.match(normalizedHtml, /집중을 세 번 완주하면 나에게 맞는 리듬을 제안해요/);
-  assert.match(normalizedHtml, /이번 주의 발자국/);
-  assert.match(normalizedHtml, /집중 모험 기록/);
+  assert.match(normalizedHtml, /이번 주 원정 지도/);
+  assert.match(normalizedHtml, /최근에 걸은 길/);
+  assert.match(normalizedHtml, /companion-evolution-hike/);
   assert.doesNotMatch(normalizedHtml, /codex-preview|react-loading-skeleton/);
 
   const anonymousCloud = await fetch(new URL("api/cloud-state", worker.url));

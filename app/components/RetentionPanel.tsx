@@ -10,6 +10,7 @@ import type {
   WorldProgress,
 } from "@/lib/retention";
 import { getWorldBackgroundPath } from "@/lib/world-growth";
+import CompanionEvolutionSprite from "@/app/components/CompanionEvolutionSprite";
 
 type WorldCard = {
   friend: string;
@@ -78,9 +79,13 @@ export default function RetentionPanel({
 
       <div className="retention-grid">
         <article className="retention-card companion-memory-card">
-          <div className={`companion-stage-badge stage-${companionGrowth.stage}`} aria-label={`동료 성장 ${companionGrowth.stage}단계`}>
-            <i>{companionGrowth.stage}</i>
-            <span>동료 성장</span>
+          <div className={`companion-stage-portrait stage-${companionGrowth.stage}`}>
+            <CompanionEvolutionSprite
+              adventureId={selectedId}
+              friend={selectedFriend}
+              stage={companionGrowth.stage}
+            />
+            <span>{companionGrowth.stage}단계 모습</span>
           </div>
           <div>
             <span>{selectedFriend}의 기억</span>

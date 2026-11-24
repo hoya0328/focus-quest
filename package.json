@@ -12,7 +12,7 @@
     "deploy:public": "npm run build:public && wrangler deploy --config wrangler.public.jsonc",
     "start": "vinext start",
     "test": "npm run test:logic && npm run build && node --test tests/rendered-html.test.mjs",
-    "test:logic": "node --test tests/pomodoro.test.mjs tests/retention.test.mjs tests/silent-camp.test.mjs tests/study-quests.test.mjs tests/pwa.test.mjs tests/cloud-state.test.mjs tests/public-auth.test.mjs tests/release-readiness.test.mjs",
+    "test:logic": "node --test tests/pomodoro.test.mjs tests/retention.test.mjs tests/silent-camp.test.mjs tests/study-quests.test.mjs tests/push-reminders.test.mjs tests/pwa.test.mjs tests/cloud-state.test.mjs tests/public-auth.test.mjs tests/release-readiness.test.mjs",
     "test:account-sync": "node --test tests/cloud-state.test.mjs tests/public-auth.test.mjs",
     "test:quests": "node --test tests/study-quests.test.mjs tests/pomodoro.test.mjs",
     "test:pdf": "node --test tests/pdf-analysis.test.mjs tests/study-quests.test.mjs",
@@ -34,7 +34,8 @@
     "pdfjs-dist": "^5.4.296",
     "phaser": "^3.90.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.69.0",
@@ -43,6 +44,7 @@
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.37",
     "drizzle-kit": "0.31.10",

@@ -6,7 +6,11 @@
   "compatibility_flags": ["nodejs_compat"],
   "no_bundle": true,
   "vars": {
-    "SUPABASE_URL": "https://uaqmmsuhnwupckakagmi.supabase.co"
+    "SUPABASE_URL": "https://uaqmmsuhnwupckakagmi.supabase.co",
+    "VAPID_PUBLIC_KEY": "BH1xACLUSGeZP2oG3LACS6hP6t1zsLlan8Ql45Gcc8FmThx3SmIx3a7PdltKi0u7wSoK7fyzu4iYPzfvmIwS0Sw"
+  },
+  "triggers": {
+    "crons": ["* * * * *"]
   },
   "rules": [
     {

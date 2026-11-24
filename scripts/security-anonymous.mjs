@@ -70,6 +70,10 @@ for (const [table, identityColumn] of Object.entries({
   study_quiz_attempts: "id",
   focus_quest_product_events: "id",
   focus_quest_plus_interest: "user_id",
+  focus_quest_camps: "id",
+  focus_quest_camp_members: "camp_id",
+  focus_quest_camp_blocks: "camp_id",
+  focus_quest_push_subscriptions: "id",
 })) {
   await expectAnonymousTableDeniedOrEmpty(table, identityColumn);
 }
@@ -119,6 +123,49 @@ checks.push({
   passed: accountDeleteResponse.status === 401 || accountDeleteResponse.status === 404,
   status: accountDeleteResponse.status,
 });
+
+const pushSubscriptionResponse = await fetch(`${PUBLIC_BASE_URL}/api/push-subscriptions`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+checks.push({
+  boundary: "anonymous:push-subscriptions-api:create",
+  passed:
+    pushSubscriptionResponse.status === 401 ||
+    pushSubscriptionResponse.status === 404 ||
+    pushSubscriptionResponse.status === 503,
+  status: pushSubscriptionResponse.status,
+});
+
+for (const rpc of [
+  ["create_focus_quest_camp", {
+    requested_code: "ABC23456",
+    requested_nickname: "probe",
+    requested_adventure_id: "hike",
+    requested_focus_minutes: 25,
+  }],
+  ["join_focus_quest_camp", {
+    requested_code: "ABC23456",
+    requested_nickname: "probe",
+    requested_adventure_id: "hike",
+    requested_focus_minutes: 25,
+  }],
+  ["is_active_focus_quest_camp_member", {
+    requested_camp_id: "00000000-0000-4000-8000-000000000000",
+  }],
+]) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${rpc[0]}`, {
+    method: "POST",
+    headers: { ...publicHeaders, "Content-Type": "application/json" },
+    body: JSON.stringify(rpc[1]),
+  });
+  checks.push({
+    boundary: `anonymous:rpc:${rpc[0]}`,
+    passed: response.status === 401 || response.status === 403 || response.status === 404,
+    status: response.status,
+  });
+}
 
 const forgedCloudResponse = await fetch(`${PUBLIC_BASE_URL}/api/cloud-state`, {
   headers: { "oai-authenticated-user-email": "security-check@example.invalid" },
