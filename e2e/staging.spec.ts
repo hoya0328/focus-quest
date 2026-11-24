@@ -245,6 +245,10 @@ test.describe("isolated Supabase staging", () => {
     await quest
       .getByRole("button", { name: "집중 시작" })
       .dispatchEvent("click");
+    await page
+      .getByRole("button", { name: /모리와 집중 시작/ })
+      .click();
+    await expect(page.locator(".timer-card")).toBeVisible();
     await page.clock.fastForward("01:05");
 
     await expect(
