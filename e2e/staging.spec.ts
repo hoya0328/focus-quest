@@ -98,7 +98,7 @@ function createTextPdf(): Buffer {
 let userA: TestUser;
 let userB: TestUser;
 
-test.describe.serial("isolated Supabase staging", () => {
+test.describe("isolated Supabase staging", () => {
   test.beforeAll(async () => {
     userA = await createTestUser("a");
     userB = await createTestUser("b");
@@ -185,9 +185,9 @@ test.describe.serial("isolated Supabase staging", () => {
     const secondContext = await browser.newContext();
     const secondPage = await secondContext.newPage();
     await signInPage(secondPage, userA);
-    await expect(secondPage.getByText("스테이징 동기화")).toBeVisible({
-      timeout: 20_000,
-    });
+    await expect(secondPage.getByText("스테이징 동기화").first()).toBeVisible(
+      { timeout: 20_000 },
+    );
     await firstContext.close();
     await secondContext.close();
   });
