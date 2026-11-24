@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { StudyQuiz } from "@/lib/study-quiz";
 import {
   QUIZ_FEEDBACK_OPTIONS,
@@ -13,10 +14,25 @@ type QuizCardProps = {
   onAnswer: (index: number) => void;
   feedback: QuizFeedbackState;
   onFeedback: (value: QuizFeedbackValue) => void;
+  onReplaceQuiz?: () => boolean;
 };
 
-function QuizCard({ quiz, answer, onAnswer, feedback, onFeedback }: QuizCardProps) {
+function QuizCard({
+  quiz,
+  answer,
+  onAnswer,
+  feedback,
+  onFeedback,
+  onReplaceQuiz,
+}: QuizCardProps) {
   const feedbackLocked = feedback.status === "saving" || feedback.status === "saved";
+  const [unavailableQuizId, setUnavailableQuizId] = useState<string | null>(null);
+  const replacementUnavailable = unavailableQuizId === quiz.id;
+
+  const canReplace =
+    feedback.status === "saved" &&
+    (feedback.value === "unclear" || feedback.value === "out_of_scope") &&
+    onReplaceQuiz;
   return (
     <div className="study-quiz-card">
       <span>{quiz.sourcePages} · 1 QUESTION</span>
@@ -64,7 +80,19 @@ function QuizCard({ quiz, answer, onAnswer, feedback, onFeedback }: QuizCardProp
               {feedback.status === "saving" && "기록하는 중…"}
               {feedback.status === "saved" && "기록했어요. 다음 문제를 고르는 데 반영할게요."}
               {feedback.status === "error" && "저장하지 못했어요. 같은 버튼을 눌러 다시 시도해 주세요."}
+              {replacementUnavailable && "이 범위에서 준비할 수 있는 다른 문제를 모두 확인했어요."}
             </small>
+            {canReplace && (
+              <button
+                className="quiz-replace-button"
+                onClick={() => {
+                  if (!onReplaceQuiz()) setUnavailableQuizId(quiz.id);
+                }}
+                type="button"
+              >
+                같은 범위에서 다른 문제 받기
+              </button>
+            )}
           </div>
         </>
       )}
@@ -84,6 +112,7 @@ export function StudyCheckpointPanel({
   onAnswer,
   feedback,
   onFeedback,
+  onReplaceQuiz,
   onSkip,
 }: {
   startPage: number;
@@ -97,6 +126,7 @@ export function StudyCheckpointPanel({
   onAnswer: (index: number) => void;
   feedback: QuizFeedbackState;
   onFeedback: (value: QuizFeedbackValue) => void;
+  onReplaceQuiz?: () => boolean;
   onSkip: () => void;
 }) {
   return (
@@ -135,6 +165,7 @@ export function StudyCheckpointPanel({
           feedback={feedback}
           onAnswer={onAnswer}
           onFeedback={onFeedback}
+          onReplaceQuiz={onReplaceQuiz}
           quiz={quiz}
         />
       )}
@@ -148,6 +179,7 @@ export function StudyRecallPanel({
   onAnswer,
   feedback,
   onFeedback,
+  onReplaceQuiz,
   onContinue,
   continueLabel,
 }: {
@@ -156,6 +188,7 @@ export function StudyRecallPanel({
   onAnswer: (index: number) => void;
   feedback: QuizFeedbackState;
   onFeedback: (value: QuizFeedbackValue) => void;
+  onReplaceQuiz?: () => boolean;
   onContinue: () => void;
   continueLabel: string;
 }) {
@@ -171,6 +204,7 @@ export function StudyRecallPanel({
         feedback={feedback}
         onAnswer={onAnswer}
         onFeedback={onFeedback}
+        onReplaceQuiz={onReplaceQuiz}
         quiz={quiz}
       />
       {answer !== null && (

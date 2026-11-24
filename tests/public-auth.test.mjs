@@ -22,6 +22,10 @@ const quizFeedbackMigrationPath = new URL(
   "../supabase/migrations/202611240002_quiz_quality_feedback.sql",
   import.meta.url,
 );
+const plusInterestMigrationPath = new URL(
+  "../supabase/migrations/202611240003_plus_interest_research.sql",
+  import.meta.url,
+);
 const materialPathHardeningMigrationPath = new URL(
   "../supabase/migrations/202611130003_bind_material_storage_paths.sql",
   import.meta.url,
@@ -113,6 +117,19 @@ test("the RLS event trigger cannot be called through the public Data API", async
     migration,
     /revoke all on function public\.rls_auto_enable\(\) from public, anon, authenticated/i,
   );
+});
+
+test("Plus pricing research is private, owner-scoped, and never a purchase", async () => {
+  const migration = await readFile(plusInterestMigrationPath, "utf8");
+
+  assert.match(migration, /alter table public\.focus_quest_plus_interest enable row level security/i);
+  assert.match(migration, /revoke all on table public\.focus_quest_plus_interest from public, anon/i);
+  assert.match(migration, /to authenticated/i);
+  assert.match(migration, /using \(\(select auth\.uid\(\)\) = user_id\)/i);
+  assert.match(migration, /with check \(\(select auth\.uid\(\)\) = user_id\)/i);
+  assert.match(migration, /interest_level in \('interested', 'not_now'\)/i);
+  assert.match(migration, /price_band in \(4900, 5900, 6900\)/i);
+  assert.doesNotMatch(migration, /card|payment_intent|checkout|transaction_id/i);
 });
 
 test("account deletion verifies the user and removes private storage before Auth", async () => {

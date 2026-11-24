@@ -77,6 +77,19 @@ export type ExamExpedition = {
   message: string;
 };
 
+export type ExamExpeditionReport = {
+  weeks: Array<{ label: string; minutes: number }>;
+  recentMinutes: number;
+  previousMinutes: number;
+  trendMinutes: number;
+  requiredWeeklyMinutes: number;
+  projectedDays: number | null;
+  projectedDate: string | null;
+  status: "complete" | "on_track" | "at_risk" | "no_pace";
+  headline: string;
+  message: string;
+};
+
 export type QuestDraft = {
   subjectId: string;
   title: string;
@@ -297,6 +310,94 @@ export function getExamExpedition({
     daysAvailable,
     risk,
     label,
+    message,
+  };
+}
+
+export function getExamExpeditionReport({
+  subject,
+  quests,
+  history,
+  now = new Date(),
+}: {
+  subject: StudySubject;
+  quests: StudyQuest[];
+  history: FocusRecord[];
+  now?: Date;
+}): ExamExpeditionReport {
+  const expedition = getExamExpedition({ subject, quests, now });
+  const questIds = new Set(
+    quests
+      .filter((quest) => quest.subjectId === subject.id)
+      .map((quest) => quest.id),
+  );
+  const weekMinutes = [0, 0, 0, 0];
+  const nowMs = now.getTime();
+  const dayMs = 86_400_000;
+
+  for (const record of history) {
+    if (!record.questId || !questIds.has(record.questId)) continue;
+    const completedAt = Date.parse(record.completedAt);
+    const ageDays = Math.floor((nowMs - completedAt) / dayMs);
+    if (!Number.isFinite(completedAt) || ageDays < 0 || ageDays >= 28) continue;
+    const bucket = 3 - Math.floor(ageDays / 7);
+    weekMinutes[bucket] += Math.max(0, record.durationMinutes);
+  }
+
+  const recentMinutes = weekMinutes[3];
+  const previousMinutes = weekMinutes[2];
+  const trendMinutes = recentMinutes - previousMinutes;
+  const requiredWeeklyMinutes = expedition.remainingMinutes === 0
+    ? 0
+    : expedition.daysAvailable
+      ? Math.ceil((expedition.remainingMinutes / expedition.daysAvailable) * 7)
+      : Math.max(0, subject.weeklyMinutes);
+  const projectedDays = recentMinutes > 0 && expedition.remainingMinutes > 0
+    ? Math.ceil(expedition.remainingMinutes / (recentMinutes / 7))
+    : null;
+  const projectedDate = projectedDays === null
+    ? null
+    : new Date(nowMs + projectedDays * dayMs).toISOString().slice(0, 10);
+  const targetMs = subject.targetDate
+    ? Date.parse(`${subject.targetDate}T23:59:59Z`)
+    : Number.NaN;
+  const status = expedition.remainingMinutes === 0
+    ? "complete"
+    : recentMinutes === 0
+      ? "no_pace"
+      : Number.isFinite(targetMs) && projectedDate
+        ? Date.parse(`${projectedDate}T23:59:59Z`) <= targetMs
+          ? "on_track"
+          : "at_risk"
+        : requiredWeeklyMinutes > 0 && recentMinutes < requiredWeeklyMinutes
+          ? "at_risk"
+          : "on_track";
+  const headline = status === "complete"
+    ? "계획한 원정을 완주했어요"
+    : status === "on_track"
+      ? "지금 속도면 경로 안에 있어요"
+      : status === "at_risk"
+        ? "이번 주 속도를 조금 올려야 해요"
+        : "첫 기록이 생기면 완주일을 계산해요";
+  const message = status === "complete"
+    ? "최근 기록은 그대로 남아 다음 복습 계획의 기준이 됩니다."
+    : status === "no_pace"
+      ? `남은 ${expedition.remainingMinutes}분 중 한 세트를 마치면 예상 완주일이 보여요.`
+      : `${projectedDate} 완주 예상 · 최근 7일 ${recentMinutes}분${requiredWeeklyMinutes > 0 ? ` · 필요한 주간 속도 ${requiredWeeklyMinutes}분` : ""}`;
+
+  return {
+    weeks: weekMinutes.map((minutes, index) => ({
+      label: index === 3 ? "이번 주" : `${3 - index}주 전`,
+      minutes,
+    })),
+    recentMinutes,
+    previousMinutes,
+    trendMinutes,
+    requiredWeeklyMinutes,
+    projectedDays,
+    projectedDate,
+    status,
+    headline,
     message,
   };
 }

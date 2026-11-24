@@ -1864,6 +1864,42 @@ export default function Home() {
       },
     );
     setFeedback({ value, status: saved ? "saved" : "error" });
+    if (saved) void studyProgress.refresh();
+  };
+
+  const replaceStudyQuiz = (stage: QuizFeedbackStage) => {
+    const source = activeStudyMaterial?.quizSource;
+    if (!source || !completedQuestId) return false;
+    const reached = Math.min(
+      studyRangeEnd,
+      Math.max(studyRangeStart, Math.round(Number(reachedPage) || studyRangeStart)),
+    );
+    const attemptedKeys = studyProgress.attemptedQuizKeys(completedQuestId);
+    const rejectedKeys = studyProgress.getQualitySignal(completedQuestId).rejectedQuizKeys;
+    const excluded = new Set([
+      ...attemptedKeys,
+      ...rejectedKeys,
+      ...(checkpointQuiz ? [checkpointQuiz.id] : []),
+      ...(reviewQuiz ? [reviewQuiz.id] : []),
+    ]);
+    const replacement = createUnseenStudyQuiz(
+      source,
+      studyRangeStart,
+      reached,
+      stage === "checkpoint" ? 0 : 1,
+      excluded,
+    );
+    if (!replacement) return false;
+    if (stage === "checkpoint") {
+      setCheckpointQuiz(replacement);
+      setCheckpointAnswer(null);
+      setCheckpointFeedback(emptyQuizFeedback());
+    } else {
+      setReviewQuiz(replacement);
+      setReviewAnswer(null);
+      setReviewFeedback(emptyQuizFeedback());
+    }
+    return true;
   };
 
   const beginCampFollowUp = (durationMinutes: number, split = false) => {
@@ -1878,14 +1914,20 @@ export default function Home() {
     });
   };
 
-  const launchQuest = async (quest: StudyQuest, material: StudyMaterial | null) => {
+  const launchQuest = async (
+    quest: StudyQuest,
+    material: StudyMaterial | null,
+    options: { mode?: "standard" | "review"; durationMinutes?: number } = {},
+  ) => {
     const started = await questStore.startQuest(quest.id);
     if (!started) return;
     const range = material
       ? parseStudyPageRange(quest.sourcePages, material.pageCount)
       : { startPage: 1, endPage: 1 };
     const previousReached = studyProgress.getReachedPage(quest.id);
+    const isReview = options.mode === "review";
     const nextStart =
+      !isReview &&
       previousReached !== null &&
       previousReached >= range.startPage &&
       previousReached < range.endPage
@@ -1905,17 +1947,23 @@ export default function Home() {
     setReviewAnswer(null);
     setCheckpointFeedback(emptyQuizFeedback());
     setReviewFeedback(emptyQuizFeedback());
-    setFocusIntent(quest.title);
+    const sessionMinutes = Math.min(
+      120,
+      Math.max(1, Math.round(options.durationMinutes ?? quest.focusMinutes)),
+    );
+    setFocusIntent(isReview ? `복습 · ${quest.title}` : quest.title);
     setSelectedId(quest.adventureId);
     setBgm(adventureBgms[quest.adventureId]);
-    setFocusMinutes(quest.focusMinutes);
+    setFocusMinutes(sessionMinutes);
     setBreakMinutes(quest.breakMinutes);
     setExpeditionSets(
-      Math.min(8, Math.max(1, quest.targetSets - quest.completedSets)),
+      isReview
+        ? 1
+        : Math.min(8, Math.max(1, quest.targetSets - quest.completedSets)),
     );
     setSessionMode("focus");
-    setSessionDurationMinutes(quest.focusMinutes);
-    setRemaining(quest.focusMinutes * 60);
+    setSessionDurationMinutes(sessionMinutes);
+    setRemaining(sessionMinutes * 60);
     setScreen("setup");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -2640,6 +2688,7 @@ export default function Home() {
                   quests={questStore.quests}
                   history={history}
                   getLearningSignal={studyProgress.getLearningSignal}
+                  getQualitySignal={studyProgress.getQualitySignal}
                   onLogin={() => setShowAuthDialog(true)}
                   onCreateSubject={questStore.createSubject}
                   onDeleteSubject={questStore.deleteSubject}
@@ -2988,6 +3037,7 @@ export default function Home() {
                     void submitQuizFeedback("checkpoint", checkpointQuiz, value);
                   }
                 }}
+                onReplaceQuiz={() => replaceStudyQuiz("checkpoint")}
                 onSkip={skipCheckpointQuiz}
                 quiz={checkpointQuiz}
                 reachedPage={reachedPage}
@@ -3131,6 +3181,7 @@ export default function Home() {
                 onFeedback={(value) => {
                   void submitQuizFeedback("review", reviewQuiz, value);
                 }}
+                onReplaceQuiz={() => replaceStudyQuiz("review")}
                 quiz={reviewQuiz}
               />
             ) : (

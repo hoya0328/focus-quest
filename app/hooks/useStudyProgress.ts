@@ -4,17 +4,22 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 import {
   clampStudyPage,
+  EMPTY_STUDY_QUALITY_SIGNAL,
   summarizeStudyAttempts,
+  summarizeStudyQuizFeedback,
   studyProgressStorageKey,
   type StudyQuestProgressRow,
   type StudyLearningSignal,
   type StudyQuizAttemptDraft,
   type StudyQuizAttemptRow,
+  type StudyQuizFeedbackRow,
+  type StudyQuizQualitySignal,
 } from "@/lib/study-progress";
 
 type ProgressByQuest = Record<string, number>;
 type AttemptKeysByQuest = Record<string, string[]>;
 type LearningSignalsByQuest = Record<string, StudyLearningSignal>;
+type QualitySignalsByQuest = Record<string, StudyQuizQualitySignal>;
 
 export function useStudyProgress(enabled: boolean) {
   const client = getSupabaseBrowserClient();
@@ -23,6 +28,8 @@ export function useStudyProgress(enabled: boolean) {
     useState<AttemptKeysByQuest>({});
   const [learningSignalsByQuest, setLearningSignalsByQuest] =
     useState<LearningSignalsByQuest>({});
+  const [qualitySignalsByQuest, setQualitySignalsByQuest] =
+    useState<QualitySignalsByQuest>({});
   const [available, setAvailable] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -30,10 +37,11 @@ export function useStudyProgress(enabled: boolean) {
       setProgressByQuest({});
       setAttemptKeysByQuest({});
       setLearningSignalsByQuest({});
+      setQualitySignalsByQuest({});
       return;
     }
 
-    const [progressResult, attemptsResult] = await Promise.all([
+    const [progressResult, attemptsResult, feedbackResult] = await Promise.all([
       client
         .from("study_quest_progress")
         .select("quest_id,user_id,material_id,last_reached_page,updated_at"),
@@ -42,8 +50,14 @@ export function useStudyProgress(enabled: boolean) {
         .select("quest_id,quiz_key,is_correct,skipped,stage,created_at")
         .order("created_at", { ascending: false })
         .limit(500),
+      client
+        .from("focus_quest_product_events")
+        .select("quest_id,quiz_key,feedback_value,created_at")
+        .eq("event_name", "quiz_feedback_submitted")
+        .order("created_at", { ascending: false })
+        .limit(500),
     ]);
-    const error = progressResult.error ?? attemptsResult.error;
+    const error = progressResult.error ?? attemptsResult.error ?? feedbackResult.error;
     if (error) {
       setAvailable(false);
       return;
@@ -58,6 +72,9 @@ export function useStudyProgress(enabled: boolean) {
     setProgressByQuest(nextProgress);
     setAttemptKeysByQuest(nextAttemptKeys);
     setLearningSignalsByQuest(nextSignals);
+    setQualitySignalsByQuest(
+      summarizeStudyQuizFeedback(feedbackResult.data as StudyQuizFeedbackRow[]),
+    );
     setAvailable(true);
   }, [client, enabled]);
 
@@ -189,11 +206,18 @@ export function useStudyProgress(enabled: boolean) {
     [learningSignalsByQuest],
   );
 
+  const getQualitySignal = useCallback(
+    (questId: string) =>
+      qualitySignalsByQuest[questId] ?? EMPTY_STUDY_QUALITY_SIGNAL,
+    [qualitySignalsByQuest],
+  );
+
   return {
     attemptedQuizKeys,
     available,
     getReachedPage,
     getLearningSignal,
+    getQualitySignal,
     recordAttempt,
     refresh,
     saveProgress,

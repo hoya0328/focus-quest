@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 import {
   getExamExpedition,
+  getExamExpeditionReport,
   getQuestLearningState,
   getRecommendedQuest,
   getSubjectProgress,
@@ -17,7 +18,11 @@ import {
   parseActiveSession,
   parseHistory,
 } from "../lib/pomodoro.ts";
-import { summarizeStudyAttempts } from "../lib/study-progress.ts";
+import {
+  getAdaptiveReviewPlan,
+  summarizeStudyAttempts,
+  summarizeStudyQuizFeedback,
+} from "../lib/study-progress.ts";
 
 test("quest inputs are trimmed and constrained to supported ranges", () => {
   const quest = normalizeQuestDraft({
@@ -213,6 +218,60 @@ test("exam expedition calculates the daily pace from remaining sets", () => {
   assert.equal(expedition.risk, "steady");
 });
 
+test("exam expedition report compares four rolling weeks and forecasts completion", () => {
+  const subject = {
+    id: "subject-1",
+    userId: "user-1",
+    name: "데이터베이스",
+    goal: "기말고사",
+    targetDate: "2026-12-10",
+    weeklyMinutes: 120,
+    createdAt: "",
+    updatedAt: "",
+  };
+  const quest = {
+    id: "quest-1",
+    userId: "user-1",
+    subjectId: subject.id,
+    title: "SQL 복습",
+    objective: "",
+    status: "in_progress",
+    adventureId: "fish",
+    focusMinutes: 30,
+    breakMinutes: 5,
+    targetSets: 6,
+    completedSets: 2,
+    materialId: null,
+    sourcePages: "",
+    studyMethod: "",
+    estimatedMinutesMin: null,
+    estimatedMinutesMax: null,
+    questContract: null,
+    createdAt: "",
+    updatedAt: "",
+    completedAt: null,
+  };
+  const history = [
+    createFocusRecord({ durationMinutes: 30, adventureId: "fish", questId: quest.id, completedAt: new Date("2026-11-23T12:00:00.000Z") }),
+    createFocusRecord({ durationMinutes: 30, adventureId: "fish", questId: quest.id, completedAt: new Date("2026-11-20T12:00:00.000Z") }),
+    createFocusRecord({ durationMinutes: 20, adventureId: "fish", questId: quest.id, completedAt: new Date("2026-11-15T12:00:00.000Z") }),
+    createFocusRecord({ durationMinutes: 90, adventureId: "fish", questId: "other", completedAt: new Date("2026-11-23T12:00:00.000Z") }),
+  ];
+
+  const report = getExamExpeditionReport({
+    subject,
+    quests: [quest],
+    history,
+    now: new Date("2026-11-24T12:00:00.000Z"),
+  });
+
+  assert.deepEqual(report.weeks.map((week) => week.minutes), [0, 0, 20, 60]);
+  assert.equal(report.trendMinutes, 40);
+  assert.equal(report.projectedDays, 14);
+  assert.equal(report.projectedDate, "2026-12-08");
+  assert.equal(report.status, "on_track");
+});
+
 test("a later correct answer clears the same quiz from review signals", () => {
   const summary = summarizeStudyAttempts([
     {
@@ -236,6 +295,55 @@ test("a later correct answer clears the same quiz from review signals", () => {
   assert.deepEqual(summary.attemptKeysByQuest["quest-1"], ["sql-index"]);
   assert.equal(summary.learningSignalsByQuest["quest-1"].correct, 1);
   assert.equal(summary.learningSignalsByQuest["quest-1"].incorrect, 0);
+});
+
+test("latest quiz feedback excludes only questions the learner rejected", () => {
+  const summary = summarizeStudyQuizFeedback([
+    {
+      quest_id: "quest-1",
+      quiz_key: "sql-index",
+      feedback_value: "unclear",
+      created_at: "2026-11-24T10:00:00.000Z",
+    },
+    {
+      quest_id: "quest-1",
+      quiz_key: "sql-index",
+      feedback_value: "helpful",
+      created_at: "2026-11-24T10:05:00.000Z",
+    },
+    {
+      quest_id: "quest-1",
+      quiz_key: "sql-join",
+      feedback_value: "out_of_scope",
+      created_at: "2026-11-24T10:10:00.000Z",
+    },
+  ]);
+
+  assert.equal(summary["quest-1"].helpful, 1);
+  assert.equal(summary["quest-1"].outOfScope, 1);
+  assert.deepEqual(summary["quest-1"].rejectedQuizKeys, ["sql-join"]);
+});
+
+test("adaptive review favors wrong answers, then skipped checks", () => {
+  const wrong = getAdaptiveReviewPlan({
+    correct: 1,
+    incorrect: 2,
+    skipped: 1,
+    latestStage: "checkpoint",
+    latestAt: "2026-11-24T10:00:00.000Z",
+  });
+  const skipped = getAdaptiveReviewPlan({
+    correct: 0,
+    incorrect: 0,
+    skipped: 1,
+    latestStage: "checkpoint",
+    latestAt: "2026-11-24T10:00:00.000Z",
+  });
+
+  assert.equal(wrong.kind, "review_now");
+  assert.equal(wrong.durationMinutes, 15);
+  assert.equal(skipped.kind, "review_soon");
+  assert.equal(skipped.durationMinutes, 10);
 });
 
 test("database migration isolates users and deduplicates completed sessions", async () => {

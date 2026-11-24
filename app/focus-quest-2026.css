@@ -557,6 +557,126 @@
 .focus-quest-app .exam-expedition.state-tight,
 .focus-quest-app .exam-expedition.state-overdue { border-color: color-mix(in oklab, #ff8e6e 65%, var(--color-border)); }
 
+.focus-quest-app .expedition-report {
+  display: grid;
+  gap: var(--space-lg);
+  margin: calc(var(--space-md) * -0.35) 0 var(--space-lg);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--color-surface-raised) 94%, var(--color-primary));
+}
+
+.focus-quest-app .expedition-report.state-at_risk { border-color: color-mix(in oklab, #ff8e6e 55%, var(--color-border)); }
+
+.focus-quest-app .expedition-report-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.focus-quest-app .expedition-report-heading > div:first-child > span {
+  color: var(--color-primary);
+  font-size: var(--text-xs);
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.focus-quest-app .expedition-report h3 { margin: var(--space-xs) 0; font-size: var(--text-md); }
+.focus-quest-app .expedition-report p { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); }
+
+.focus-quest-app .expedition-report-trend {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+}
+
+.focus-quest-app .expedition-report-trend strong { font-size: var(--text-lg); }
+.focus-quest-app .expedition-report-trend small { color: var(--color-text-muted); }
+
+.focus-quest-app .expedition-week-chart {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm);
+  min-height: 132px;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.focus-quest-app .expedition-week-chart > div {
+  display: grid;
+  grid-template-rows: 72px auto auto;
+  gap: 4px;
+  align-items: end;
+  text-align: center;
+}
+
+.focus-quest-app .expedition-week-chart > div > span {
+  width: min(38px, 70%);
+  min-height: 6px;
+  margin-inline: auto;
+  border-radius: var(--radius-sm) var(--radius-sm) 3px 3px;
+  background: linear-gradient(180deg, var(--color-primary), color-mix(in oklab, var(--color-primary) 45%, var(--color-canvas)));
+}
+
+.focus-quest-app .expedition-week-chart strong { font-size: var(--text-xs); }
+.focus-quest-app .expedition-week-chart small { color: var(--color-text-muted); font-size: var(--text-xs); }
+
+.focus-quest-app .plus-interest-panel {
+  display: grid;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid color-mix(in oklab, var(--color-primary) 28%, var(--color-border));
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(circle at 92% 8%, color-mix(in oklab, var(--color-primary) 14%, transparent), transparent 34%),
+    var(--color-surface-raised);
+}
+
+.focus-quest-app .plus-interest-copy > span {
+  color: var(--color-primary);
+  font-size: var(--text-xs);
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.focus-quest-app .plus-interest-panel h3 { margin: var(--space-xs) 0; font-size: var(--text-lg); }
+.focus-quest-app .plus-interest-panel p { max-width: 68ch; margin: 0; color: var(--color-text-muted); line-height: 1.65; }
+.focus-quest-app .plus-interest-panel fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.focus-quest-app .plus-interest-panel legend { margin-bottom: var(--space-sm); color: var(--color-text-soft); font-size: var(--text-sm); font-weight: 800; }
+
+.focus-quest-app .plus-price-options,
+.focus-quest-app .plus-interest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.focus-quest-app .plus-price-options label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+  color: var(--color-text-soft);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.focus-quest-app .plus-price-options label.is-selected {
+  border-color: var(--color-primary);
+  background: color-mix(in oklab, var(--color-primary) 12%, var(--color-canvas));
+  color: var(--color-text);
+}
+
+.focus-quest-app .plus-price-options input { width: auto; margin-right: var(--space-xs); accent-color: var(--color-primary); }
+.focus-quest-app .plus-interest-actions button { min-height: 44px; padding-inline: var(--space-lg); }
+.focus-quest-app .plus-interest-panel > small { min-height: 1.4em; color: var(--color-text-muted); }
+
 .focus-quest-app .next-quest-card {
   display: flex;
   align-items: center;
@@ -661,9 +781,14 @@
   .focus-quest-app .camp-reflection-controls { grid-template-columns: minmax(0, 1fr); }
   .focus-quest-app .exam-expedition-stats { justify-content: space-between; }
   .focus-quest-app .next-quest-card,
-  .focus-quest-app .camp-reflection-result { align-items: stretch; flex-direction: column; }
+  .focus-quest-app .camp-reflection-result,
+  .focus-quest-app .expedition-report-heading { align-items: stretch; flex-direction: column; }
+  .focus-quest-app .expedition-report-trend { justify-items: start; }
   .focus-quest-app .next-quest-card .quest-primary,
   .focus-quest-app .camp-reflection-result button { width: 100%; }
+  .focus-quest-app .plus-price-options,
+  .focus-quest-app .plus-interest-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .focus-quest-app .plus-interest-actions button { width: 100%; }
 }
 
 @media (max-width: 30rem) {

@@ -5844,6 +5844,13 @@ input[type="range"] {
   opacity: 0.82;
 }
 
+.quiz-quality-feedback .quiz-replace-button {
+  width: 100%;
+  border-color: #68d4c3;
+  background: #143d49;
+  color: #dffcf3;
+}
+
 .quiz-quality-feedback small {
   min-height: 18px;
   color: #a9c4bd;

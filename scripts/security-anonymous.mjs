@@ -69,6 +69,7 @@ for (const [table, identityColumn] of Object.entries({
   study_quest_progress: "quest_id",
   study_quiz_attempts: "id",
   focus_quest_product_events: "id",
+  focus_quest_plus_interest: "user_id",
 })) {
   await expectAnonymousTableDeniedOrEmpty(table, identityColumn);
 }

@@ -2,12 +2,18 @@
 
 import { useCallback, useMemo, useState, type FormEvent } from "react";
 import StudyMaterialLibrary from "@/app/components/StudyMaterialLibrary";
+import PlusInterestPanel from "@/app/components/PlusInterestPanel";
 import { useStudyMaterials } from "@/app/hooks/useStudyMaterials";
 import type { StudyMaterial } from "@/lib/pdf-analysis";
 import type { FocusRecord } from "@/lib/pomodoro";
-import type { StudyLearningSignal } from "@/lib/study-progress";
+import {
+  getAdaptiveReviewPlan,
+  type StudyLearningSignal,
+  type StudyQuizQualitySignal,
+} from "@/lib/study-progress";
 import {
   getExamExpedition,
+  getExamExpeditionReport,
   getQuestLearningState,
   getRecommendedQuest,
   getSubjectProgress,
@@ -31,8 +37,13 @@ type QuestBoardProps = {
   onCreateQuest: (draft: QuestDraft) => Promise<StudyQuest | null>;
   onUpdateQuest: (id: string, draft: QuestDraft) => Promise<StudyQuest | null>;
   onDeleteQuest: (id: string) => Promise<boolean>;
-  onStartQuest: (quest: StudyQuest, material: StudyMaterial | null) => void | Promise<void>;
+  onStartQuest: (
+    quest: StudyQuest,
+    material: StudyMaterial | null,
+    options?: { mode?: "standard" | "review"; durationMinutes?: number },
+  ) => void | Promise<void>;
   getLearningSignal: (questId: string) => StudyLearningSignal;
+  getQualitySignal: (questId: string) => StudyQuizQualitySignal;
 };
 
 const emptySubject: SubjectDraft = {
@@ -73,6 +84,7 @@ export default function QuestBoard({
   onDeleteQuest,
   onStartQuest,
   getLearningSignal,
+  getQualitySignal,
 }: QuestBoardProps) {
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [subjectDraft, setSubjectDraft] = useState(emptySubject);
@@ -127,10 +139,30 @@ export default function QuestBoard({
       : null,
     [activeSubject, visibleQuests],
   );
+  const examReport = useMemo(
+    () => activeSubject
+      ? getExamExpeditionReport({
+          subject: activeSubject,
+          quests: visibleQuests,
+          history,
+        })
+      : null,
+    [activeSubject, history, visibleQuests],
+  );
+  const examReportPeak = Math.max(
+    1,
+    ...(examReport?.weeks.map((week) => week.minutes) ?? []),
+  );
   const recommendedQuest = useMemo(
     () => getRecommendedQuest(visibleQuests, getEffectiveLearningSignal),
     [getEffectiveLearningSignal, visibleQuests],
   );
+  const recommendedReviewPlan = recommendedQuest
+    ? getAdaptiveReviewPlan(
+        getEffectiveLearningSignal(recommendedQuest.id),
+        getQualitySignal(recommendedQuest.id),
+      )
+    : null;
 
   const submitSubject = async (event: FormEvent) => {
     event.preventDefault();
@@ -358,14 +390,51 @@ export default function QuestBoard({
                 </section>
               )}
 
+              {examReport && examExpedition && examExpedition.totalSets > 0 && (
+                <section
+                  className={`expedition-report state-${examReport.status}`}
+                  aria-labelledby="expedition-report-title"
+                >
+                  <div className="expedition-report-heading">
+                    <div>
+                      <span>4-WEEK ROUTE</span>
+                      <h3 id="expedition-report-title">{examReport.headline}</h3>
+                      <p>{examReport.message}</p>
+                    </div>
+                    <div className="expedition-report-trend" aria-label="최근 7일 변화">
+                      <strong>{examReport.recentMinutes}분</strong>
+                      <small>
+                        {examReport.trendMinutes === 0
+                          ? "지난주와 같아요"
+                          : `${examReport.trendMinutes > 0 ? "+" : ""}${examReport.trendMinutes}분`}
+                      </small>
+                    </div>
+                  </div>
+                  <div className="expedition-week-chart" aria-label="최근 4주 과목 집중 시간">
+                    {examReport.weeks.map((week) => {
+                      return (
+                        <div key={week.label}>
+                          <span
+                            aria-label={`${week.label} ${week.minutes}분`}
+                            style={{ height: `${Math.max(6, (week.minutes / examReportPeak) * 100)}%` }}
+                          />
+                          <strong>{week.minutes}분</strong>
+                          <small>{week.label}</small>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
               {recommendedQuest && (
                 <section className="next-quest-card" aria-labelledby="next-quest-title">
                   <div>
                     <span>다음 한 걸음</span>
                     <h3 id="next-quest-title">{recommendedQuest.title}</h3>
                     <p>
-                      {getQuestLearningState(recommendedQuest, getEffectiveLearningSignal(recommendedQuest.id)) === "review"
-                        ? "건너뛰었거나 틀린 문제가 있어, 새 진도보다 짧은 복습을 먼저 추천해요."
+                      {recommendedReviewPlan?.durationMinutes
+                        ? recommendedReviewPlan.reason
                         : recommendedQuest.status === "in_progress"
                           ? "이미 걷기 시작한 퀘스트예요. 흐름이 끊기기 전에 이어가 보세요."
                           : "아직 시작하지 않은 가장 가까운 공부 구간이에요."}
@@ -376,11 +445,14 @@ export default function QuestBoard({
                     onClick={() => onStartQuest(
                       recommendedQuest,
                       materialStore.materials.find((material) => material.id === recommendedQuest.materialId) ?? null,
+                      recommendedReviewPlan?.durationMinutes
+                        ? { mode: "review", durationMinutes: recommendedReviewPlan.durationMinutes }
+                        : undefined,
                     )}
                     type="button"
                   >
-                    {getQuestLearningState(recommendedQuest, getEffectiveLearningSignal(recommendedQuest.id)) === "review"
-                      ? "복습 시작"
+                    {recommendedReviewPlan?.durationMinutes
+                      ? recommendedReviewPlan.label
                       : "이어서 집중"}
                   </button>
                 </section>
@@ -398,9 +470,14 @@ export default function QuestBoard({
 
               <div className="quest-list">
                 {visibleQuests.map((quest) => {
+                  const learningSignal = getEffectiveLearningSignal(quest.id);
                   const learningState = getQuestLearningState(
                     quest,
-                    getEffectiveLearningSignal(quest.id),
+                    learningSignal,
+                  );
+                  const reviewPlan = getAdaptiveReviewPlan(
+                    learningSignal,
+                    getQualitySignal(quest.id),
                   );
                   return (
                     <article className={`quest-card status-${quest.status} learning-${learningState}`} key={quest.id}>
@@ -441,10 +518,13 @@ export default function QuestBoard({
                           onClick={() => onStartQuest(
                             quest,
                             materialStore.materials.find((material) => material.id === quest.materialId) ?? null,
+                            reviewPlan.durationMinutes
+                              ? { mode: "review", durationMinutes: reviewPlan.durationMinutes }
+                              : undefined,
                           )}
                         >
-                          {learningState === "review"
-                            ? "복습 시작"
+                          {reviewPlan.durationMinutes
+                            ? reviewPlan.label
                             : quest.status === "completed"
                               ? "다시 보기"
                               : "집중 시작"}
@@ -565,6 +645,7 @@ export default function QuestBoard({
           )}
         </div>
       </div>
+      <PlusInterestPanel enabled={loggedIn} />
     </section>
   );
 }
