@@ -237,9 +237,9 @@ test("a companion remembers only adventures completed together", () => {
 
 test("behavior recommendations wait for three completed sessions", () => {
   const history = [
-    createFocusRecord({ durationMinutes: 25, adventureId: "hike", focusIntent: "운영체제", startedAt: "2026-11-13T09:00:00+09:00", completedAt: new Date("2026-11-13T09:25:00+09:00") }),
-    createFocusRecord({ durationMinutes: 25, adventureId: "fish", startedAt: "2026-11-12T09:00:00+09:00", completedAt: new Date("2026-11-12T09:25:00+09:00") }),
-    createFocusRecord({ durationMinutes: 40, adventureId: "swim", focusIntent: "자료구조", startedAt: "2026-11-11T11:00:00+09:00", completedAt: new Date("2026-11-11T11:40:00+09:00") }),
+    createFocusRecord({ durationMinutes: 25, adventureId: "hike", focusIntent: "운영체제", startedAt: "2026-11-13T09:00:00", completedAt: new Date("2026-11-13T09:25:00") }),
+    createFocusRecord({ durationMinutes: 25, adventureId: "fish", startedAt: "2026-11-12T09:00:00", completedAt: new Date("2026-11-12T09:25:00") }),
+    createFocusRecord({ durationMinutes: 40, adventureId: "swim", focusIntent: "자료구조", startedAt: "2026-11-11T11:00:00", completedAt: new Date("2026-11-11T11:40:00") }),
   ];
 
   assert.equal(getBehaviorInsights(history.slice(0, 2)).favoriteMinutes, null);
