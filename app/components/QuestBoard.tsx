@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useCallback, useMemo, useState, type FormEvent } from "react";
 import StudyMaterialLibrary from "@/app/components/StudyMaterialLibrary";
 import { useStudyMaterials } from "@/app/hooks/useStudyMaterials";
 import type { StudyMaterial } from "@/lib/pdf-analysis";
 import type { FocusRecord } from "@/lib/pomodoro";
+import type { StudyLearningSignal } from "@/lib/study-progress";
 import {
+  getExamExpedition,
+  getQuestLearningState,
+  getRecommendedQuest,
   getSubjectProgress,
   questProgress,
   type QuestDraft,
@@ -28,6 +32,7 @@ type QuestBoardProps = {
   onUpdateQuest: (id: string, draft: QuestDraft) => Promise<StudyQuest | null>;
   onDeleteQuest: (id: string) => Promise<boolean>;
   onStartQuest: (quest: StudyQuest, material: StudyMaterial | null) => void | Promise<void>;
+  getLearningSignal: (questId: string) => StudyLearningSignal;
 };
 
 const emptySubject: SubjectDraft = {
@@ -67,12 +72,33 @@ export default function QuestBoard({
   onUpdateQuest,
   onDeleteQuest,
   onStartQuest,
+  getLearningSignal,
 }: QuestBoardProps) {
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [subjectDraft, setSubjectDraft] = useState(emptySubject);
   const [questDraft, setQuestDraft] = useState(emptyQuest());
   const [editingId, setEditingId] = useState<string | null>(null);
   const materialStore = useStudyMaterials(loggedIn);
+  const getEffectiveLearningSignal = useCallback(
+    (questId: string) => {
+      const signal = getLearningSignal(questId);
+      const reflection = history.find(
+        (record) => record.questId === questId && record.campReflection,
+      )?.campReflection;
+      if (
+        !reflection ||
+        (reflection.confidence > 2 && reflection.difficulty !== "heavy")
+      ) {
+        return signal;
+      }
+      return {
+        ...signal,
+        skipped: signal.skipped + 1,
+        latestAt: reflection.savedAt,
+      };
+    },
+    [getLearningSignal, history],
+  );
 
   const effectiveSubjectId = subjects.some(
     (subject) => subject.id === selectedSubjectId,
@@ -94,6 +120,16 @@ export default function QuestBoard({
       ? getSubjectProgress({ subject: activeSubject, quests, history })
       : null,
     [activeSubject, history, quests],
+  );
+  const examExpedition = useMemo(
+    () => activeSubject
+      ? getExamExpedition({ subject: activeSubject, quests: visibleQuests })
+      : null,
+    [activeSubject, visibleQuests],
+  );
+  const recommendedQuest = useMemo(
+    () => getRecommendedQuest(visibleQuests, getEffectiveLearningSignal),
+    [getEffectiveLearningSignal, visibleQuests],
   );
 
   const submitSubject = async (event: FormEvent) => {
@@ -292,6 +328,64 @@ export default function QuestBoard({
                 </section>
               )}
 
+              {examExpedition && examExpedition.totalSets > 0 && (
+                <section className={`exam-expedition state-${examExpedition.risk}`} aria-labelledby="exam-expedition-title">
+                  <div className="exam-expedition-copy">
+                    <span>EXAM EXPEDITION</span>
+                    <h3 id="exam-expedition-title">{examExpedition.label}</h3>
+                    <p>{examExpedition.message}</p>
+                  </div>
+                  <div className="exam-expedition-stats">
+                    <div>
+                      <strong>{examExpedition.completedSets}/{examExpedition.totalSets}</strong>
+                      <span>통과한 구간</span>
+                    </div>
+                    <div>
+                      <strong>{examExpedition.dailyMinutes}분</strong>
+                      <span>하루 권장</span>
+                    </div>
+                  </div>
+                  <span
+                    aria-label={`시험 원정 ${examExpedition.totalSets > 0 ? Math.round((examExpedition.completedSets / examExpedition.totalSets) * 100) : 0}% 완료`}
+                    aria-valuemax={100}
+                    aria-valuemin={0}
+                    aria-valuenow={examExpedition.totalSets > 0 ? Math.round((examExpedition.completedSets / examExpedition.totalSets) * 100) : 0}
+                    className="exam-expedition-track"
+                    role="progressbar"
+                  >
+                    <i style={{ width: `${examExpedition.totalSets > 0 ? (examExpedition.completedSets / examExpedition.totalSets) * 100 : 0}%` }} />
+                  </span>
+                </section>
+              )}
+
+              {recommendedQuest && (
+                <section className="next-quest-card" aria-labelledby="next-quest-title">
+                  <div>
+                    <span>다음 한 걸음</span>
+                    <h3 id="next-quest-title">{recommendedQuest.title}</h3>
+                    <p>
+                      {getQuestLearningState(recommendedQuest, getEffectiveLearningSignal(recommendedQuest.id)) === "review"
+                        ? "건너뛰었거나 틀린 문제가 있어, 새 진도보다 짧은 복습을 먼저 추천해요."
+                        : recommendedQuest.status === "in_progress"
+                          ? "이미 걷기 시작한 퀘스트예요. 흐름이 끊기기 전에 이어가 보세요."
+                          : "아직 시작하지 않은 가장 가까운 공부 구간이에요."}
+                    </p>
+                  </div>
+                  <button
+                    className="quest-primary"
+                    onClick={() => onStartQuest(
+                      recommendedQuest,
+                      materialStore.materials.find((material) => material.id === recommendedQuest.materialId) ?? null,
+                    )}
+                    type="button"
+                  >
+                    {getQuestLearningState(recommendedQuest, getEffectiveLearningSignal(recommendedQuest.id)) === "review"
+                      ? "복습 시작"
+                      : "이어서 집중"}
+                  </button>
+                </section>
+              )}
+
               <StudyMaterialLibrary
                 subject={activeSubject!}
                 materials={materialStore.materials}
@@ -303,45 +397,62 @@ export default function QuestBoard({
               />
 
               <div className="quest-list">
-                {visibleQuests.map((quest) => (
-                  <article className={`quest-card status-${quest.status}`} key={quest.id}>
-                    <div className="quest-card-top">
-                      <span>{adventureNames[quest.adventureId]}</span>
-                      <small>{quest.completedSets}/{quest.targetSets}세트</small>
-                    </div>
-                    <h4>{quest.title}</h4>
-                    {quest.objective && <p>{quest.objective}</p>}
-                    {(quest.sourcePages || quest.studyMethod) && (
-                      <div className="quest-source">
-                        {quest.sourcePages && <span>{quest.sourcePages}</span>}
-                        {quest.studyMethod && <small>{quest.studyMethod}</small>}
+                {visibleQuests.map((quest) => {
+                  const learningState = getQuestLearningState(
+                    quest,
+                    getEffectiveLearningSignal(quest.id),
+                  );
+                  return (
+                    <article className={`quest-card status-${quest.status} learning-${learningState}`} key={quest.id}>
+                      <div className="quest-card-top">
+                        <span>{adventureNames[quest.adventureId]}</span>
+                        <small>{quest.completedSets}/{quest.targetSets}세트</small>
                       </div>
-                    )}
-                    <div className="quest-progress" aria-label={`${Math.round(questProgress(quest) * 100)}% 완료`}>
-                      <i style={{ width: `${questProgress(quest) * 100}%` }} />
-                    </div>
-                    <div className="quest-meta">
-                      <span>집중 {quest.focusMinutes}분</span>
-                      <span>휴식 {quest.breakMinutes}분</span>
-                      <span>{quest.status === "completed" ? "완료" : quest.status === "in_progress" ? "진행 중" : "대기"}</span>
-                    </div>
-                    <div className="quest-actions">
-                      <button type="button" onClick={() => editQuest(quest)}>수정</button>
-                      <button type="button" onClick={() => void onDeleteQuest(quest.id)}>삭제</button>
-                      <button
-                        type="button"
-                        className="quest-primary"
-                        disabled={quest.status === "completed"}
-                        onClick={() => onStartQuest(
-                          quest,
-                          materialStore.materials.find((material) => material.id === quest.materialId) ?? null,
-                        )}
-                      >
-                        {quest.status === "completed" ? "퀘스트 완료" : "집중 시작"}
-                      </button>
-                    </div>
-                  </article>
-                ))}
+                      <h4>{quest.title}</h4>
+                      {quest.objective && <p>{quest.objective}</p>}
+                      {(quest.sourcePages || quest.studyMethod) && (
+                        <div className="quest-source">
+                          {quest.sourcePages && <span>{quest.sourcePages}</span>}
+                          {quest.studyMethod && <small>{quest.studyMethod}</small>}
+                        </div>
+                      )}
+                      <div className="quest-progress" aria-label={`${Math.round(questProgress(quest) * 100)}% 완료`}>
+                        <i style={{ width: `${questProgress(quest) * 100}%` }} />
+                      </div>
+                      <div className="quest-meta">
+                        <span>집중 {quest.focusMinutes}분</span>
+                        <span>휴식 {quest.breakMinutes}분</span>
+                        <span>
+                          {learningState === "review"
+                            ? "복습 필요"
+                            : learningState === "mastered"
+                              ? "익힘"
+                              : quest.status === "in_progress"
+                                ? "진행 중"
+                                : "대기"}
+                        </span>
+                      </div>
+                      <div className="quest-actions">
+                        <button type="button" onClick={() => editQuest(quest)}>수정</button>
+                        <button type="button" onClick={() => void onDeleteQuest(quest.id)}>삭제</button>
+                        <button
+                          type="button"
+                          className="quest-primary"
+                          onClick={() => onStartQuest(
+                            quest,
+                            materialStore.materials.find((material) => material.id === quest.materialId) ?? null,
+                          )}
+                        >
+                          {learningState === "review"
+                            ? "복습 시작"
+                            : quest.status === "completed"
+                              ? "다시 보기"
+                              : "집중 시작"}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
                 {visibleQuests.length === 0 && (
                   <p className="quest-empty">아직 퀘스트가 없어요. 첫 공부 단위를 만들어 보세요.</p>
                 )}

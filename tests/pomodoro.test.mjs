@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   addFocusRecord,
   addCampOutcome,
+  addCampReflection,
   createActiveSession,
   createFocusRecord,
   getDailyCount,
@@ -16,6 +17,7 @@ import {
   remainingForSession,
   resumeActiveSession,
 } from "../lib/pomodoro.ts";
+import { getCampReflectionRecommendation } from "../lib/camp-reflection.ts";
 
 test("a running focus session survives reload with the correct remaining time", () => {
   const startedAt = Date.parse("2026-07-20T09:00:00.000Z");
@@ -137,6 +139,41 @@ test("camp outcome is attached to exactly one completed focus record", () => {
   assert.equal(updated[1].campOutcome, undefined);
   assert.equal(parseHistory(JSON.stringify(updated))[0].campOutcome, "unfinished");
   assert.deepEqual(addCampOutcome(updated, "missing", "split"), updated);
+});
+
+test("Camp Log reflection is normalized and survives persistence", () => {
+  const record = { ...createFocusRecord({ durationMinutes: 25, adventureId: "hike" }), id: "reflection" };
+  const updated = addCampReflection([record], record.id, {
+    note: "  교착 상태는   네 조건이 함께 성립한다  ",
+    confidence: 4,
+    difficulty: "steady",
+    savedAt: "2026-11-24T12:00:00.000Z",
+  });
+  const restored = parseHistory(JSON.stringify(updated));
+
+  assert.equal(restored[0].campReflection.note, "교착 상태는 네 조건이 함께 성립한다");
+  assert.equal(restored[0].campReflection.confidence, 4);
+  assert.deepEqual(addCampReflection(updated, "missing", {
+    confidence: 3,
+    difficulty: "light",
+  }), updated);
+});
+
+test("Camp Log recommendation prioritizes unresolved learning evidence", () => {
+  const recommendation = getCampReflectionRecommendation({
+    confidence: 5,
+    difficulty: "light",
+    expeditionSets: 3,
+    learningSignal: {
+      correct: 0,
+      incorrect: 1,
+      skipped: 0,
+      latestStage: "checkpoint",
+      latestAt: "2026-11-24T12:00:00.000Z",
+    },
+  });
+
+  assert.match(recommendation, /복습/);
 });
 
 test("focus intent is normalized and bounded for safe persistence", () => {

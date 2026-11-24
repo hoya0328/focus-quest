@@ -3,6 +3,7 @@ import {
   type AdventureId,
   type FocusRecord,
 } from "./pomodoro.ts";
+import type { StudyLearningSignal } from "./study-progress.ts";
 
 export type QuestContract = {
   safe: string;
@@ -60,6 +61,20 @@ export type SubjectProgress = {
   weeklyRemaining: number;
   deadlineLabel: string;
   deadlineState: "none" | "upcoming" | "today" | "overdue";
+};
+
+export type QuestLearningState = "planned" | "active" | "review" | "mastered";
+
+export type ExamExpedition = {
+  completedSets: number;
+  totalSets: number;
+  remainingSets: number;
+  remainingMinutes: number;
+  dailyMinutes: number;
+  daysAvailable: number | null;
+  risk: "complete" | "steady" | "focused" | "tight" | "overdue";
+  label: string;
+  message: string;
 };
 
 export type QuestDraft = {
@@ -160,6 +175,130 @@ export function questFromRow(row: QuestRow): StudyQuest {
 
 export function questProgress(quest: StudyQuest) {
   return Math.min(1, quest.completedSets / Math.max(1, quest.targetSets));
+}
+
+const emptySignal: StudyLearningSignal = {
+  correct: 0,
+  incorrect: 0,
+  skipped: 0,
+  latestStage: null,
+  latestAt: null,
+};
+
+export function getQuestLearningState(
+  quest: StudyQuest,
+  signal: StudyLearningSignal = emptySignal,
+): QuestLearningState {
+  if (signal.incorrect > 0 || signal.skipped > 0) return "review";
+  if (quest.status === "completed") return "mastered";
+  if (quest.status === "in_progress") return "active";
+  return "planned";
+}
+
+export function getRecommendedQuest(
+  quests: StudyQuest[],
+  getSignal: (questId: string) => StudyLearningSignal = () => emptySignal,
+) {
+  const priority: Record<QuestLearningState, number> = {
+    review: 0,
+    active: 1,
+    planned: 2,
+    mastered: 3,
+  };
+  return [...quests]
+    .filter((quest) => getQuestLearningState(quest, getSignal(quest.id)) !== "mastered")
+    .sort((left, right) => {
+      const stateGap =
+        priority[getQuestLearningState(left, getSignal(left.id))] -
+        priority[getQuestLearningState(right, getSignal(right.id))];
+      if (stateGap !== 0) return stateGap;
+      return Date.parse(left.createdAt) - Date.parse(right.createdAt);
+    })[0] ?? null;
+}
+
+export function getExamExpedition({
+  subject,
+  quests,
+  now = new Date(),
+}: {
+  subject: StudySubject;
+  quests: StudyQuest[];
+  now?: Date;
+}): ExamExpedition {
+  const subjectQuests = quests.filter((quest) => quest.subjectId === subject.id);
+  const totalSets = subjectQuests.reduce((sum, quest) => sum + quest.targetSets, 0);
+  const completedSets = subjectQuests.reduce(
+    (sum, quest) => sum + Math.min(quest.completedSets, quest.targetSets),
+    0,
+  );
+  const remainingSets = Math.max(0, totalSets - completedSets);
+  const remainingMinutes = subjectQuests.reduce(
+    (sum, quest) =>
+      sum +
+      Math.max(0, quest.targetSets - quest.completedSets) * quest.focusMinutes,
+    0,
+  );
+
+  if (remainingSets === 0 && totalSets > 0) {
+    return {
+      completedSets,
+      totalSets,
+      remainingSets,
+      remainingMinutes,
+      dailyMinutes: 0,
+      daysAvailable: 0,
+      risk: "complete",
+      label: "원정 완료",
+      message: "계획한 공부 구간을 모두 지나왔어요. 복습이 필요한 퀘스트만 확인해 보세요.",
+    };
+  }
+
+  let daysAvailable: number | null = null;
+  let overdue = false;
+  if (subject.targetDate) {
+    const today = new Date(now);
+    today.setHours(12, 0, 0, 0);
+    const target = new Date(`${subject.targetDate}T12:00:00`);
+    if (!Number.isNaN(target.getTime())) {
+      const dayGap = Math.round((target.getTime() - today.getTime()) / 86_400_000);
+      overdue = dayGap < 0;
+      daysAvailable = Math.max(1, dayGap + 1);
+    }
+  }
+  const paceDays = daysAvailable ?? 7;
+  const dailyMinutes = remainingMinutes > 0
+    ? Math.ceil(remainingMinutes / Math.max(1, paceDays))
+    : 0;
+  const risk = overdue
+    ? "overdue"
+    : dailyMinutes > 120
+      ? "tight"
+      : dailyMinutes > 60
+        ? "focused"
+        : "steady";
+  const label =
+    risk === "overdue"
+      ? "경로 다시 짜기"
+      : risk === "tight"
+        ? "일정이 촘촘해요"
+        : risk === "focused"
+          ? "집중 구간이에요"
+          : "좋은 속도예요";
+  const message = overdue
+    ? `${remainingSets}세트가 남았어요. 목표일을 조정하거나 퀘스트를 줄여 새 경로를 잡아보세요.`
+    : `${remainingSets}세트 · 약 ${remainingMinutes}분 남았어요. 하루 ${dailyMinutes}분이면 목표일에 맞출 수 있어요.`;
+
+  return {
+    completedSets,
+    totalSets,
+    remainingSets,
+    remainingMinutes,
+    dailyMinutes,
+    daysAvailable,
+    risk,
+    label,
+    message,
+  };
 }
 
 export function getSubjectProgress({

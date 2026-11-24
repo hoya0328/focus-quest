@@ -27,13 +27,14 @@ function state(
   recoveryUpdatedAt = emptySessionUpdatedAt,
 ) {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     preferences: { ...preferences, ...overrides },
     history,
     activeSession,
     sessionUpdatedAt,
     recoveryQuest,
     recoveryUpdatedAt,
+    companionGrowth: [],
   };
 }
 
@@ -58,7 +59,7 @@ test("version 1 cloud data migrates to the current empty-session shape", () => {
   const parsed = parseCloudStateData(legacy);
 
   assert.ok(parsed);
-  assert.equal(parsed.schemaVersion, 3);
+  assert.equal(parsed.schemaVersion, 4);
   assert.equal(parsed.activeSession, null);
   assert.equal(parsed.sessionUpdatedAt, emptySessionUpdatedAt);
   assert.equal(parsed.recoveryQuest, null);
@@ -76,7 +77,7 @@ test("version 2 cloud data migrates without inventing a recovery quest", () => {
   const parsed = parseCloudStateData(legacy);
 
   assert.ok(parsed);
-  assert.equal(parsed.schemaVersion, 3);
+  assert.equal(parsed.schemaVersion, 4);
   assert.equal(parsed.recoveryQuest, null);
   assert.equal(parsed.recoveryUpdatedAt, emptySessionUpdatedAt);
 });
@@ -124,6 +125,50 @@ test("cloud merge preserves a camp outcome added after session completion", () =
     mergeCloudStates(state([baseRecord]), local).history[0].campOutcome,
     "finished",
   );
+});
+
+test("cloud merge preserves a Camp Log reflection added on another device", () => {
+  const baseRecord = {
+    id: "reflection-session",
+    completedAt: "2026-11-24T12:00:00.000Z",
+    durationMinutes: 25,
+    adventureId: "swim",
+  };
+  const reflection = {
+    note: "인덱스는 검색 범위를 줄인다",
+    confidence: 4,
+    difficulty: "steady",
+    savedAt: "2026-11-24T12:01:00.000Z",
+  };
+  const merged = mergeCloudStates(
+    state([{ ...baseRecord, campReflection: reflection }]),
+    state([baseRecord]),
+  );
+
+  assert.deepEqual(merged.history[0].campReflection, reflection);
+});
+
+test("companion growth ledger migrates history and deduplicates sessions", () => {
+  const record = {
+    id: "growth-session",
+    completedAt: "2026-11-24T13:00:00.000Z",
+    durationMinutes: 40,
+    adventureId: "fish",
+  };
+  const parsedLegacy = parseCloudStateData({
+    schemaVersion: 3,
+    preferences,
+    history: [record],
+    activeSession: null,
+    sessionUpdatedAt: emptySessionUpdatedAt,
+    recoveryQuest: null,
+    recoveryUpdatedAt: emptySessionUpdatedAt,
+  });
+
+  assert.equal(parsedLegacy.companionGrowth.length, 1);
+  assert.equal(parsedLegacy.companionGrowth[0].sessionId, record.id);
+  const merged = mergeCloudStates(parsedLegacy, parsedLegacy);
+  assert.equal(merged.companionGrowth.length, 1);
 });
 
 test("the most recently changed active-session state wins across devices", () => {

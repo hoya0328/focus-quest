@@ -4,26 +4,32 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 import {
   clampStudyPage,
+  summarizeStudyAttempts,
   studyProgressStorageKey,
   type StudyQuestProgressRow,
+  type StudyLearningSignal,
   type StudyQuizAttemptDraft,
   type StudyQuizAttemptRow,
 } from "@/lib/study-progress";
 
 type ProgressByQuest = Record<string, number>;
 type AttemptKeysByQuest = Record<string, string[]>;
+type LearningSignalsByQuest = Record<string, StudyLearningSignal>;
 
 export function useStudyProgress(enabled: boolean) {
   const client = getSupabaseBrowserClient();
   const [progressByQuest, setProgressByQuest] = useState<ProgressByQuest>({});
   const [attemptKeysByQuest, setAttemptKeysByQuest] =
     useState<AttemptKeysByQuest>({});
+  const [learningSignalsByQuest, setLearningSignalsByQuest] =
+    useState<LearningSignalsByQuest>({});
   const [available, setAvailable] = useState(true);
 
   const refresh = useCallback(async () => {
     if (!client || !enabled) {
       setProgressByQuest({});
       setAttemptKeysByQuest({});
+      setLearningSignalsByQuest({});
       return;
     }
 
@@ -33,7 +39,7 @@ export function useStudyProgress(enabled: boolean) {
         .select("quest_id,user_id,material_id,last_reached_page,updated_at"),
       client
         .from("study_quiz_attempts")
-        .select("quest_id,quiz_key")
+        .select("quest_id,quiz_key,is_correct,skipped,stage,created_at")
         .order("created_at", { ascending: false })
         .limit(500),
     ]);
@@ -47,15 +53,11 @@ export function useStudyProgress(enabled: boolean) {
     for (const row of progressResult.data as StudyQuestProgressRow[]) {
       nextProgress[row.quest_id] = clampStudyPage(row.last_reached_page);
     }
-    const nextAttemptKeys: AttemptKeysByQuest = {};
-    for (const row of attemptsResult.data as StudyQuizAttemptRow[]) {
-      nextAttemptKeys[row.quest_id] ??= [];
-      if (!nextAttemptKeys[row.quest_id].includes(row.quiz_key)) {
-        nextAttemptKeys[row.quest_id].push(row.quiz_key);
-      }
-    }
+    const { attemptKeysByQuest: nextAttemptKeys, learningSignalsByQuest: nextSignals } =
+      summarizeStudyAttempts(attemptsResult.data as StudyQuizAttemptRow[]);
     setProgressByQuest(nextProgress);
     setAttemptKeysByQuest(nextAttemptKeys);
+    setLearningSignalsByQuest(nextSignals);
     setAvailable(true);
   }, [client, enabled]);
 
@@ -116,6 +118,29 @@ export function useStudyProgress(enabled: boolean) {
           new Set([...(current[attempt.questId] ?? []), attempt.quizKey]),
         ),
       }));
+      setLearningSignalsByQuest((current) => {
+        const previous = current[attempt.questId] ?? {
+          correct: 0,
+          incorrect: 0,
+          skipped: 0,
+          latestStage: null,
+          latestAt: null,
+        };
+        return {
+          ...current,
+          [attempt.questId]: {
+            correct:
+              previous.correct +
+              (!attempt.skipped && attempt.isCorrect === true ? 1 : 0),
+            incorrect:
+              previous.incorrect +
+              (!attempt.skipped && attempt.isCorrect === false ? 1 : 0),
+            skipped: previous.skipped + (attempt.skipped ? 1 : 0),
+            latestStage: attempt.stage,
+            latestAt: new Date().toISOString(),
+          },
+        };
+      });
       if (!client || !enabled) return false;
       const user = (await client.auth.getUser()).data.user;
       if (!user) return false;
@@ -152,10 +177,23 @@ export function useStudyProgress(enabled: boolean) {
     [attemptKeysByQuest],
   );
 
+  const getLearningSignal = useCallback(
+    (questId: string) =>
+      learningSignalsByQuest[questId] ?? {
+        correct: 0,
+        incorrect: 0,
+        skipped: 0,
+        latestStage: null,
+        latestAt: null,
+      },
+    [learningSignalsByQuest],
+  );
+
   return {
     attemptedQuizKeys,
     available,
     getReachedPage,
+    getLearningSignal,
     recordAttempt,
     refresh,
     saveProgress,

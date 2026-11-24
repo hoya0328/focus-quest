@@ -5,11 +5,18 @@ import { createFocusRecord } from "../lib/pomodoro.ts";
 import {
   RECOVERY_QUEST_LIFETIME_MS,
   createRecoveryQuest,
+  getAdventureTraceProgress,
   getBehaviorInsights,
   getCompanionMemory,
   getWorldProgress,
   parseRecoveryQuest,
 } from "../lib/retention.ts";
+import {
+  getCompanionGrowth,
+  growthEntriesFromHistory,
+  mergeCompanionGrowthEntries,
+  parseStoredCompanionGrowth,
+} from "../lib/companion-growth.ts";
 import {
   getWorldBackgroundKey,
   getWorldBackgroundPath,
@@ -84,6 +91,7 @@ test("each world grows through five increasingly demanding milestones", () => {
     completed: 0,
     level: 1,
     nextTarget: 10,
+    nextUnlockLabel: "산호빛 길",
     remaining: 10,
     progressPercent: 0,
     unlockedLabel: "잠든 유적",
@@ -116,6 +124,7 @@ test("world growth counts completed sets of at least ten minutes per companion",
     completed: 10,
     level: 2,
     nextTarget: 25,
+    nextUnlockLabel: "능선 쉼터",
     remaining: 15,
     progressPercent: 0,
     unlockedLabel: "길잡이의 표식",
@@ -138,10 +147,64 @@ test("a world reaches its final form at one hundred valid completed sets", () =>
     completed: 100,
     level: 5,
     nextTarget: null,
+    nextUnlockLabel: null,
     remaining: 0,
     progressPercent: 100,
     unlockedLabel: "황금빛 호수",
   });
+});
+
+test("the first three valid sessions leave immediate companion-specific traces", () => {
+  const history = [
+    createFocusRecord({
+      durationMinutes: 25,
+      adventureId: "hike",
+      completedAt: new Date(now),
+    }),
+    createFocusRecord({
+      durationMinutes: 10,
+      adventureId: "hike",
+      completedAt: new Date(now - 1_000),
+    }),
+    createFocusRecord({
+      durationMinutes: 5,
+      adventureId: "hike",
+      completedAt: new Date(now - 2_000),
+    }),
+    createFocusRecord({
+      durationMinutes: 25,
+      adventureId: "fish",
+      completedAt: new Date(now - 3_000),
+    }),
+  ];
+
+  assert.deepEqual(getAdventureTraceProgress(history, "hike"), {
+    adventureId: "hike",
+    completed: 2,
+    unlockedCount: 2,
+    latestLabel: "솔바람 표식",
+    nextLabel: "정상으로 향한 지도",
+    message: "정상으로 향한 지도까지 1번의 첫 원정이 남았어요.",
+    labels: ["첫 발자국", "솔바람 표식", "정상으로 향한 지도"],
+  });
+  assert.equal(getAdventureTraceProgress(history, "fish").latestLabel, "첫 물결");
+  assert.equal(getAdventureTraceProgress(history, "swim").unlockedCount, 0);
+});
+
+test("completed first journey traces continue into the existing long-term world", () => {
+  const history = Array.from({ length: 4 }, (_, index) =>
+    createFocusRecord({
+      durationMinutes: 25,
+      adventureId: "swim",
+      completedAt: new Date(now - index * 1_000),
+    }),
+  );
+  const trace = getAdventureTraceProgress(history, "swim");
+
+  assert.equal(trace.unlockedCount, 3);
+  assert.equal(trace.latestLabel, "4번째 모험 흔적");
+  assert.equal(trace.nextLabel, null);
+  assert.match(trace.message, /세계가 깨어나기까지 6번/);
 });
 
 test("every world level resolves to a stable Phaser texture and asset path", () => {
@@ -200,4 +263,27 @@ test("start-time insight does not pretend legacy completion times are start time
   );
 
   assert.equal(getBehaviorInsights(legacy).favoriteHour, null);
+});
+
+test("companion growth is scoped by world and deduplicated by session", () => {
+  const history = [
+    ...Array.from({ length: 5 }, (_, index) => ({
+      id: `mori-${index}`,
+      completedAt: `2026-11-24T1${index}:00:00.000Z`,
+      durationMinutes: 120,
+      adventureId: "hike",
+    })),
+    { id: "naru-1", completedAt: "2026-11-24T11:00:00.000Z", durationMinutes: 120, adventureId: "swim" },
+  ];
+  const entries = growthEntriesFromHistory(history);
+  const merged = mergeCompanionGrowthEntries(entries, entries);
+
+  assert.equal(merged.length, 6);
+  assert.equal(getCompanionGrowth(merged, "hike").stage, 2);
+  assert.equal(getCompanionGrowth(merged, "swim").stage, 1);
+});
+
+test("corrupt local growth data is discarded safely", () => {
+  assert.deepEqual(parseStoredCompanionGrowth("{broken"), []);
+  assert.deepEqual(parseStoredCompanionGrowth(JSON.stringify([{ sessionId: "x" }])), []);
 });

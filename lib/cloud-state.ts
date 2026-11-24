@@ -8,11 +8,17 @@ import {
   type FocusRecord,
 } from "./pomodoro.ts";
 import {
+  growthEntriesFromHistory,
+  mergeCompanionGrowthEntries,
+  parseCompanionGrowthEntries,
+  type CompanionGrowthEntry,
+} from "./companion-growth.ts";
+import {
   parseRecoveryQuest,
   type RecoveryQuest,
 } from "./retention.ts";
 
-export const CLOUD_STATE_SCHEMA_VERSION = 3;
+export const CLOUD_STATE_SCHEMA_VERSION = 4;
 export const CLOUD_SYNC_DISABLED_KEY = "focus-quest-cloud-sync-disabled";
 export const CLOUD_LOCAL_OWNER_KEY = "focus-quest-cloud-local-owner";
 export const ACTIVE_SESSION_UPDATED_AT_KEY =
@@ -35,6 +41,7 @@ export type CloudStateData = {
   sessionUpdatedAt: string;
   recoveryQuest: RecoveryQuest | null;
   recoveryUpdatedAt: string;
+  companionGrowth: CompanionGrowthEntry[];
 };
 
 export type CloudStateRecord = {
@@ -71,6 +78,7 @@ export function createEmptyCloudState(): CloudStateData {
     sessionUpdatedAt: EMPTY_SESSION_UPDATED_AT,
     recoveryQuest: null,
     recoveryUpdatedAt: EMPTY_SESSION_UPDATED_AT,
+    companionGrowth: [],
   };
 }
 
@@ -149,7 +157,8 @@ export function parseCloudStateData(value: unknown): CloudStateData | null {
   if (
     candidate.schemaVersion !== 1 &&
     candidate.schemaVersion !== 2 &&
-    candidate.schemaVersion !== 3
+    candidate.schemaVersion !== 3 &&
+    candidate.schemaVersion !== 4
   ) {
     return null;
   }
@@ -179,7 +188,7 @@ export function parseCloudStateData(value: unknown): CloudStateData | null {
 
   let recoveryQuest: RecoveryQuest | null = null;
   let recoveryUpdatedAt = EMPTY_SESSION_UPDATED_AT;
-  if (candidate.schemaVersion === 3) {
+  if (candidate.schemaVersion >= 3) {
     if (
       typeof candidate.recoveryUpdatedAt !== "string" ||
       Number.isNaN(Date.parse(candidate.recoveryUpdatedAt))
@@ -194,6 +203,12 @@ export function parseCloudStateData(value: unknown): CloudStateData | null {
     }
   }
 
+  const companionGrowth =
+    candidate.schemaVersion === 4
+      ? parseCompanionGrowthEntries(candidate.companionGrowth)
+      : growthEntriesFromHistory(history);
+  if (!companionGrowth) return null;
+
   return {
     schemaVersion: CLOUD_STATE_SCHEMA_VERSION,
     preferences,
@@ -202,6 +217,7 @@ export function parseCloudStateData(value: unknown): CloudStateData | null {
     sessionUpdatedAt,
     recoveryQuest,
     recoveryUpdatedAt,
+    companionGrowth,
   };
 }
 
@@ -213,6 +229,15 @@ export function mergeCloudStates(
   [...cloud.history, ...local.history].forEach((record) => {
     const existing = records.get(record.id);
     const campOutcome = record.campOutcome ?? existing?.campOutcome;
+    const existingReflection = existing?.campReflection;
+    const incomingReflection = record.campReflection;
+    const campReflection =
+      incomingReflection && existingReflection
+        ? Date.parse(incomingReflection.savedAt) >=
+          Date.parse(existingReflection.savedAt)
+          ? incomingReflection
+          : existingReflection
+        : incomingReflection ?? existingReflection;
     records.set(
       record.id,
       existing
@@ -220,6 +245,7 @@ export function mergeCloudStates(
             ...existing,
             ...record,
             ...(campOutcome ? { campOutcome } : {}),
+            ...(campReflection ? { campReflection } : {}),
           }
         : record,
     );
@@ -238,6 +264,11 @@ export function mergeCloudStates(
     Date.parse(local.recoveryUpdatedAt) >
     Date.parse(cloud.recoveryUpdatedAt);
   const recoverySource = localRecoveryIsNewer ? local : cloud;
+  const companionGrowth = mergeCompanionGrowthEntries(
+    cloud.companionGrowth ?? growthEntriesFromHistory(cloud.history),
+    local.companionGrowth ?? growthEntriesFromHistory(local.history),
+    growthEntriesFromHistory(history),
+  );
 
   return {
     schemaVersion: CLOUD_STATE_SCHEMA_VERSION,
@@ -247,5 +278,6 @@ export function mergeCloudStates(
     sessionUpdatedAt: sessionSource.sessionUpdatedAt,
     recoveryQuest: recoverySource.recoveryQuest,
     recoveryUpdatedAt: recoverySource.recoveryUpdatedAt,
+    companionGrowth,
   };
 }

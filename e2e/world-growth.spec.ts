@@ -31,7 +31,9 @@ for (const boundary of boundaries) {
     if (boundary.remaining === 0) {
       await expect(card).toContainText("이 세계를 모두 깨웠어요");
     } else {
-      await expect(card).toContainText(`다음 변화까지 ${boundary.remaining}회`);
+      await expect(card).toContainText(
+        new RegExp(`다음: .+ · ${boundary.remaining}회`),
+      );
     }
   });
 }

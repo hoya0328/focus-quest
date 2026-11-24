@@ -15,6 +15,7 @@ import {
 import Image from "next/image";
 import AuthDialog from "@/app/components/AuthDialog";
 import CampLobby from "@/app/components/CampLobby";
+import CampReflectionPanel from "@/app/components/CampReflectionPanel";
 import RetentionPanel from "@/app/components/RetentionPanel";
 import { StudyCheckpointPanel, StudyRecallPanel } from "@/app/components/StudyQuizPanel";
 import { useCloudSync } from "@/app/hooks/useCloudSync";
@@ -29,8 +30,17 @@ import {
   type CloudStateData,
 } from "@/lib/cloud-state";
 import {
+  COMPANION_GROWTH_STORAGE_KEY,
+  growthEntriesFromHistory,
+  mergeCompanionGrowthEntries,
+  parseStoredCompanionGrowth,
+  getCompanionGrowth,
+  type CompanionGrowthEntry,
+} from "@/lib/companion-growth";
+import {
   ACTIVE_SESSION_KEY,
   HISTORY_KEY,
+  addCampReflection,
   addCampOutcome,
   addFocusRecord,
   createActiveSession,
@@ -48,6 +58,7 @@ import {
   type AdventureId,
   type BgmId,
   type CampOutcome,
+  type CampDifficulty,
   type FocusRecord,
   type ExpeditionProgress,
   type SessionMode,
@@ -56,6 +67,7 @@ import {
   RECOVERY_QUEST_KEY,
   RECOVERY_UPDATED_AT_KEY,
   createRecoveryQuest,
+  getAdventureTraceProgress,
   getBehaviorInsights,
   getCompanionMemory,
   getWorldProgress,
@@ -466,6 +478,11 @@ export default function Home() {
   const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
   const [focusIntent, setFocusIntent] = useState("");
   const [campOutcome, setCampOutcome] = useState<CampOutcome | null>(null);
+  const [campReflectionNote, setCampReflectionNote] = useState("");
+  const [campConfidence, setCampConfidence] = useState<1 | 2 | 3 | 4 | 5>(3);
+  const [campDifficulty, setCampDifficulty] = useState<CampDifficulty>("steady");
+  const [campReflectionSaved, setCampReflectionSaved] = useState(false);
+  const [companionGrowth, setCompanionGrowth] = useState<CompanionGrowthEntry[]>([]);
   const [completedRecordId, setCompletedRecordId] = useState<string | null>(null);
   const [completedQuestId, setCompletedQuestId] = useState<string | null>(null);
   const [completedSessionKey, setCompletedSessionKey] = useState<string | null>(null);
@@ -521,14 +538,24 @@ export default function Home() {
     [history],
   );
   const behaviorInsights = useMemo(() => getBehaviorInsights(history), [history]);
+  const longTermGrowthHistory = useMemo<FocusRecord[]>(
+    () => companionGrowth.map((entry) => ({
+      id: entry.sessionId,
+      completedAt: entry.completedAt,
+      durationMinutes: entry.minutes,
+      adventureId: entry.adventureId,
+    })),
+    [companionGrowth],
+  );
   const worldProgress = useMemo(
     () =>
       adventures.map((adventure) => ({
         friend: adventure.friend,
         name: adventure.name,
-        progress: getWorldProgress(history, adventure.id),
+        progress: getWorldProgress(longTermGrowthHistory, adventure.id),
+        trace: getAdventureTraceProgress(longTermGrowthHistory, adventure.id),
       })),
-    [history],
+    [longTermGrowthHistory],
   );
   const selectedWorld =
     worldProgress.find((world) => world.progress.adventureId === selectedId) ??
@@ -536,6 +563,10 @@ export default function Home() {
   const companionMemory = useMemo(
     () => getCompanionMemory(history, selectedId),
     [history, selectedId],
+  );
+  const selectedCompanionGrowth = useMemo(
+    () => getCompanionGrowth(companionGrowth, selectedId),
+    [companionGrowth, selectedId],
   );
   const focusStreak = useMemo(() => getFocusStreak(history), [history]);
   const recentAdventures = useMemo(() => {
@@ -550,6 +581,16 @@ export default function Home() {
       .slice(0, 4);
   }, [history]);
   const lastAdventure = history[0] ?? null;
+  const completedRecord = completedRecordId
+    ? history.find((record) => record.id === completedRecordId) ?? null
+    : null;
+  const completedTrace = useMemo(
+    () =>
+      completedRecord && completedRecord.durationMinutes >= 10
+        ? getAdventureTraceProgress(longTermGrowthHistory, completedRecord.adventureId)
+        : null,
+    [completedRecord, longTermGrowthHistory],
+  );
   const selectedWorldLevel = selectedWorld.progress.level;
   const maxDayMinutes = Math.max(
     1,
@@ -570,6 +611,7 @@ export default function Home() {
       sessionUpdatedAt,
       recoveryQuest,
       recoveryUpdatedAt,
+      companionGrowth,
     }),
     [
       bgm,
@@ -577,6 +619,7 @@ export default function Home() {
       cloudActiveSession,
       focusMinutes,
       history,
+      companionGrowth,
       recoveryQuest,
       recoveryUpdatedAt,
       selectedId,
@@ -618,6 +661,11 @@ export default function Home() {
     window.localStorage.setItem(
       RECOVERY_UPDATED_AT_KEY,
       data.recoveryUpdatedAt,
+    );
+    setCompanionGrowth(data.companionGrowth);
+    window.localStorage.setItem(
+      COMPANION_GROWTH_STORAGE_KEY,
+      JSON.stringify(data.companionGrowth),
     );
 
     if (data.activeSession) {
@@ -727,6 +775,10 @@ export default function Home() {
         setCompletedQuestId(previousSession.questId ?? null);
         setCompletedSessionKey(completedId);
         setCampOutcome(completedRecord?.campOutcome ?? null);
+        setCampReflectionNote(completedRecord?.campReflection?.note ?? "");
+        setCampConfidence(completedRecord?.campReflection?.confidence ?? 3);
+        setCampDifficulty(completedRecord?.campReflection?.difficulty ?? "steady");
+        setCampReflectionSaved(Boolean(completedRecord?.campReflection));
         setCompletionMode(previousSession.mode);
         setCompletedExpedition(previousSession.expedition ?? null);
         setRemaining(0);
@@ -748,6 +800,9 @@ export default function Home() {
     cloudSync.authProvider === "supabase" && Boolean(cloudSync.account);
   const questStore = useStudyQuests(questLoggedIn);
   const studyProgress = useStudyProgress(questLoggedIn);
+  const completedLearningSignal = completedQuestId
+    ? studyProgress.getLearningSignal(completedQuestId)
+    : null;
   const { track: trackProductEvent } = useProductTelemetry(questLoggedIn);
   const completeQuestSet = questStore.completeSet;
 
@@ -771,6 +826,9 @@ export default function Home() {
     const storedReminderTime = window.localStorage.getItem(REMINDER_TIME_KEY) ?? "";
     const stats = window.localStorage.getItem("haru-focus-stats");
     const storedHistory = window.localStorage.getItem(HISTORY_KEY);
+    const storedCompanionGrowth = window.localStorage.getItem(
+      COMPANION_GROWTH_STORAGE_KEY,
+    );
     const storedSession = window.localStorage.getItem(ACTIVE_SESSION_KEY);
     const storedSessionUpdatedAt = window.localStorage.getItem(
       ACTIVE_SESSION_UPDATED_AT_KEY,
@@ -894,6 +952,16 @@ export default function Home() {
       }
     }
     setHistory(loadedHistory);
+    const parsedGrowth = parseStoredCompanionGrowth(storedCompanionGrowth);
+    const loadedGrowth = mergeCompanionGrowthEntries(
+      parsedGrowth,
+      growthEntriesFromHistory(loadedHistory),
+    );
+    setCompanionGrowth(loadedGrowth);
+    window.localStorage.setItem(
+      COMPANION_GROWTH_STORAGE_KEY,
+      JSON.stringify(loadedGrowth),
+    );
     setCompletedToday(getDailyCount(loadedHistory));
     setFocusIntent(
       normalizeFocusIntent(storedFocusIntent) ||
@@ -962,6 +1030,10 @@ export default function Home() {
           setCompletedQuestId(session.questId ?? null);
           setCompletedSessionKey(record.id);
           setCampOutcome(record.campOutcome ?? null);
+          setCampReflectionNote(record.campReflection?.note ?? "");
+          setCampConfidence(record.campReflection?.confidence ?? 3);
+          setCampDifficulty(record.campReflection?.difficulty ?? "steady");
+          setCampReflectionSaved(Boolean(record.campReflection));
           setHistory(loadedHistory);
           setCompletedToday(getDailyCount(loadedHistory));
           window.localStorage.setItem(
@@ -1012,6 +1084,22 @@ export default function Home() {
     );
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    setCompanionGrowth((current) => {
+      const merged = mergeCompanionGrowthEntries(
+        current,
+        growthEntriesFromHistory(history),
+      );
+      if (JSON.stringify(merged) === JSON.stringify(current)) return current;
+      window.localStorage.setItem(
+        COMPANION_GROWTH_STORAGE_KEY,
+        JSON.stringify(merged),
+      );
+      return merged;
+    });
+  }, [history, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -1186,6 +1274,10 @@ export default function Home() {
       setCompletedSessionKey(record.id);
       setCompletedExpedition(session.expedition ?? null);
       setCampOutcome(null);
+      setCampReflectionNote("");
+      setCampConfidence(3);
+      setCampDifficulty("steady");
+      setCampReflectionSaved(false);
 
       setHistory((current) => {
         const nextHistory = addFocusRecord(current, record);
@@ -1346,6 +1438,10 @@ export default function Home() {
     if (mode === "focus") setBgm(sessionBgm);
     setSessionExpedition(options?.expedition ?? null);
     setCampOutcome(null);
+    setCampReflectionNote("");
+    setCampConfidence(3);
+    setCampDifficulty("steady");
+    setCampReflectionSaved(false);
     persistSession(session);
     setSessionMode(mode);
     setSessionDurationMinutes(durationMinutes);
@@ -1580,6 +1676,20 @@ export default function Home() {
       window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHistory));
       return nextHistory;
     });
+  };
+
+  const saveCampReflection = () => {
+    if (!completedRecordId) return;
+    setHistory((current) => {
+      const nextHistory = addCampReflection(current, completedRecordId, {
+        confidence: campConfidence,
+        difficulty: campDifficulty,
+        note: campReflectionNote,
+      });
+      window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHistory));
+      return nextHistory;
+    });
+    setCampReflectionSaved(true);
   };
 
   const persistReachedPage = (reached: number) => {
@@ -2080,6 +2190,7 @@ export default function Home() {
 
           <RetentionPanel
             companionMemory={companionMemory}
+            companionGrowth={selectedCompanionGrowth}
             insights={behaviorInsights}
             onDismissRecovery={dismissRecoveryQuest}
             onSelectAdventure={chooseAdventure}
@@ -2472,6 +2583,7 @@ export default function Home() {
                   subjects={questStore.subjects}
                   quests={questStore.quests}
                   history={history}
+                  getLearningSignal={studyProgress.getLearningSignal}
                   onLogin={() => setShowAuthDialog(true)}
                   onCreateSubject={questStore.createSubject}
                   onDeleteSubject={questStore.deleteSubject}
@@ -2837,6 +2949,26 @@ export default function Home() {
               </div>
             ) : completionMode === "focus" ? (
               <div className="camp-log" aria-labelledby="camp-log-title">
+                {completedTrace && (
+                  <section className="journey-trace-reward" aria-label="오늘 남긴 모험 흔적">
+                    <div>
+                      <span>오늘의 모험 흔적</span>
+                      <strong>{completedTrace.latestLabel}</strong>
+                      <p>{completedTrace.message}</p>
+                    </div>
+                    <ol aria-label={`첫 원정 기록 ${completedTrace.unlockedCount}/3`}>
+                      {completedTrace.labels.map((label, index) => (
+                        <li
+                          className={index < completedTrace.unlockedCount ? "is-unlocked" : ""}
+                          key={label}
+                        >
+                          <i>{index + 1}</i>
+                          <small>{label}</small>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                )}
                 <div className="camp-log-heading">
                   <span>집중 기록</span>
                   <h2 id="camp-log-title">오늘의 목표는 어디까지 왔나요?</h2>
@@ -2898,6 +3030,29 @@ export default function Home() {
                       </div>
                     )}
                   </div>
+                )}
+                {campOutcome && (
+                  <CampReflectionPanel
+                    confidence={campConfidence}
+                    difficulty={campDifficulty}
+                    expedition={completedExpedition}
+                    learningSignal={completedLearningSignal}
+                    note={campReflectionNote}
+                    onConfidenceChange={(value) => {
+                      setCampConfidence(value);
+                      setCampReflectionSaved(false);
+                    }}
+                    onDifficultyChange={(value) => {
+                      setCampDifficulty(value);
+                      setCampReflectionSaved(false);
+                    }}
+                    onNoteChange={(value) => {
+                      setCampReflectionNote(value);
+                      setCampReflectionSaved(false);
+                    }}
+                    onSave={saveCampReflection}
+                    saved={campReflectionSaved}
+                  />
                 )}
               </div>
             ) : reviewQuiz ? (

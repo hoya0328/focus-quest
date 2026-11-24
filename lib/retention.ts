@@ -25,9 +25,20 @@ export type WorldProgress = {
   completed: number;
   level: number;
   nextTarget: number | null;
+  nextUnlockLabel: string | null;
   remaining: number;
   progressPercent: number;
   unlockedLabel: string;
+};
+
+export type AdventureTraceProgress = {
+  adventureId: AdventureId;
+  completed: number;
+  unlockedCount: number;
+  latestLabel: string | null;
+  nextLabel: string | null;
+  message: string;
+  labels: readonly string[];
 };
 
 export type CompanionMemory = {
@@ -71,6 +82,11 @@ const restorationLabels: Record<AdventureId, readonly string[]> = {
     "돌아온 호숫마을",
     "황금빛 호수",
   ],
+};
+const firstJourneyTraceLabels: Record<AdventureId, readonly string[]> = {
+  hike: ["첫 발자국", "솔바람 표식", "정상으로 향한 지도"],
+  swim: ["첫 기포", "산호빛 조각", "유적의 나침반"],
+  fish: ["첫 물결", "달빛 찌의 흔적", "황금 잉어 소문"],
 };
 
 export function createRecoveryQuest({
@@ -149,11 +165,7 @@ export function getWorldProgress(
   history: FocusRecord[],
   adventureId: AdventureId,
 ): WorldProgress {
-  const completed = history.filter(
-    (record) =>
-      record.adventureId === adventureId &&
-      record.durationMinutes >= WORLD_GROWTH_MINIMUM_MINUTES,
-  ).length;
+  const completed = getValidWorldRecords(history, adventureId).length;
   const level = 1 + WORLD_GROWTH_MILESTONES.filter(
     (milestone) => completed >= milestone,
   ).length;
@@ -171,11 +183,47 @@ export function getWorldProgress(
     completed,
     level,
     nextTarget,
+    nextUnlockLabel: nextTarget
+      ? (restorationLabels[adventureId][level] ?? null)
+      : null,
     remaining: nextTarget ? Math.max(0, nextTarget - completed) : 0,
     progressPercent: Math.min(100, Math.max(0, progressPercent)),
     unlockedLabel:
       restorationLabels[adventureId][level - 1] ??
       restorationLabels[adventureId][0],
+  };
+}
+
+export function getAdventureTraceProgress(
+  history: FocusRecord[],
+  adventureId: AdventureId,
+): AdventureTraceProgress {
+  const completed = getValidWorldRecords(history, adventureId).length;
+  const labels = firstJourneyTraceLabels[adventureId];
+  const unlockedCount = Math.min(labels.length, completed);
+  const latestLabel =
+    completed === 0
+      ? null
+      : completed <= labels.length
+        ? labels[completed - 1]
+        : `${completed}번째 모험 흔적`;
+  const nextLabel = labels[unlockedCount] ?? null;
+  const message = nextLabel
+    ? completed === 0
+      ? `${nextLabel}부터 천천히 발견해 보세요.`
+      : `${nextLabel}까지 ${labels.length - unlockedCount}번의 첫 원정이 남았어요.`
+    : completed < WORLD_GROWTH_MILESTONES[0]
+      ? `첫 원정 기록 완성 · 세계가 깨어나기까지 ${WORLD_GROWTH_MILESTONES[0] - completed}번 남았어요.`
+      : `${completed}번의 집중이 이 세계에 남아 있어요.`;
+
+  return {
+    adventureId,
+    completed,
+    unlockedCount,
+    latestLabel,
+    nextLabel,
+    message,
+    labels,
   };
 }
 
@@ -265,4 +313,15 @@ function topNumericKey(counts: Map<number, number>) {
   return [...counts.entries()].sort(
     (left, right) => right[1] - left[1] || left[0] - right[0],
   )[0]?.[0] ?? null;
+}
+
+function getValidWorldRecords(
+  history: FocusRecord[],
+  adventureId: AdventureId,
+) {
+  return history.filter(
+    (record) =>
+      record.adventureId === adventureId &&
+      record.durationMinutes >= WORLD_GROWTH_MINIMUM_MINUTES,
+  );
 }

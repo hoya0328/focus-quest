@@ -2,6 +2,14 @@ export type SessionMode = "focus" | "break";
 export type AdventureId = "hike" | "swim" | "fish";
 export type BgmId = "forest" | "waves" | "lake" | "quiet";
 export type CampOutcome = "finished" | "unfinished" | "split";
+export type CampDifficulty = "light" | "steady" | "heavy";
+
+export type CampReflection = {
+  note: string;
+  confidence: 1 | 2 | 3 | 4 | 5;
+  difficulty: CampDifficulty;
+  savedAt: string;
+};
 
 export type ExpeditionProgress = {
   id: string;
@@ -35,6 +43,7 @@ export type FocusRecord = {
   questId?: string;
   focusIntent?: string;
   campOutcome?: CampOutcome;
+  campReflection?: CampReflection;
   expeditionId?: string;
   expeditionSet?: number;
   expeditionTotal?: number;
@@ -58,6 +67,7 @@ export const ACTIVE_SESSION_KEY = "haru-focus-active-session";
 export const HISTORY_KEY = "haru-focus-history";
 export const MAX_HISTORY_RECORDS = 400;
 export const MAX_FOCUS_INTENT_LENGTH = 80;
+export const MAX_CAMP_REFLECTION_LENGTH = 160;
 
 const adventureIds = new Set<AdventureId>(["hike", "swim", "fish"]);
 const bgmIds = new Set<BgmId>(["forest", "waves", "lake", "quiet"]);
@@ -66,6 +76,11 @@ const campOutcomes = new Set<CampOutcome>([
   "finished",
   "unfinished",
   "split",
+]);
+const campDifficulties = new Set<CampDifficulty>([
+  "light",
+  "steady",
+  "heavy",
 ]);
 const dayLabels = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -93,6 +108,26 @@ function isValidExpedition(value: unknown): value is ExpeditionProgress {
 export function normalizeFocusIntent(value: unknown) {
   if (typeof value !== "string") return "";
   return value.replace(/\s+/g, " ").trim().slice(0, MAX_FOCUS_INTENT_LENGTH);
+}
+
+export function normalizeCampReflectionNote(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value.replace(/\s+/g, " ").trim().slice(0, MAX_CAMP_REFLECTION_LENGTH);
+}
+
+function isValidCampReflection(value: unknown): value is CampReflection {
+  if (!value || typeof value !== "object") return false;
+  const reflection = value as Partial<CampReflection>;
+  return (
+    typeof reflection.note === "string" &&
+    normalizeCampReflectionNote(reflection.note) === reflection.note &&
+    isIntegerInRange(reflection.confidence, 1, 5) &&
+    Boolean(
+      reflection.difficulty && campDifficulties.has(reflection.difficulty),
+    ) &&
+    typeof reflection.savedAt === "string" &&
+    !Number.isNaN(Date.parse(reflection.savedAt))
+  );
 }
 
 export function localDateKey(input: Date | number | string = new Date()) {
@@ -237,6 +272,8 @@ export function parseHistory(raw: string | null): FocusRecord[] {
               record.focusIntent.length > 0)) &&
           (record.campOutcome === undefined ||
             campOutcomes.has(record.campOutcome)) &&
+          (record.campReflection === undefined ||
+            isValidCampReflection(record.campReflection)) &&
           ((record.expeditionId === undefined &&
             record.expeditionSet === undefined &&
             record.expeditionTotal === undefined) ||
@@ -306,6 +343,26 @@ export function addCampOutcome(
 ) {
   return history.map((record) =>
     record.id === recordId ? { ...record, campOutcome } : record,
+  );
+}
+
+export function addCampReflection(
+  history: FocusRecord[],
+  recordId: string,
+  reflection: Omit<CampReflection, "note" | "savedAt"> & {
+    note?: string;
+    savedAt?: string;
+  },
+) {
+  const normalized: CampReflection = {
+    note: normalizeCampReflectionNote(reflection.note),
+    confidence: reflection.confidence,
+    difficulty: reflection.difficulty,
+    savedAt: reflection.savedAt ?? new Date().toISOString(),
+  };
+  if (!isValidCampReflection(normalized)) return history;
+  return history.map((record) =>
+    record.id === recordId ? { ...record, campReflection: normalized } : record,
   );
 }
 

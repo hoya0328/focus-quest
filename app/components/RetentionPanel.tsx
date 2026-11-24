@@ -1,21 +1,26 @@
 "use client";
 
 import type { AdventureId } from "@/lib/pomodoro";
+import type { CompanionGrowth } from "@/lib/companion-growth";
 import type {
+  AdventureTraceProgress,
   BehaviorInsights,
   CompanionMemory,
   RecoveryQuest,
   WorldProgress,
 } from "@/lib/retention";
+import { getWorldBackgroundPath } from "@/lib/world-growth";
 
 type WorldCard = {
   friend: string;
   name: string;
   progress: WorldProgress;
+  trace: AdventureTraceProgress;
 };
 
 type RetentionPanelProps = {
   companionMemory: CompanionMemory;
+  companionGrowth: CompanionGrowth;
   insights: BehaviorInsights;
   onDismissRecovery: () => void;
   onSelectAdventure: (id: AdventureId) => void;
@@ -29,6 +34,7 @@ type RetentionPanelProps = {
 
 export default function RetentionPanel({
   companionMemory,
+  companionGrowth,
   insights,
   onDismissRecovery,
   onSelectAdventure,
@@ -72,9 +78,19 @@ export default function RetentionPanel({
 
       <div className="retention-grid">
         <article className="retention-card companion-memory-card">
-          <span>{selectedFriend}의 기억</span>
-          <strong>{companionMemory.completedTogether}번 함께 완주</strong>
-          <p>{companionMemory.message}</p>
+          <div className={`companion-stage-badge stage-${companionGrowth.stage}`} aria-label={`동료 성장 ${companionGrowth.stage}단계`}>
+            <i>{companionGrowth.stage}</i>
+            <span>동료 성장</span>
+          </div>
+          <div>
+            <span>{selectedFriend}의 기억</span>
+            <strong>{companionGrowth.stageLabel}</strong>
+            <p>{companionGrowth.hint}</p>
+            <small>{companionMemory.completedTogether}번 함께 완주 · {companionGrowth.totalMinutes}분의 기억</small>
+            {companionGrowth.nextStageHint && (
+              <em>{companionGrowth.nextStageHint}</em>
+            )}
+          </div>
         </article>
 
         <article className="retention-card behavior-report-card">
@@ -115,7 +131,7 @@ export default function RetentionPanel({
           <small>각 세계 최대 5단계</small>
         </div>
         <div className="world-restoration-grid">
-          {worlds.map(({ friend, name, progress }) => (
+          {worlds.map(({ friend, name, progress, trace }) => (
             <button
               aria-pressed={selectedId === progress.adventureId}
               className="world-restoration-card"
@@ -123,8 +139,32 @@ export default function RetentionPanel({
               onClick={() => onSelectAdventure(progress.adventureId)}
               type="button"
             >
-              <span>{friend} · {name}</span>
+              <span
+                aria-hidden="true"
+                className="world-next-preview"
+                style={{
+                  backgroundImage: `url(${getWorldBackgroundPath(
+                    progress.adventureId,
+                    progress.nextTarget ? progress.level + 1 : progress.level,
+                  )})`,
+                }}
+              >
+                <i>{progress.nextTarget ? "다음 풍경" : "완성된 풍경"}</i>
+              </span>
+              <span className="world-card-kicker">{friend} · {name}</span>
               <strong>복원 {progress.level}/5 · {progress.unlockedLabel}</strong>
+              <span className="first-journey-traces" aria-label={`첫 원정 흔적 ${trace.unlockedCount}/3`}>
+                {trace.labels.map((label, index) => (
+                  <i
+                    className={index < trace.unlockedCount ? "is-unlocked" : ""}
+                    key={label}
+                    title={label}
+                  >
+                    <b>{index + 1}</b>
+                    <small>{label}</small>
+                  </i>
+                ))}
+              </span>
               <span
                 aria-label={`복원 진행도 ${progress.progressPercent}%`}
                 aria-valuemax={100}
@@ -137,9 +177,10 @@ export default function RetentionPanel({
               </span>
               <small>
                 {progress.nextTarget
-                  ? `다음 변화까지 ${progress.remaining}회`
+                  ? `다음: ${progress.nextUnlockLabel} · ${progress.remaining}회`
                   : "이 세계를 모두 깨웠어요"}
               </small>
+              <small className="trace-message">{trace.message}</small>
             </button>
           ))}
         </div>
