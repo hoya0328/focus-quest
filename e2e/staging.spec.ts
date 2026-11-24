@@ -65,13 +65,21 @@ async function signInPage(page: Page, user: TestUser) {
 }
 
 function createTextPdf(): Buffer {
-  const lesson = [
+  // Keep each sentence inside the page width so PDF.js extracts the full lesson.
+  const lessonLines = [
     "Database transactions preserve atomicity consistency isolation durability.",
     "Atomicity means every operation succeeds together or rolls back together.",
     "Isolation keeps concurrent transactions from exposing unfinished changes.",
     "SQL joins combine related rows using matching keys and explicit conditions.",
-  ].join(" ");
-  const stream = `BT /F1 11 Tf 48 760 Td (${lesson}) Tj ET`;
+  ];
+  const stream = [
+    "BT /F1 11 Tf 48 760 Td",
+    ...lessonLines.flatMap((line, index) => [
+      `(${line}) Tj`,
+      ...(index < lessonLines.length - 1 ? ["0 -18 Td"] : []),
+    ]),
+    "ET",
+  ].join("\n");
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
