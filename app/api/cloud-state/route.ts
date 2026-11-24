@@ -4,6 +4,12 @@ import {
   parseCloudStateData,
   type CloudStateData,
 } from "@/lib/cloud-state";
+import {
+  addOperationalHeaders,
+  createApiRequestContext,
+  logApiFailure,
+  type ApiRequestContext,
+} from "@/lib/server-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -15,18 +21,30 @@ type CloudRow = {
   version: number;
 };
 
-function jsonResponse(body: unknown, init: ResponseInit = {}) {
+function jsonResponse(
+  body: unknown,
+  init: ResponseInit = {},
+  context?: ApiRequestContext,
+) {
   const headers = new Headers(init.headers);
-  headers.set("Cache-Control", "no-store");
+  addOperationalHeaders(headers, context);
   return Response.json(body, { ...init, headers });
 }
 
-function jsonError(message: string, status: number) {
-  return jsonResponse({ error: message }, { status });
+function jsonError(
+  message: string,
+  status: number,
+  context?: ApiRequestContext,
+) {
+  return jsonResponse(
+    { error: message, ...(context ? { requestId: context.requestId } : {}) },
+    { status },
+    context,
+  );
 }
 
-function rejectWhenCloudStorageIsUnavailable() {
-  return env.DB ? null : jsonError("찾을 수 없습니다.", 404);
+function rejectWhenCloudStorageIsUnavailable(context: ApiRequestContext) {
+  return env.DB ? null : jsonError("찾을 수 없습니다.", 404, context);
 }
 
 async function userIdForEmail(email: string) {
@@ -90,50 +108,56 @@ async function requireApiUser() {
   };
 }
 
-export async function GET() {
-  const unavailable = rejectWhenCloudStorageIsUnavailable();
+export async function GET(request: Request) {
+  const context = createApiRequestContext(request, "cloud-state");
+  const unavailable = rejectWhenCloudStorageIsUnavailable(context);
   if (unavailable) return unavailable;
   const identity = await requireApiUser();
-  if (!identity) return jsonError("로그인이 필요합니다.", 401);
+  if (!identity) return jsonError("로그인이 필요합니다.", 401, context);
 
   try {
     await ensureCloudStateTable();
     const cloudState = decodeRow(await readCloudRow(identity.userId));
-    return jsonResponse({
-      account: identity.account,
-      cloudState,
-    });
+    return jsonResponse(
+      { account: identity.account, cloudState },
+      {},
+      context,
+    );
   } catch {
-    return jsonError("클라우드 기록을 불러오지 못했습니다.", 503);
+    logApiFailure(context, "cloud_state_read_failed", 503);
+    return jsonError("클라우드 기록을 불러오지 못했습니다.", 503, context);
   }
 }
 
 export async function PUT(request: Request) {
-  const unavailable = rejectWhenCloudStorageIsUnavailable();
+  const context = createApiRequestContext(request, "cloud-state");
+  const unavailable = rejectWhenCloudStorageIsUnavailable(context);
   if (unavailable) return unavailable;
   const identity = await requireApiUser();
-  if (!identity) return jsonError("로그인이 필요합니다.", 401);
+  if (!identity) return jsonError("로그인이 필요합니다.", 401, context);
 
   let body: { baseVersion?: unknown; data?: unknown };
   try {
     body = (await request.json()) as { baseVersion?: unknown; data?: unknown };
   } catch {
-    return jsonError("저장할 기록의 형식이 올바르지 않습니다.", 400);
+    return jsonError("저장할 기록의 형식이 올바르지 않습니다.", 400, context);
   }
 
   if (
     !Number.isInteger(body.baseVersion) ||
     (body.baseVersion as number) < 0
   ) {
-    return jsonError("클라우드 버전이 올바르지 않습니다.", 400);
+    return jsonError("클라우드 버전이 올바르지 않습니다.", 400, context);
   }
 
   const data = parseCloudStateData(body.data);
-  if (!data) return jsonError("저장할 기록의 형식이 올바르지 않습니다.", 400);
+  if (!data) {
+    return jsonError("저장할 기록의 형식이 올바르지 않습니다.", 400, context);
+  }
 
   const payload = JSON.stringify(data satisfies CloudStateData);
   if (new TextEncoder().encode(payload).byteLength > MAX_PAYLOAD_BYTES) {
-    return jsonError("저장할 기록이 너무 큽니다.", 413);
+    return jsonError("저장할 기록이 너무 큽니다.", 413, context);
   }
 
   try {
@@ -149,6 +173,7 @@ export async function PUT(request: Request) {
           cloudState: currentState,
         },
         { status: 409 },
+        context,
       );
     }
 
@@ -170,6 +195,7 @@ export async function PUT(request: Request) {
             cloudState: decodeRow(await readCloudRow(identity.userId)),
           },
           { status: 409 },
+          context,
         );
       }
     } else {
@@ -193,27 +219,34 @@ export async function PUT(request: Request) {
             cloudState: decodeRow(await readCloudRow(identity.userId)),
           },
           { status: 409 },
+          context,
         );
       }
     }
 
-    return jsonResponse({
-      cloudState: {
-        version: nextVersion,
-        updatedAt,
-        data,
+    return jsonResponse(
+      {
+        cloudState: {
+          version: nextVersion,
+          updatedAt,
+          data,
+        },
       },
-    });
+      {},
+      context,
+    );
   } catch {
-    return jsonError("클라우드 기록을 저장하지 못했습니다.", 503);
+    logApiFailure(context, "cloud_state_write_failed", 503);
+    return jsonError("클라우드 기록을 저장하지 못했습니다.", 503, context);
   }
 }
 
-export async function DELETE() {
-  const unavailable = rejectWhenCloudStorageIsUnavailable();
+export async function DELETE(request: Request) {
+  const context = createApiRequestContext(request, "cloud-state");
+  const unavailable = rejectWhenCloudStorageIsUnavailable(context);
   if (unavailable) return unavailable;
   const identity = await requireApiUser();
-  if (!identity) return jsonError("로그인이 필요합니다.", 401);
+  if (!identity) return jsonError("로그인이 필요합니다.", 401, context);
 
   try {
     await ensureCloudStateTable();
@@ -222,8 +255,9 @@ export async function DELETE() {
     )
       .bind(identity.userId)
       .run();
-    return jsonResponse({ deleted: true });
+    return jsonResponse({ deleted: true }, {}, context);
   } catch {
-    return jsonError("클라우드 기록을 삭제하지 못했습니다.", 503);
+    logApiFailure(context, "cloud_state_delete_failed", 503);
+    return jsonError("클라우드 기록을 삭제하지 못했습니다.", 503, context);
   }
 }

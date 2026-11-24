@@ -2228,6 +2228,7 @@ export default function Home() {
 
           <section className="camp-entry-banner" aria-labelledby="camp-entry-title">
             <div>
+              <span className="camp-beta-badge">초대 전용 베타</span>
               <h2 id="camp-entry-title">친구와 함께 모험하기</h2>
               <p>캠프 로비에서 서로의 캐릭터를 확인하고, 같은 순간에 집중을 시작해요.</p>
             </div>
@@ -2337,6 +2338,19 @@ export default function Home() {
               )}
             </div>
           </section>
+
+          <footer className="support-footer">
+            <div>
+              <strong>모험 중 불편한 점을 발견했나요?</strong>
+              <span>목표나 공부 내용은 적지 말고, 발생한 화면과 상황만 알려주세요.</span>
+            </div>
+            <a
+              href="mailto:letshoya@naver.com?subject=Focus%20Quest%20%EB%B2%84%EA%B7%B8%20%EB%B0%8F%20%EB%AC%B8%EC%9D%98"
+              onClick={() => void trackProductEvent("feedback_opened")}
+            >
+              버그 신고 · 문의
+            </a>
+          </footer>
         </section>
       )}
 

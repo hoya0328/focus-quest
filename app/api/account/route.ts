@@ -1,5 +1,11 @@
 import { env } from "cloudflare:workers";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  addOperationalHeaders,
+  createApiRequestContext,
+  logApiFailure,
+  type ApiRequestContext,
+} from "@/lib/server-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -9,14 +15,22 @@ const UUID_PATTERN =
 const STORAGE_LIST_PAGE_SIZE = 100;
 const MAX_OWNED_STORAGE_ENTRIES = 5_000;
 
-function response(body: unknown, init: ResponseInit = {}) {
+function response(
+  body: unknown,
+  init: ResponseInit = {},
+  context?: ApiRequestContext,
+) {
   const headers = new Headers(init.headers);
-  headers.set("Cache-Control", "no-store");
+  addOperationalHeaders(headers, context);
   return Response.json(body, { ...init, headers });
 }
 
-function error(message: string, status: number) {
-  return response({ error: message }, { status });
+function error(message: string, status: number, context?: ApiRequestContext) {
+  return response(
+    { error: message, ...(context ? { requestId: context.requestId } : {}) },
+    { status },
+    context,
+  );
 }
 
 function serverConfiguration() {
@@ -111,20 +125,23 @@ async function listOwnedStorageObjects(
 }
 
 export async function DELETE(request: Request) {
-  if (!sameOrigin(request)) return error("허용되지 않은 요청입니다.", 403);
+  const context = createApiRequestContext(request, "account");
+  if (!sameOrigin(request)) {
+    return error("허용되지 않은 요청입니다.", 403, context);
+  }
   const configuration = serverConfiguration();
-  if (!configuration) return error("찾을 수 없습니다.", 404);
+  if (!configuration) return error("찾을 수 없습니다.", 404, context);
   const token = bearerToken(request);
-  if (!token) return error("로그인이 필요합니다.", 401);
+  if (!token) return error("로그인이 필요합니다.", 401, context);
 
   let body: { confirmation?: unknown };
   try {
     body = (await request.json()) as { confirmation?: unknown };
   } catch {
-    return error("확인 값이 올바르지 않습니다.", 400);
+    return error("확인 값이 올바르지 않습니다.", 400, context);
   }
   if (body.confirmation !== ACCOUNT_DELETE_CONFIRMATION) {
-    return error("계정 삭제 확인이 필요합니다.", 400);
+    return error("계정 삭제 확인이 필요합니다.", 400, context);
   }
 
   const admin = createClient(configuration.url, configuration.serviceRoleKey, {
@@ -132,14 +149,17 @@ export async function DELETE(request: Request) {
   });
   const { data: userData, error: userError } = await admin.auth.getUser(token);
   const user = userData.user;
-  if (userError || !user) return error("로그인 정보를 확인하지 못했습니다.", 401);
+  if (userError || !user) {
+    return error("로그인 정보를 확인하지 못했습니다.", 401, context);
+  }
 
   const materialResult = await admin
     .from("study_materials")
     .select("storage_path")
     .eq("user_id", user.id);
   if (materialResult.error && materialResult.error.code !== "42P01") {
-    return error("업로드 자료를 확인하지 못했습니다.", 503);
+    logApiFailure(context, "account_material_lookup_failed", 503);
+    return error("업로드 자료를 확인하지 못했습니다.", 503, context);
   }
   const storagePaths = (materialResult.data ?? [])
     .map((row) => row.storage_path)
@@ -151,17 +171,24 @@ export async function DELETE(request: Request) {
       ...discoveredPaths.filter((path) => !storagePaths.includes(path)),
     );
   } catch {
-    return error("업로드 자료를 모두 확인하지 못했습니다.", 503);
+    logApiFailure(context, "account_storage_discovery_failed", 503);
+    return error("업로드 자료를 모두 확인하지 못했습니다.", 503, context);
   }
 
   for (let index = 0; index < storagePaths.length; index += 100) {
     const removed = await admin.storage
       .from("study-materials")
       .remove(storagePaths.slice(index, index + 100));
-    if (removed.error) return error("업로드 PDF를 삭제하지 못했습니다.", 503);
+    if (removed.error) {
+      logApiFailure(context, "account_storage_delete_failed", 503);
+      return error("업로드 PDF를 삭제하지 못했습니다.", 503, context);
+    }
   }
 
   const deleted = await admin.auth.admin.deleteUser(user.id);
-  if (deleted.error) return error("계정을 삭제하지 못했습니다.", 503);
-  return response({ deleted: true });
+  if (deleted.error) {
+    logApiFailure(context, "account_auth_delete_failed", 503);
+    return error("계정을 삭제하지 못했습니다.", 503, context);
+  }
+  return response({ deleted: true }, {}, context);
 }

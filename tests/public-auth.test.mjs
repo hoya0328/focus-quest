@@ -27,6 +27,10 @@ const publicWorkerPath = new URL("../wrangler.public.jsonc", import.meta.url);
 const cloudStateRoutePath = new URL("../app/api/cloud-state/route.ts", import.meta.url);
 const workerPath = new URL("../worker/index.ts", import.meta.url);
 const accountRoutePath = new URL("../app/api/account/route.ts", import.meta.url);
+const serverObservabilityPath = new URL(
+  "../lib/server-observability.ts",
+  import.meta.url,
+);
 
 test("Supabase cloud state is isolated to the authenticated owner", async () => {
   const migration = await readFile(migrationPath, "utf8");
@@ -93,7 +97,10 @@ test("the RLS event trigger cannot be called through the public Data API", async
 });
 
 test("account deletion verifies the user and removes private storage before Auth", async () => {
-  const route = await readFile(accountRoutePath, "utf8");
+  const [route, observability] = await Promise.all([
+    readFile(accountRoutePath, "utf8"),
+    readFile(serverObservabilityPath, "utf8"),
+  ]);
 
   assert.match(route, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.doesNotMatch(route, /NEXT_PUBLIC_.*SERVICE_ROLE/i);
@@ -107,7 +114,8 @@ test("account deletion verifies the user and removes private storage before Auth
   assert.match(route, /\.from\("study-materials"\)[\s\S]*\.remove\(/);
   assert.ok(route.indexOf('.remove(') < route.indexOf('admin.auth.admin.deleteUser'));
   assert.match(route, /sameOrigin\(request\)/);
-  assert.match(route, /Cache-Control["'], "no-store"/i);
+  assert.match(route, /addOperationalHeaders\(headers, context\)/);
+  assert.match(observability, /Cache-Control["'], "no-store"/i);
 });
 
 test("subjects, quests, sessions and completion RPC stay inside the authenticated owner", async () => {
@@ -156,15 +164,19 @@ test("public worker deployment does not bind the private Sites database", async 
 });
 
 test("public deployment rejects the private cloud route before trusting auth headers", async () => {
-  const route = await readFile(cloudStateRoutePath, "utf8");
+  const [route, observability] = await Promise.all([
+    readFile(cloudStateRoutePath, "utf8"),
+    readFile(serverObservabilityPath, "utf8"),
+  ]);
   const availabilityGuard = route.indexOf(
-    "const unavailable = rejectWhenCloudStorageIsUnavailable()",
+    "const unavailable = rejectWhenCloudStorageIsUnavailable(context)",
   );
   const identityLookup = route.indexOf("const identity = await requireApiUser()", availabilityGuard);
 
   assert.ok(availabilityGuard >= 0);
   assert.ok(identityLookup > availabilityGuard);
-  assert.match(route, /Cache-Control["'],\s*["']no-store/i);
+  assert.match(route, /addOperationalHeaders\(headers, context\)/);
+  assert.match(observability, /Cache-Control["'],\s*["']no-store/i);
 });
 
 test("public worker adds browser security and private-response cache headers", async () => {

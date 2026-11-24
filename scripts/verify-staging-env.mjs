@@ -11,18 +11,25 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-function normalizedOrigin(value) {
+function normalizedOrigin(value, allowLocalHttp = false) {
   try {
     const url = new URL(value);
-    if (url.protocol !== "https:") throw new Error("HTTPS required");
+    const isLoopback = ["127.0.0.1", "localhost"].includes(url.hostname);
+    if (url.protocol !== "https:" && !(allowLocalHttp && isLoopback)) {
+      throw new Error("HTTPS required");
+    }
     return url.origin.toLowerCase();
   } catch {
-    console.error("Staging and production Supabase URLs must be valid HTTPS URLs.");
+    console.error("Supabase URLs must be HTTPS, except an explicit local loopback stack.");
     process.exit(1);
   }
 }
 
-const stagingOrigin = normalizedOrigin(process.env.E2E_SUPABASE_URL);
+const localStack = process.env.E2E_LOCAL_SUPABASE === "true";
+const stagingOrigin = normalizedOrigin(
+  process.env.E2E_SUPABASE_URL,
+  localStack,
+);
 const productionOrigin = normalizedOrigin(
   process.env.E2E_PRODUCTION_SUPABASE_URL,
 );
@@ -34,7 +41,13 @@ if (stagingOrigin === productionOrigin) {
   process.exit(1);
 }
 
-if (!stagingOrigin.endsWith(".supabase.co")) {
+const stagingHost = new URL(stagingOrigin).hostname;
+if (localStack && !["127.0.0.1", "localhost"].includes(stagingHost)) {
+  console.error("Local E2E may only target a loopback Supabase stack.");
+  process.exit(1);
+}
+
+if (!localStack && !stagingOrigin.endsWith(".supabase.co")) {
   console.error("E2E_SUPABASE_URL must point to a Supabase project.");
   process.exit(1);
 }
@@ -47,4 +60,4 @@ if (process.env.E2E_BASE_URL) {
   }
 }
 
-console.log(`Staging guard passed for ${new URL(stagingOrigin).hostname}.`);
+console.log(`Staging guard passed for ${stagingHost}.`);

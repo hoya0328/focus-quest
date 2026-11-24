@@ -1,4 +1,4 @@
-name: Staging E2E
+name: Isolated Supabase E2E
 
 on:
   workflow_dispatch:
@@ -7,10 +7,9 @@ permissions:
   contents: read
 
 jobs:
-  staging:
+  isolated-staging:
     runs-on: ubuntu-latest
-    environment: staging
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -27,14 +26,21 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
+      - name: Start isolated Supabase
+        run: >-
+          npx --yes supabase@3.3.0 start
+          -x studio,imgproxy,mailpit,logflare,vector,supavisor,edge-runtime
+
+      - name: Export ephemeral test credentials
+        shell: bash
+        run: node scripts/export-local-supabase-env.mjs >> "$GITHUB_ENV"
+
       - name: Run isolated account journeys
-        env:
-          E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
-          E2E_PRODUCTION_SUPABASE_URL: ${{ secrets.E2E_PRODUCTION_SUPABASE_URL }}
-          E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
-          E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
-          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
         run: npm run test:e2e:staging
+
+      - name: Stop isolated Supabase
+        if: always()
+        run: npx --yes supabase@3.3.0 stop --no-backup
 
       - name: Upload failure evidence
         if: failure()

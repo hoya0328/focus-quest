@@ -5,6 +5,9 @@ import type { AdventureId } from "@/lib/pomodoro";
 import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 
 export type ProductEventName =
+  | "app_opened"
+  | "returned_after_7d"
+  | "feedback_opened"
   | "focus_started"
   | "focus_completed"
   | "focus_abandoned"
@@ -19,6 +22,10 @@ type ProductEvent = {
   outcome?: "completed" | "abandoned" | "correct" | "incorrect" | "skipped";
   errorCode?: string;
 };
+
+const LAST_OPENED_KEY = "focus-quest-telemetry-last-opened";
+const SESSION_REPORTED_KEY = "focus-quest-telemetry-session-reported";
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1_000;
 
 export function useProductTelemetry(enabled: boolean) {
   const client = getSupabaseBrowserClient();
@@ -42,6 +49,23 @@ export function useProductTelemetry(enabled: boolean) {
     },
     [client, enabled],
   );
+
+  useEffect(() => {
+    if (!enabled) return;
+    try {
+      if (window.sessionStorage.getItem(SESSION_REPORTED_KEY)) return;
+      window.sessionStorage.setItem(SESSION_REPORTED_KEY, "1");
+      const now = Date.now();
+      const lastOpened = Number(window.localStorage.getItem(LAST_OPENED_KEY));
+      window.localStorage.setItem(LAST_OPENED_KEY, String(now));
+      void track("app_opened");
+      if (Number.isFinite(lastOpened) && now - lastOpened >= SEVEN_DAYS_MS) {
+        void track("returned_after_7d");
+      }
+    } catch {
+      // Storage can be unavailable in strict privacy modes. Core focus stays usable.
+    }
+  }, [enabled, track]);
 
   useEffect(() => {
     if (!enabled) return;

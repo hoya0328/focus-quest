@@ -693,6 +693,72 @@
   letter-spacing: -.025em;
 }
 
+.focus-quest-app .camp-beta-badge {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+  border-radius: 999px;
+  color: var(--color-primary);
+  display: inline-flex;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-xs);
+  padding: 0.35rem 0.65rem;
+}
+
+.focus-quest-app .camp-beta-notice {
+  background: color-mix(in srgb, var(--camp-accent) 10%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--camp-accent) 35%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--color-text-soft);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.focus-quest-app .support-footer {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  gap: var(--space-lg);
+  justify-content: space-between;
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+}
+
+.focus-quest-app .support-footer div {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.focus-quest-app .support-footer strong { color: var(--color-text); }
+.focus-quest-app .support-footer span { color: var(--color-text-muted); font-size: var(--text-xs); }
+.focus-quest-app .support-footer a {
+  border: 1px solid color-mix(in srgb, var(--color-primary) 60%, transparent);
+  border-radius: 999px;
+  color: var(--color-primary);
+  flex: 0 0 auto;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+}
+
+.focus-quest-app .support-footer a:hover,
+.focus-quest-app .support-footer a:focus-visible {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  outline: none;
+}
+
+@media (max-width: 640px) {
+  .focus-quest-app .support-footer { align-items: stretch; flex-direction: column; }
+  .focus-quest-app .support-footer a { text-align: center; }
+}
+
 .focus-quest-app .camp-entry-banner p {
   max-width: 62ch;
   margin: 0;

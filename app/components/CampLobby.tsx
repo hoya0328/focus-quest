@@ -115,6 +115,7 @@ export default function CampLobby({
 
       <div className="camp-lobby-heading">
         <div>
+          <span className="camp-beta-badge">초대 전용 베타</span>
           <h1>친구와 함께 모험하기</h1>
           <p>각자 좋아하는 친구를 고르고, 같은 순간에 집중을 시작해요.</p>
         </div>
@@ -145,6 +146,10 @@ export default function CampLobby({
           </div>
 
           <div className="camp-entry-panel">
+            <p className="camp-beta-notice">
+              캠프 코드를 아는 사람은 들어올 수 있어요. 링크는 아는 친구에게만 보내고,
+              개인정보나 계정 정보는 채팅에 남기지 마세요.
+            </p>
             <label className="camp-field">
               <span>캠프에서 사용할 이름</span>
               <input
@@ -324,7 +329,7 @@ export default function CampLobby({
               <span>접속 중에만 보여요</span>
             </div>
             <p className="camp-chat-safety">
-              초대 링크를 받은 사람만 참여시켜 주세요. 개인정보나 계정 정보는 보내지 마세요.
+              초대 전용 베타예요. 채팅은 저장되지 않으며 참가자의 실제 신원을 확인하지 않아요.
             </p>
             <div className="camp-chat-log" aria-live="polite">
               {chatMessages.length === 0 ? (
