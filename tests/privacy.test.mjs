@@ -7,17 +7,19 @@ test("email signup requires both explicit privacy and age confirmations", () => 
   for (const confirmation of [
     undefined,
     {},
-    { ageConfirmed: false, noticeConfirmed: true },
-    { ageConfirmed: true, noticeConfirmed: false },
-    { ageConfirmed: "yes", noticeConfirmed: true },
+    { ageConfirmed: false, noticeConfirmed: true, termsConfirmed: true },
+    { ageConfirmed: true, noticeConfirmed: false, termsConfirmed: true },
+    { ageConfirmed: "yes", noticeConfirmed: true, termsConfirmed: true },
+    { ageConfirmed: true, noticeConfirmed: true, termsConfirmed: false },
   ]) assert.equal(signupPrivacyMetadata(confirmation), null);
   const metadata = signupPrivacyMetadata(
-    { ageConfirmed: true, noticeConfirmed: true },
+    { ageConfirmed: true, noticeConfirmed: true, termsConfirmed: true },
     new Date("2026-11-25T00:00:00Z"),
   );
   assert.deepEqual(metadata, {
     age_over_14_declared: true,
     privacy_notice_version: PRIVACY_NOTICE_VERSION,
+    terms_version: "2026-11-25",
     privacy_notice_acknowledged_at: "2026-11-25T00:00:00.000Z",
   });
   assert.doesNotMatch(JSON.stringify(metadata), /birth|email|password|full_name/);

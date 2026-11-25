@@ -78,8 +78,24 @@ for (const [table, identityColumn] of Object.entries({
   focus_quest_camp_invitations: "camp_id",
   focus_quest_camp_reports: "id",
   focus_quest_push_subscriptions: "id",
+  focus_quest_account_acknowledgements: "user_id",
+  focus_quest_deletion_ledger: "id",
+  focus_quest_operation_runs: "operation",
 })) {
   await expectAnonymousTableDeniedOrEmpty(table, identityColumn);
+}
+
+for (const [name, body] of [
+  ["export_focus_quest_backup", {}],
+  ["run_focus_quest_retention", {}],
+  ["focus_quest_operation_status", {}],
+  ["acknowledge_focus_quest_backup_cleanup", { request_ids: [] }],
+]) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`, {
+    method: "POST", headers: { ...publicHeaders, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(15_000),
+  });
+  const result = await response.json();
+  checks.push({ boundary: `anonymous:${name}:execute`, passed: [401, 403].includes(response.status) && result.code === "42501", status: response.status });
 }
 
 try {

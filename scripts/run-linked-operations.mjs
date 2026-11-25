@@ -5,9 +5,11 @@ const actions = {
   inspect: "scripts/inspect-operations-access.mjs",
   report: "scripts/operations-report.mjs",
   backup: "scripts/backup-production.mjs",
+  daily: "scripts/daily-backup.mjs",
+  maintenance: "scripts/operations-maintenance.mjs",
 };
 const action = actions[process.argv[2]];
-if (!action) throw new Error("Usage: node scripts/run-linked-operations.mjs inspect|report|backup [options]");
+if (!action) throw new Error("Usage: node scripts/run-linked-operations.mjs inspect|report|backup|daily [options]");
 const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const projectRef = url ? new URL(url).hostname.split(".")[0] : "";
 if (!/^[a-z0-9]{20}$/.test(projectRef)) throw new Error("A valid configured Supabase URL is required.");

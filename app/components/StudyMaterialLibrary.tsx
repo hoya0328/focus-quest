@@ -62,7 +62,7 @@ export default function StudyMaterialLibrary({
           <h3 id="study-material-title">집중 범위를 기억하는 자료</h3>
           <p>문제를 만들 수 있는 텍스트 PDF라면 집중 뒤 한 문제, 휴식 뒤 다른 한 문제로 다시 만나요.</p>
         </div>
-        <span className="pdf-limit">PDF · 15MB · 120쪽</span>
+        <span className="pdf-limit">계정당 3개 · 파일당 15MB · 120쪽</span>
       </div>
 
       <form className="pdf-upload" onSubmit={submit}>

@@ -73,23 +73,20 @@ order by 1 desc, 2;
 - PDF와 사용자 계정 삭제는 되돌릴 수 없다. 운영 계정으로 삭제 QA를 하지 않는다.
 - 로컬 게스트 기록은 브라우저 저장소에만 있으므로 브라우저 데이터 삭제 후 서버에서 복구되지 않는다.
 
-운영용 자격 증명은 Git에서 제외된 `.env.operations.local`에만 둔다. 다음 명령은 관리자 키를 브라우저나 빌드에 포함하지 않는다.
+최신 기준은 [OPERATING_POLICY.md](OPERATING_POLICY.md)를 따른다. 관리자 키는 기존 Supabase CLI에서 메모리로만 받아 사용하며 브라우저·빌드에 넣지 않는다.
 
 ```bash
-npm run backup:create
-npm run backup:verify -- backups/<manifest-file>.json
+npm run backup:daily
 npm run ops:report
 npm run camp:moderate -- <report-id> reviewed
 ```
 
-- 백업은 개인 테이블의 JSON 스냅샷, 행 수와 SHA-256을 `backups/`에 저장하며 이 폴더는 Git에서 제외된다.
-- `backup:verify`는 체크섬과 행 수만 검사한다. 운영 복원은 파괴적 작업이므로 자동 실행하지 않는다.
-- 비공개 PDF 원본은 이 스크립트에 포함되지 않는다. Storage 내보내기는 별도의 보호된 저장소와 보존 정책을 정한 뒤 실행한다.
-- 내보내기는 JSON 평문이며 도구가 디스크 암호화를 보장하지 않는다. 2026-11-25 검증본은 `backups/2026-11-25-release-check`에 현재 Windows 사용자 전용 ACL로 보관했다.
-- REST 페이지 내보내기는 시점 일관성이 있는 전체 PostgreSQL 백업이 아니다. Auth 사용자, 스키마와 PDF 원본은 별도 복구 대상이다.
-- 모든 17개 앱 테이블과 체크섬·행 수가 일치해야 검증을 통과한다. 부분 실패를 성공으로 보고하지 않는다.
-- 사용자 승인으로 Codex 자동화 `focus-quest`가 매주 월요일 오전 9시(한국 시간)에 `npm run backup:weekly`를 실행한다. 이 PC와 Codex가 실행 중이고 Supabase CLI 인증이 유효해야 한다. 새 폴더를 사용자 전용 ACL로 제한한 뒤 내보내기·검증하며 기존 백업을 삭제하지 않는다.
-- 암호화된 외부 보관과 삭제 보존 정책은 별도 확정이 필요하다. 운영 복원은 금지하고 격리 CI 합성 레코드만 복구 훈련에 사용한다.
+- 새 백업은 앱18개 테이블·최소 계정 식별 정보·연결 PDF를 AES-256-GCM으로 암호화하고 각 객체·목록의 무결성을 검증한다. `backups/`와 DPAPI 보호 키는 Git 제외·현재 사용자 전용 ACL이다.
+- 새 전체 사본 검증 후 기존 평문17개 테이블 내보내기를 검증·암호화 전환하고 원래 평문 폴더만 제거한다. 과거17테이블 검증 도구는 격리 회귀·이관에만 사용하며 새 운영 평문 내보내기는 차단했다.
+- 생성 후30일 사본과 삭제 대장에 해당하는 과거 사본은 다음 백업 실행에서 제거한다. PC/Codex/CLI 인증에 의존하며 실행 지연은 삭제 지연도 의미한다. 매일 실행 결과·미처리 삭제 건수를 확인한다.
+- R2 미활성화로 외부 보관은 아직 안 된다. 결제수단 등록이나 과금 승인 없이 활성화 가능할 때만 진행한다. PC 손실 시 키를 복구할 별도 보관 수단도 미완료다.
+- 스키마·비밀번호·토큰·MFA·OAuth 연결의 완전한 복구를 보장하지 않는다. DB 행의 단일 읽기 시점과 후속 PDF 다운로드는 다르며 참조 파일이 빠지면 실패한다. 실제 운영 복원은 별도 승인, 격리 검증과 사용자 인증 재설정 안내가 필요하다.
+- 자동 예약은 기존 주간 작업을 매일21:00 KST로 갱신한다. 예약의 실제 상태·마지막 성공은 최신 인계 문서에서 확인한다. 이 PC와 Codex가 실행 중이고 Supabase CLI 인증이 유효해야 한다.
 - `ops:report`는 전환 수와 신고 상태만 집계하며 사용자 ID, 학습 내용, 채팅 본문을 출력하지 않는다.
 - 현재 자동 경고는 시작 사용자 5명 이상일 때 완주 비율 65% 미만, 이벤트 20개 이상일 때 client_error 비중 2% 초과에만 발생한다. 첫 시작·D7 유지율과 신고량의 추가 임계값은 표본과 측정 모수를 검증한 뒤 정한다.
 
@@ -98,11 +95,12 @@ npm run camp:moderate -- <report-id> reviewed
 ```powershell
 node --env-file=.env.local scripts/run-linked-operations.mjs inspect
 node --env-file=.env.local scripts/run-linked-operations.mjs report --days=30
-node --env-file=.env.local scripts/run-linked-operations.mjs backup --out=backups/NEW_UNIQUE_DIRECTORY
-npm run backup:verify -- backups/NEW_UNIQUE_DIRECTORY
+npm run backup:daily
+node --env-file=.env.local scripts/run-linked-operations.mjs maintenance
 ```
 
 - 집계는 로그인 사용자만 포함한다. 기간 내 고유 사용자 비율이지 전체 방문자 전환율이나 코호트 D7 유지율이 아니다.
+- `maintenance --run-retention`은 승인된 만료 정리만 실행한다. 서버는 매일03:00 KST 같은 RPC를 실행한다. 익명·일반 사용자에게 실행 권한이 없다.
 - `returned_after_7d`는 이 기기·계정에서 7일 이상 지난 복귀 신호다. 첫 방문 오집계 수정 전 이벤트는 유지율 근거로 쓰지 않는다.
 - 기준치는 아직 제품 가설이다. 표본이 충분하지 않으면 수치로 성과를 판정하지 않는다.
 

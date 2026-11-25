@@ -18,6 +18,9 @@ function safeStamp() {
 const url = requireEnvironment("SUPABASE_URL");
 const serviceRoleKey = requireEnvironment("SUPABASE_SERVICE_ROLE_KEY");
 const hostname = new URL(url).hostname;
+if (!["localhost", "127.0.0.1"].includes(hostname)) {
+  throw new Error("Plaintext production export is disabled. Use npm run backup:daily for encrypted backups.");
+}
 const projectRef = ["localhost", "127.0.0.1"].includes(hostname)
   ? "local-supabase"
   : hostname.split(".")[0];

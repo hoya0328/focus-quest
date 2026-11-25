@@ -104,7 +104,10 @@ test("server-renders the adventure focus app", async (context) => {
   assert.match(notice, /<title>개인정보 처리방침 \| Focus Quest<\/title>/);
   assert.match(notice, /조병호/);
   assert.match(notice, /만 14세/);
-  assert.match(notice, /백업의 자동 만료/);
+  assert.match(notice, /백업의 자동 만료 기준/);
+  const terms = await fetch(new URL("terms", worker.url));
+  assert.equal(terms.status, 200);
+  assert.match(await terms.text(), /이용약관/);
   assert.match(notice, /rel="canonical" href="https:\/\/focus-quest\.hoya0328\.workers\.dev\/privacy"/);
 });
 

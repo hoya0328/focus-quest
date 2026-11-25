@@ -11,6 +11,7 @@ import {
 import { createStudyQuizSource } from "@/lib/study-quiz";
 import type { StudySubject } from "@/lib/study-quests";
 import { getSupabaseBrowserClient } from "@/lib/supabase-client";
+import { MAX_STUDY_PDFS } from "@/lib/operating-policy";
 
 export type MaterialPhase =
   | "idle"
@@ -28,6 +29,8 @@ function storageUploadErrorMessage(error: unknown) {
   };
   const detail = `${failure.error ?? ""} ${failure.message ?? ""}`.trim();
   const status = Number(failure.statusCode);
+
+  if (/quota_exceeded/i.test(detail)) return "계정당 PDF는 3개까지 보관할 수 있어요. 기존 자료를 삭제한 뒤 다시 올려 주세요.";
 
   if (status === 401) {
     return "로그인 정보가 만료됐어요. 다시 로그인한 뒤 PDF를 올려 주세요.";
@@ -82,6 +85,11 @@ export function useStudyMaterials(enabled: boolean) {
   const preparePdf = useCallback(
     async (file: File, subject: StudySubject) => {
       if (!client) return null;
+      if (materials.length >= MAX_STUDY_PDFS) {
+        setMessage("계정당 PDF는 3개까지 보관할 수 있어요. 기존 자료를 삭제한 뒤 다시 올려 주세요.");
+        setPhase("error");
+        return null;
+      }
       setMessage("");
       setPhase("extracting");
       setPageProgress({ completed: 0, total: 0 });
@@ -174,7 +182,7 @@ export function useStudyMaterials(enabled: boolean) {
         return null;
       }
     },
-    [client],
+    [client, materials.length],
   );
 
   const deleteMaterial = useCallback(

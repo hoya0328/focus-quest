@@ -1,10 +1,11 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
+import { readArchive } from "../scripts/encrypted-backup.mjs";
 
 type TestUser = {
   displayName: string;
@@ -40,6 +41,7 @@ async function createTestUser(label: string): Promise<TestUser> {
     email_confirm: true,
     password: user.password,
     user_metadata: { full_name: user.displayName },
+    app_metadata: { focus_quest_internal_provision: true },
   });
   if (error || !data.user) throw error ?? new Error("Test user was not created");
   const created = { ...user, id: data.user.id };
@@ -140,10 +142,13 @@ test.describe("isolated Supabase staging", () => {
     await expect(page.getByRole("checkbox")).toHaveCount(0);
     await expect(page.getByRole("link", { name: /개인정보 처리방침/ }).last()).toHaveAttribute("target", "_blank");
     await page.getByRole("tab", { name: "회원가입" }).click();
+    expect(await page.getByRole("tab", { name: "회원가입" }).evaluate((element) => getComputedStyle(element).backgroundColor))
+      .not.toBe(await page.getByRole("tab", { name: "로그인", exact: true }).evaluate((element) => getComputedStyle(element).backgroundColor));
     await page.getByLabel("이메일", { exact: true }).fill(email);
     await page.getByLabel("비밀번호", { exact: true }).fill(password);
     const age = page.getByRole("checkbox", { name: /만 14세 이상입니다/ });
     const notice = page.getByRole("checkbox", { name: /개인정보 처리방침의 수집 항목/ });
+    const terms = page.getByRole("checkbox", { name: /이용약관에 동의합니다/ });
     await expect(age).not.toBeChecked();
     await expect(notice).not.toBeChecked();
     await page.getByRole("button", { name: "계정 만들기" }).click();
@@ -161,6 +166,7 @@ test.describe("isolated Supabase staging", () => {
     await page.getByLabel("비밀번호", { exact: true }).fill(password);
     await age.check();
     await notice.check();
+    await terms.check();
     const responsePromise = page.waitForResponse((response) =>
       response.request().method() === "POST" && new URL(response.url()).pathname === "/auth/v1/signup",
     );
@@ -175,7 +181,8 @@ test.describe("isolated Supabase staging", () => {
     expect(saved.error).toBeNull();
     expect(saved.data.user?.user_metadata).toMatchObject({
       age_over_14_declared: true,
-      privacy_notice_version: "2026-11-25",
+      privacy_notice_version: "2026-11-25.1",
+      terms_version: "2026-11-25",
     });
     expect(Number.isFinite(Date.parse(saved.data.user!.user_metadata.privacy_notice_acknowledged_at))).toBe(true);
     expect(saved.data.user?.user_metadata).not.toHaveProperty("birth_date");
@@ -220,6 +227,103 @@ test.describe("isolated Supabase staging", () => {
       .from("study-materials")
       .download(storagePath);
     expect(forbiddenDownload.error).not.toBeNull();
+  });
+
+  test("direct signup cannot bypass confirmation or forge administrator provisioning", async () => {
+    const suffix = randomUUID();
+    const email = `focus-quest-bypass-${suffix}@example.com`;
+    const response = await fetch(`${stagingUrl}/auth/v1/signup`, {
+      method: "POST", headers: { apikey: anonKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password: `Fq!${suffix}Aa9`, app_metadata: { focus_quest_internal_provision: true }, data: { focus_quest_internal_provision: true } }),
+    });
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    const client = await signInClient(userB);
+    for (const name of ["run_focus_quest_retention", "export_focus_quest_backup", "acknowledge_focus_quest_backup_cleanup"]) {
+      const result = await client.rpc(name, name.startsWith("acknowledge") ? { request_ids: [] } : {});
+      expect(result.error?.code).toBe("42501");
+    }
+    const list = await admin.auth.admin.listUsers({ perPage: 100 });
+    expect(list.data.users.some((user) => user.email === email)).toBe(false);
+    await client.auth.signOut();
+  });
+
+  test("PDF quota is enforced for concurrent direct uploads and releases a slot after deletion", async () => {
+    const user = await createTestUser("quota");
+    const client = await signInClient(user);
+    const paths = Array.from({ length: 4 }, () => `${user.id}/${randomUUID()}/source.pdf`);
+    uploadedObjects.push(...paths);
+    const results = await Promise.all(paths.map((name) => client.storage.from("study-materials").upload(name, createTextPdf(), { contentType: "application/pdf" })));
+    expect(results.filter((result) => !result.error)).toHaveLength(3);
+    expect(results.filter((result) => result.error)).toHaveLength(1);
+    const stored = await client.storage.from("study-materials").list(user.id);
+    expect(stored.error).toBeNull();
+    expect(stored.data).toHaveLength(3);
+    const occupied = results.findIndex((result) => !result.error);
+    expect((await client.storage.from("study-materials").remove([paths[occupied]])).error).toBeNull();
+    const retry = `${user.id}/${randomUUID()}/source.pdf`;
+    uploadedObjects.push(retry);
+    expect((await client.storage.from("study-materials").upload(retry, createTextPdf(), { contentType: "application/pdf" })).error).toBeNull();
+    await client.storage.from("study-materials").remove([...paths, retry]);
+    await client.auth.signOut();
+  });
+
+  test("server retention removes only expired events and preserves recent records", async () => {
+    const old = randomUUID();
+    const recent = randomUUID();
+    const sql = `insert into public.focus_quest_product_events(id,user_id,event_name,created_at) values ('${old}','${userA.id}','app_opened',now()-interval '91 days'),('${recent}','${userA.id}','app_opened',now());`;
+    execFileSync("docker", ["exec", "-i", "supabase_db_focus-quest-e2e", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-q"], { input: sql, stdio: ["pipe", "pipe", "pipe"], timeout: 15_000 });
+    const result = await admin.rpc("run_focus_quest_retention");
+    expect(result.error).toBeNull();
+    const rows = await admin.from("focus_quest_product_events").select("id").in("id", [old, recent]);
+    expect(rows.error).toBeNull();
+    expect(rows.data).toEqual([{ id: recent }]);
+  });
+
+  test("encrypted account, study and PDF snapshot can restore synthetic identities and file bytes", async () => {
+    test.setTimeout(120_000);
+    const user = await createTestUser("encrypted-restore");
+    const client = await signInClient(user);
+    const subject = await client.from("study_subjects").insert({ name: "암호화 복구 합성 과목", user_id: user.id }).select("*").single();
+    expect(subject.error).toBeNull();
+    const materialId = randomUUID();
+    const storagePath = `${user.id}/${materialId}/source.pdf`;
+    const bytes = createTextPdf();
+    uploadedObjects.push(storagePath);
+    expect((await client.storage.from("study-materials").upload(storagePath, bytes, { contentType: "application/pdf" })).error).toBeNull();
+    const material = await client.from("study_materials").insert({ id: materialId, user_id: user.id, subject_id: subject.data.id, file_name: "synthetic.pdf", storage_path: storagePath, file_size_bytes: bytes.length, page_count: 1 }).select("*").single();
+    expect(material.error).toBeNull();
+    const key = randomBytes(32);
+    const env = { ...process.env, SUPABASE_URL: stagingUrl, SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey, BACKUP_ENCRYPTION_KEY: key.toString("base64") };
+    const output = execFileSync(process.execPath, ["scripts/daily-backup.mjs"], { env, timeout: 90_000, stdio: "pipe", encoding: "utf8" });
+    const completed = JSON.parse(output.trim().split("\n").at(-1)!);
+    const directory = path.resolve(completed.directory);
+    expect(path.dirname(directory)).toBe(path.resolve("backups"));
+    try {
+      const archive = await readArchive(directory, key);
+      expect(archive.index.projectRef).toBe("local-supabase");
+      const snapshot = JSON.parse(archive.files.get("snapshot.json")!.toString());
+      const account = snapshot.accounts.find((item: { id: string }) => item.id === user.id);
+      expect(account.email).toBe(user.email);
+      expect(account).not.toHaveProperty("password");
+      expect(Buffer.from(archive.files.get(`pdf/${materialId}`)!)).toEqual(bytes);
+      expect((await client.storage.from("study-materials").remove([storagePath])).error).toBeNull();
+      expect((await admin.auth.admin.deleteUser(user.id)).error).toBeNull();
+      const restored = await admin.auth.admin.createUser({ id: account.id, email: account.email, email_confirm: account.email_confirmed, password: user.password, user_metadata: account.user_metadata, app_metadata: { focus_quest_internal_provision: true } });
+      expect(restored.error).toBeNull();
+      expect(restored.data.user?.id).toBe(user.id);
+      // Restoration is deliberately restricted to this disposable local fixture.
+      expect(new URL(stagingUrl).hostname).toBe("127.0.0.1");
+      expect((await admin.from("study_subjects").insert(subject.data)).error).toBeNull();
+      expect((await admin.from("study_materials").insert(material.data)).error).toBeNull();
+      expect((await admin.storage.from("study-materials").upload(storagePath, archive.files.get(`pdf/${materialId}`)!, { contentType: "application/pdf" })).error).toBeNull();
+      const owner = await signInClient(user);
+      expect((await owner.from("study_subjects").select("id").eq("id", subject.data.id).single()).error).toBeNull();
+      const downloaded = await owner.storage.from("study-materials").download(storagePath);
+      expect(downloaded.error).toBeNull();
+      expect(Buffer.from(await downloaded.data!.arrayBuffer())).toEqual(bytes);
+      await owner.auth.signOut();
+    } finally { await rm(directory, { recursive: true, force: true }); }
+    await client.auth.signOut();
   });
 
   test("Plus interest is writable by its owner and hidden from another account", async () => {
