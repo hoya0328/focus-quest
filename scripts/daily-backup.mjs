@@ -8,6 +8,8 @@ import { loadBackupKey, protectDirectory, writeArchive, pruneArchives, removeArc
 import { cleanupDeletedPdfs } from "../lib/cleanup-deleted-pdfs.ts";
 
 const root = path.resolve("backups");
+const applyRetention = process.argv.includes("--apply-retention");
+const migrateLegacy = process.argv.includes("--migrate-legacy");
 await protectDirectory(root);
 const key = await loadBackupKey(root);
 const url = process.env.SUPABASE_URL;
@@ -19,7 +21,7 @@ const client = createClient(url, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
   global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(30_000) }) },
 });
-await cleanupDeletedPdfs(client);
+if (applyRetention) await cleanupDeletedPdfs(client);
 const snapshot = await client.rpc("export_focus_quest_backup");
 if (snapshot.error || snapshot.data?.version !== 2) throw new Error("Consistent backup snapshot unavailable; no old backup was removed.");
 const required = [...Object.keys(backupTables), "focus_quest_account_acknowledgements"].sort();
@@ -38,7 +40,7 @@ await writeArchive(directory, files, key, { projectRef });
 
 // Migrate verified plaintext legacy exports only after the new full backup verifies.
 let converted = 0;
-for (const entry of await readdir(root, { withFileTypes: true })) {
+for (const entry of migrateLegacy ? await readdir(root, { withFileTypes: true }) : []) {
   if (!entry.isDirectory() || !/^(weekly-|\d{4}-\d{2}-\d{2})/.test(entry.name)) continue;
   const source = path.join(root, entry.name);
   let manifest;
@@ -55,9 +57,9 @@ for (const entry of await readdir(root, { withFileTypes: true })) {
   await removeArchive(root, source);
   converted++;
 }
-const removed = await pruneArchives(root, key, deletions, directory);
-if (deletions.length) {
+const removed = applyRetention ? await pruneArchives(root, key, deletions, directory) : 0;
+if (applyRetention && deletions.length) {
   const acknowledgement = await client.rpc("acknowledge_focus_quest_backup_cleanup", { request_ids: deletions.map((item) => item.id) });
   if (acknowledgement.error) throw new Error("Backup verified, but deletion cleanup acknowledgement failed.");
 }
-console.log(JSON.stringify({ status: "verified", directory, encrypted: true, appTables: required.length, accounts: snapshot.data.accounts.length, pdfs: files.size - 1, retentionDays: 30, converted, removed, externalCopy: "not-configured", keyRecovery: "current-Windows-account-only" }));
+console.log(JSON.stringify({ status: "verified", directory, encrypted: true, appTables: required.length, accounts: snapshot.data.accounts.length, pdfs: files.size - 1, retentionDays: 30, retentionApplied: applyRetention, converted, removed, externalCopy: "not-configured", keyRecovery: "current-Windows-account-only" }));
