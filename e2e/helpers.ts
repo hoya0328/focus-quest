@@ -24,8 +24,7 @@ export function completedHistory(
   }));
 }
 
-export async function resetGuestStorage(page: Page) {
-  await page.addInitScript(() => window.localStorage.clear());
+async function stubGuestCloud(page: Page) {
   await page.route(/\/api\/(?:me|cloud-state)(?:\?.*)?$/, (route) =>
     route.fulfill({
       body: JSON.stringify({ authenticated: false }),
@@ -35,8 +34,13 @@ export async function resetGuestStorage(page: Page) {
   );
 }
 
+export async function resetGuestStorage(page: Page) {
+  await page.addInitScript(() => window.localStorage.clear());
+  await stubGuestCloud(page);
+}
+
 export async function seedHistory(page: Page, history: unknown[]) {
-  await resetGuestStorage(page);
+  await stubGuestCloud(page);
   await page.addInitScript((records) => {
     window.localStorage.clear();
     window.localStorage.setItem("haru-focus-history", JSON.stringify(records));
