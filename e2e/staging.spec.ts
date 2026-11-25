@@ -300,6 +300,7 @@ test.describe("isolated Supabase staging", () => {
     const owner = await signInClient(user);
     const subject = await owner.from("study_subjects").insert({ name: "삭제 정리 합성 과목", user_id: user.id }).select("id").single();
     expect(subject.error).toBeNull();
+    if (!subject.data) throw new Error("Synthetic subject fixture unavailable.");
     const id = randomUUID();
     const storagePath = `${user.id}/${id}/source.pdf`;
     const bytes = createTextPdf();
