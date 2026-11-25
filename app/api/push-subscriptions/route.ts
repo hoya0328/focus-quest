@@ -37,10 +37,13 @@ function validSubscription(value: unknown): value is PushSubscriptionBody {
   return Boolean(
     typeof candidate.endpoint === "string" &&
     candidate.endpoint.startsWith("https://") &&
+    candidate.endpoint.length >= 20 &&
     candidate.endpoint.length <= 2048 &&
     typeof candidate.keys?.auth === "string" &&
+    candidate.keys.auth.length >= 8 &&
     candidate.keys.auth.length <= 80 &&
     typeof candidate.keys?.p256dh === "string" &&
+    candidate.keys.p256dh.length >= 40 &&
     candidate.keys.p256dh.length <= 180,
   );
 }
@@ -74,6 +77,7 @@ export async function POST(request: Request) {
     typeof body.reminderTime !== "string" ||
     !/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(body.reminderTime) ||
     typeof body.timezone !== "string" ||
+    body.timezone.length < 1 ||
     body.timezone.length > 80 ||
     typeof body.nextDueAt !== "string" ||
     Number.isNaN(Date.parse(body.nextDueAt))

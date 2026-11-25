@@ -85,7 +85,7 @@ export function validateBackupManifest(value: unknown): value is BackupManifest 
     && typeof manifest.createdAt === "string"
     && !Number.isNaN(Date.parse(manifest.createdAt))
     && typeof manifest.projectRef === "string"
-    && /^[a-z0-9]{20}$/.test(manifest.projectRef)
+    && /^(?:[a-z0-9]{20}|local-supabase)$/.test(manifest.projectRef)
     && Array.isArray(manifest.files)
     && manifest.files.length > 0
     && new Set(manifest.files.map((file) => file?.path)).size === manifest.files.length

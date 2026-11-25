@@ -17,7 +17,10 @@ function safeStamp() {
 
 const url = requireEnvironment("SUPABASE_URL");
 const serviceRoleKey = requireEnvironment("SUPABASE_SERVICE_ROLE_KEY");
-const projectRef = new URL(url).hostname.split(".")[0];
+const hostname = new URL(url).hostname;
+const projectRef = ["localhost", "127.0.0.1"].includes(hostname)
+  ? "local-supabase"
+  : hostname.split(".")[0];
 const requestedDir = process.argv.find((argument) => argument.startsWith("--out="))?.slice(6);
 const outputDir = path.resolve(requestedDir || path.join("backups", safeStamp()));
 const backupRoot = path.resolve("backups");

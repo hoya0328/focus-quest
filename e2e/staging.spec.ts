@@ -375,6 +375,11 @@ test.describe("isolated Supabase staging", () => {
     expect(invitations.data).toEqual([{ invitee_user_id: userB.id }]);
     const unrelatedInvites = await clientC.from("focus_quest_camp_invitations").select("camp_id");
     expect(unrelatedInvites.data).toEqual([]);
+    const reopened = await clientB.rpc("reopen_focus_quest_camp", {
+      previous_camp_id: room.camp_id, requested_code: "NEWCAMPX",
+      requested_nickname: "캠프B", requested_adventure_id: "swim", requested_focus_minutes: 25,
+    });
+    expect(reopened.error).toBeNull();
     const report = await clientB.rpc("report_focus_quest_camp_member", {
       requested_camp_id: room.camp_id, requested_user_id: userA.id, requested_reason: "spam",
     });
@@ -449,7 +454,7 @@ test.describe("isolated Supabase staging", () => {
     const saved = await request.post("/api/push-subscriptions", {
       headers: { authorization: `Bearer ${tokenA}` },
       data: {
-        subscription: { endpoint, keys: { auth: "isolated-auth", p256dh: "isolated-key" } },
+        subscription: { endpoint, keys: { auth: "isolated-auth", p256dh: "isolated-key".repeat(6) } },
         reminderTime: "19:00", timezone: "Asia/Seoul",
         nextDueAt: new Date(Date.now() + 86400_000).toISOString(),
       },

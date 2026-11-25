@@ -26,6 +26,10 @@ test("backup manifest requires bounded project and checksum metadata", () => {
     files: [{ path: "tables/study_quests.json", sha256: "a".repeat(64), records: 0 }],
   }), true);
   assert.equal(validateBackupManifest({ version: 1, files: [] }), false);
+  assert.equal(validateBackupManifest({
+    version: 1, createdAt: new Date().toISOString(), projectRef: "local-supabase",
+    files: [{ path: "tables/study_subjects.json", sha256: "a".repeat(64), records: 1 }],
+  }), true);
 });
 
 test("operations pagination reads beyond the API page cap without accepting partial errors", async () => {

@@ -87,6 +87,13 @@ test("operations grants are server-only and do not broaden client roles or RLS",
   assert.doesNotMatch(writeGrant, /grant all|to (anon|authenticated|public)|disable row level/i);
 });
 
+test("camp upserts use named constraints instead of ambiguous output variables", async () => {
+  const source = await read("supabase/migrations/202611250008_fix_camp_upsert_targets.sql");
+  assert.match(source, /on conflict on constraint focus_quest_camp_members_pkey/);
+  assert.match(source, /on conflict on constraint focus_quest_camp_invitations_pkey/);
+  assert.doesNotMatch(source, /on conflict \(camp_id/);
+});
+
 test("isolated Supabase E2E never targets production or repository secrets", async () => {
   const [guard, workflow, config] = await Promise.all([
     read("scripts/verify-staging-env.mjs"),
