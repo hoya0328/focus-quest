@@ -127,6 +127,60 @@ test.describe("isolated Supabase staging", () => {
     );
   });
 
+  test("email signup keeps privacy confirmation separate from login and saves minimal metadata", async ({ page }) => {
+    const suffix = randomUUID();
+    const email = `focus-quest-signup-${suffix}@example.com`;
+    const password = `Fq!${suffix}Aa9`;
+    let signupRequests = 0;
+    page.on("request", (request) => {
+      if (request.method() === "POST" && new URL(request.url()).pathname === "/auth/v1/signup") signupRequests += 1;
+    });
+    await page.goto("/");
+    await page.getByRole("button", { name: "로그인하고 클라우드에 집중 기록 저장" }).click();
+    await expect(page.getByRole("checkbox")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /개인정보 처리방침/ }).last()).toHaveAttribute("target", "_blank");
+    await page.getByRole("tab", { name: "회원가입" }).click();
+    await page.getByLabel("이메일", { exact: true }).fill(email);
+    await page.getByLabel("비밀번호", { exact: true }).fill(password);
+    const age = page.getByRole("checkbox", { name: /만 14세 이상입니다/ });
+    const notice = page.getByRole("checkbox", { name: /개인정보 처리방침의 수집 항목/ });
+    await expect(age).not.toBeChecked();
+    await expect(notice).not.toBeChecked();
+    await page.getByRole("button", { name: "계정 만들기" }).click();
+    expect(signupRequests).toBe(0);
+    await age.check();
+    await page.getByRole("button", { name: "계정 만들기" }).click();
+    expect(signupRequests).toBe(0);
+    await page.getByRole("button", { name: "로그인 창 닫기" }).click();
+    await page.getByRole("button", { name: "로그인하고 클라우드에 집중 기록 저장" }).click();
+    await expect(age).not.toBeChecked();
+    await expect(notice).not.toBeChecked();
+    await expect(page.getByLabel("이메일", { exact: true })).toHaveValue("");
+    await expect(page.getByLabel("비밀번호", { exact: true })).toHaveValue("");
+    await page.getByLabel("이메일", { exact: true }).fill(email);
+    await page.getByLabel("비밀번호", { exact: true }).fill(password);
+    await age.check();
+    await notice.check();
+    const responsePromise = page.waitForResponse((response) =>
+      response.request().method() === "POST" && new URL(response.url()).pathname === "/auth/v1/signup",
+    );
+    await page.getByRole("button", { name: "계정 만들기" }).click();
+    const response = await responsePromise;
+    expect(response.status()).toBe(200);
+    const result = await response.json() as { user?: { id: string } };
+    expect(result.user?.id).toBeTruthy();
+    if (!result.user) throw new Error("Synthetic signup did not return its user ID");
+    users.push({ id: result.user.id, email, password, displayName: "Synthetic signup" });
+    const saved = await admin.auth.admin.getUserById(result.user.id);
+    expect(saved.error).toBeNull();
+    expect(saved.data.user?.user_metadata).toMatchObject({
+      age_over_14_declared: true,
+      privacy_notice_version: "2026-11-25",
+    });
+    expect(Number.isFinite(Date.parse(saved.data.user!.user_metadata.privacy_notice_acknowledged_at))).toBe(true);
+    expect(saved.data.user?.user_metadata).not.toHaveProperty("birth_date");
+  });
+
   test("two accounts cannot read, write or download each other's records", async () => {
     const clientA = await signInClient(userA);
     const clientB = await signInClient(userB);

@@ -9,7 +9,8 @@ const publicRoot = join(root, "public");
 const limits = {
   largestClientScript: 1_250_000,
   largestPublicImage: 2_600_000,
-  totalClientCss: 225_000,
+  // Includes the new, route-specific privacy document and signup confirmations.
+  totalClientCss: 230_000,
   totalClientScripts: 2_600_000,
 };
 

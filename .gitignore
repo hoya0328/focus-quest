@@ -52,6 +52,7 @@ next-env.d.ts
 /.codex/
 /.agents/
 /.hallmark/
+/.impeccable/
 /.github/agents/
 /.github/hooks/
 /.github/skills/

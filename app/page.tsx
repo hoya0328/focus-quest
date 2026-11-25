@@ -2506,12 +2506,15 @@ export default function Home() {
               <strong>모험 중 불편한 점을 발견했나요?</strong>
               <span>목표나 공부 내용은 적지 말고, 발생한 화면과 상황만 알려주세요.</span>
             </div>
-            <a
-              href="mailto:letshoya@naver.com?subject=Focus%20Quest%20%EB%B2%84%EA%B7%B8%20%EB%B0%8F%20%EB%AC%B8%EC%9D%98"
-              onClick={() => void trackProductEvent("feedback_opened")}
-            >
-              버그 신고 · 문의
-            </a>
+            <nav aria-label="서비스 안내">
+              <a href="/privacy" target="_blank" rel="noopener noreferrer">개인정보 처리방침 <span className="sr-only">(새 탭)</span></a>
+              <a
+                href="mailto:letshoya@naver.com?subject=Focus%20Quest%20%EB%B2%84%EA%B7%B8%20%EB%B0%8F%20%EB%AC%B8%EC%9D%98"
+                onClick={() => void trackProductEvent("feedback_opened")}
+              >
+                버그 신고 · 문의
+              </a>
+            </nav>
           </footer>
         </section>
       )}

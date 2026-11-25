@@ -1,0 +1,171 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import {
+  PRIVACY_CONTACT,
+  PRIVACY_NOTICE_PATH,
+  PRIVACY_NOTICE_VERSION,
+} from "@/lib/privacy";
+import "./privacy.css";
+
+export const metadata: Metadata = {
+  title: "개인정보 처리방침 | Focus Quest",
+  description: "Focus Quest가 저장하는 정보, 이용 목적, 삭제 방법과 개인정보 문의 창구를 안내합니다.",
+  alternates: { canonical: PRIVACY_NOTICE_PATH },
+};
+
+const sections = [
+  ["operator", "운영자와 문의"],
+  ["information", "어떤 정보를 사용하는지"],
+  ["purpose", "처리 목적과 기준"],
+  ["retention", "보관과 삭제"],
+  ["sharing", "캠프에서 공유되는 정보"],
+  ["providers", "외부 서비스와 처리 위치"],
+  ["browser", "브라우저에 남는 정보"],
+  ["rights", "내 정보 관리하기"],
+  ["safety", "보호 조치와 이용 연령"],
+  ["changes", "변경 안내"],
+] as const;
+
+export default function PrivacyPage() {
+  return (
+    <div className="privacy-page">
+      <a className="privacy-skip" href="#privacy-content">본문으로 건너뛰기</a>
+      <header className="privacy-header">
+        <Link className="privacy-brand" href="/" prefetch={false} aria-label="Focus Quest 홈으로 돌아가기">
+          {/* The existing local brand asset is shared with the timer. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/focus-quest-mark.png" alt="" width="40" height="40" />
+          <span>Focus Quest</span>
+        </Link>
+        <Link href="/" prefetch={false}>타이머로 돌아가기</Link>
+      </header>
+      <main id="privacy-content" className="privacy-document">
+        <h1>개인정보 처리방침</h1>
+        <p className="privacy-date">시행일 2026년 11월 25일 · 버전 {PRIVACY_NOTICE_VERSION}</p>
+        <p className="privacy-intro">
+          집중하는 동안 남긴 기록이 어디에 저장되고, 누구에게 보이며, 어떻게 지울 수 있는지 안내합니다.
+          Focus Quest는 {PRIVACY_CONTACT.name}가 개인 운영하는 웹·PWA 서비스입니다.
+        </p>
+        <div className="privacy-summary">
+          <h2>먼저 알아두세요</h2>
+          <ul>
+            <li>가입하지 않아도 타이머를 쓸 수 있습니다. 게스트의 집중 기록은 이용 중인 브라우저에 저장됩니다.</li>
+            <li>로그인 후에는 기록을 계정에 저장해 여러 기기에서 이어 씁니다. PDF 업로드와 알림은 선택 사항입니다.</li>
+            <li>현재 PDF 글자 읽기·복습 문제 만들기는 브라우저에서 처리하며, OpenAI 등 외부 생성형 AI로 자료를 보내지 않습니다.</li>
+          </ul>
+        </div>
+        <nav className="privacy-contents" aria-label="개인정보 처리방침 목차">
+          <h2>찾아보기</h2>
+          <ul>{sections.map(([id, label]) => <li key={id}><a href={`#${id}`}>{label}</a></li>)}</ul>
+        </nav>
+
+        <section id="operator">
+          <h2>운영자와 문의</h2>
+          <dl>
+            <dt>서비스 운영자·개인정보 보호 담당자</dt><dd>{PRIVACY_CONTACT.name} (활동명 HOYA)</dd>
+            <dt>문의 이메일</dt><dd><a href={`mailto:${PRIVACY_CONTACT.email}`}>{PRIVACY_CONTACT.email}</a></dd>
+          </dl>
+          <p>열람·정정·삭제·처리정지 요청이나 개인정보 관련 불편은 위 이메일로 알려주세요. 문의 시 비밀번호, 인증 링크, API 키, PDF 원본을 보내지 마세요.</p>
+        </section>
+
+        <section id="information">
+          <h2>어떤 정보를 사용하는지</h2>
+          <h3>계정을 만들 때</h3>
+          <p>이메일, 인증용 비밀번호, 계정 식별자, 가입·인증 시각, 로그인 세션 정보를 사용합니다. 새 이메일 가입에는 만 14세 이상이라는 자기 확인과 이 방침을 확인한 버전·시각을 계정 정보에 함께 기록합니다. 생년월일, 실명, 전화번호는 가입 항목이 아닙니다. 비밀번호 인증은 Supabase Auth가 처리하며 운영자가 비밀번호 원문을 조회하는 기능은 없습니다.</p>
+          <h3>로그인하고 기록을 남길 때</h3>
+          <p>선택한 동료, 타이머·소리 설정, 진행 중 세션, 집중 시간·완료 시각·오늘의 목표, Camp Log, 복귀·성장 기록을 저장합니다. 과목·퀘스트를 사용하면 과목명, 목표, 목표일, 공부 계획·진행도와 완료 기준도 저장합니다.</p>
+          <h3>선택 기능을 사용할 때</h3>
+          <ul>
+            <li><strong>학습 자료:</strong> PDF 원본, 파일명·크기·페이지 수, 읽어 낸 페이지별 글자와 복습용 문장, 연결한 퀘스트, 공부한 범위, 답안 선택·정오답·자신감과 퀴즈 품질 피드백을 저장합니다.</li>
+            <li><strong>집중 캠프:</strong> 계정 식별자, 닉네임, 동료, 캠프 코드·참가·퇴장·완료 기록, 함께한 멤버 관계, 초대·차단·신고 분류와 처리 상태를 저장합니다. 채팅은 실시간 전달과 열린 화면의 임시 표시를 위해 사용합니다.</li>
+            <li><strong>예약 알림:</strong> 알림 전송 주소와 구독 키, 예약 시각·시간대, 허용 상태, 발송·실패 시각을 저장합니다. 브라우저에서 알림을 허용할 때만 구독을 연결합니다.</li>
+            <li><strong>Plus 관심도:</strong> 직접 응답한 관심 여부와 선호 가격대만 계정에 저장합니다. 현재 카드 정보 수집이나 실제 결제는 없습니다.</li>
+            <li><strong>이메일 문의:</strong> 발신 이메일, 문의 내용과 회신 내역을 사용합니다. 필요하지 않은 개인 정보나 학습 자료는 보내지 마세요.</li>
+          </ul>
+          <h3>이용·오류 정보</h3>
+          <p>로그인한 이용자의 화면 열기·집중 시작·완료·중단·퀴즈·캠프·알림 사용 같은 분류형 이벤트, 동료, 집중 분 수, 결과, 관련 퀘스트 식별자와 오류 코드를 저장합니다. 이 이벤트에는 목표 문장, PDF 본문, 퀴즈 문항·해설, 채팅 본문을 넣지 않습니다. 이름을 제거한 통계라도 계정 식별자와 연결된 원본 이벤트는 개인정보로 관리합니다.</p>
+          <p>별도로 호스팅·인증·통신 제공자는 서비스 전달과 보안 운영 과정에서 IP 주소, 브라우저·기기 정보, 접속 URL·시각, 응답 상태 등 기술 정보를 처리할 수 있습니다. 앱의 오류 로그는 요청 식별자·경로·분류·시각·상태를 중심으로 기록하며 비밀번호·인증 토큰·학습 본문을 출력하지 않습니다.</p>
+        </section>
+
+        <section id="purpose">
+          <h2>처리 목적과 기준</h2>
+          <ul>
+            <li>계정 인증, 본인 기록의 저장·동기화·복구, 이용자가 요청한 퀘스트·복습·캠프·예약 알림 제공을 위해 필요한 정보를 처리합니다.</li>
+            <li>분류형 이용 이벤트와 오류 정보는 기능 이용 현황 파악, 장애 진단과 안정성 개선에 사용합니다. 광고 프로필이나 자동화된 불이익 판단에 사용하지 않습니다.</li>
+            <li>초대·차단·신고 정보는 캠프 운영과 오남용 대응에, 문의 내역은 답변과 권리행사 처리에 사용합니다.</li>
+          </ul>
+          <p>계정과 선택 기능의 제공은 이용자가 요청한 서비스의 이행에 필요한 범위에서 처리합니다. 새 이메일 가입의 확인란은 처리방침 확인과 연령의 자기 확인이며 광고·마케팅 동의가 아닙니다. PDF·캠프·Push는 해당 기능을 선택하지 않으면 관련 정보를 제출할 필요가 없습니다.</p>
+        </section>
+
+        <section id="retention">
+          <h2>보관과 삭제</h2>
+          <ul>
+            <li><strong>계정과 계정 연결 데이터:</strong> 서비스를 이용하는 동안 보관하며, 계정 삭제를 요청하고 처리가 성공하면 운영 중인 계정·연결 레코드를 삭제합니다. 현재 별도의 휴면 계정 자동 삭제는 없습니다.</li>
+            <li><strong>PDF:</strong> 자료 화면에서 삭제하거나 계정을 삭제할 때 원본과 자료 레코드를 삭제합니다. 자료를 바탕으로 이미 작성한 별도 퀘스트·집중 기록까지 모두 지우려면 해당 기록도 삭제하거나 계정 삭제를 이용하세요.</li>
+            <li><strong>캠프:</strong> 채팅 본문을 별도 대화 이력 테이블에 보관하지 않습니다. 다른 참가자의 열린 화면에 이미 전달된 메시지는 남을 수 있습니다. 참가·완료·연락 관계·초대·신고 기록은 별개로 보관하며 캠프 또는 연결 계정 삭제에 따라 정리됩니다. 초대의 유효기간 만료는 레코드 자체의 자동 삭제를 뜻하지 않습니다.</li>
+            <li><strong>알림:</strong> 서비스에서 구독 해제 또는 계정 삭제 시 제거하며, 발송 과정에서 만료된 구독도 정리합니다. 브라우저 권한만 끄면 발송 거부를 확인하기 전까지 서버 구독 정보가 남을 수 있습니다.</li>
+            <li><strong>이용 이벤트·관심도:</strong> 현재 계정에 연결해 보관하며 계정 삭제 시 함께 삭제합니다. 자동 만료 기간은 아직 설정하지 않았습니다.</li>
+            <li><strong>문의 메일:</strong> 요청 처리와 필요한 후속 대응이 끝나면 운영자가 불필요한 내역을 정리합니다. 현재 메일함의 자동 만료 정책은 없으며 개별 삭제 요청을 받을 수 있습니다.</li>
+          </ul>
+          <h3>백업과 기술 로그는 별도로 확인해야 합니다</h3>
+          <p>장애 복구를 위해 앱 데이터의 로컬 백업을 만들며 운영자 PC의 사용자 전용 폴더에 보관합니다. 현재 백업의 자동 만료·자동 삭제는 설정하지 않았습니다. 따라서 계정 삭제가 과거 백업 사본까지 즉시 지우는 것은 아닙니다. 백업 사본의 삭제·처리정지는 위 문의 이메일로 요청할 수 있으며 운영자가 별도로 처리합니다. 이 백업은 PDF 원본·인증 비밀번호를 내보내는 방식이 아닙니다.</p>
+          <p>Cloudflare·Supabase의 기술 로그와 자체 복구 사본은 제공자의 해당 서비스 보관·삭제 주기에 따르며 앱에서 개별 항목을 즉시 지우지 못할 수 있습니다. 법령상 보존 의무나 진행 중인 권리 분쟁 때문에 별도 보관이 필요한 경우에는 해당 근거와 기간을 개별 안내합니다. 현재 결제 서비스가 없으므로 거래 기록의 의무 보관을 모든 학습 기록에 일괄 적용하지 않습니다.</p>
+        </section>
+
+        <section id="sharing">
+          <h2>캠프에서 공유되는 정보</h2>
+          <p>같은 비공개 캠프의 참가자에게 닉네임, 선택한 동료, 참가·준비·집중 상태와 타이머, 직접 보낸 채팅이 표시됩니다. 함께한 기록을 통해 닉네임과 동료, 함께한 횟수 등이 다시 모이기 목록에 표시될 수 있습니다. 이메일·PDF·개인 목표는 캠프 화면에 공유하지 않습니다.</p>
+          <p>캠프 참여와 메시지 전송은 이용자가 선택합니다. 코드와 채팅에 개인정보를 남기지 마세요. 신고 정보는 신고 처리 담당자가 확인하며 일반 참가자에게 공개하지 않습니다. 개인정보를 판매하거나 광고주에게 제공하는 기능은 운영하지 않습니다. 법령에 따른 요청이나 별도 동의가 필요한 제공은 해당 절차에 따라 처리합니다.</p>
+        </section>
+
+        <section id="providers">
+          <h2>외부 서비스와 처리 위치</h2>
+          <p>다음 서비스를 이용해 웹사이트, 계정, 저장소와 알림을 제공합니다. 서비스 제공에 필요한 처리와 이용자가 캠프에서 직접 공유하는 정보는 구분됩니다.</p>
+          <h3>Supabase Inc.</h3>
+          <p>계정 인증·이메일 인증 발송, 데이터베이스, 비공개 PDF 저장소, 실시간 캠프 통신을 처리합니다. 앱이 전달한 계정·학습·캠프·알림 데이터가 해당 기능에 사용됩니다. 현재 운영 프로젝트의 주 데이터베이스·Auth·Storage 리전은 대한민국 서울(ap-northeast-2)입니다. 서울 리전이라는 이유로 지원·하위 처리업체·기술 로그를 포함한 모든 처리가 국내에만 한정된다고 보장하지는 않습니다.</p>
+          <p>보관은 위 계정·자료 보관 기준과 제공자의 기술 로그·복구 정책에 따릅니다. 제공자의 개인정보 문의는 <a href="mailto:privacy@supabase.com">privacy@supabase.com</a>이며, 자세한 내용은 <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase 개인정보 안내</a>와 <a href="https://supabase.com/legal/subprocessors" target="_blank" rel="noopener noreferrer">하위 처리업체 목록</a>에서 확인할 수 있습니다.</p>
+          <h3>Cloudflare, Inc.</h3>
+          <p>웹 호스팅·정적 파일 전달·API 실행·접속 보호·오류 로그를 처리합니다. 접속 IP·기기/브라우저·요청 URL·시각·상태, API 이용에 필요한 인증 토큰·구독 정보·삭제 요청 등이 처리될 수 있습니다. 서비스 접속·API 요청 시 암호화된 네트워크로 전달되며 대한민국·미국 등을 포함한 글로벌 네트워크에서 처리될 수 있습니다. 특정 국가에만 처리를 고정하는 설정은 현재 사용하지 않습니다.</p>
+          <p>Cloudflare의 개인정보 문의는 <a href="mailto:privacyquestions@cloudflare.com">privacyquestions@cloudflare.com</a>입니다. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare 개인정보 안내</a>, <a href="https://www.cloudflare.com/network/" target="_blank" rel="noopener noreferrer">네트워크 운영 국가</a>, <a href="https://developers.cloudflare.com/workers/observability/logs/workers-logs/" target="_blank" rel="noopener noreferrer">Workers 로그 보관 안내</a>에서 처리 위치와 기술 로그 보관 정책을 확인할 수 있습니다.</p>
+          <h3>브라우저 알림 제공자·문의 메일</h3>
+          <p>Push를 켜면 사용 중인 브라우저·OS의 Push 서비스가 구독 주소와 알림 내용을 전달합니다. 실제 제공자는 기기·브라우저에 따라 달라지며 국외에서 처리될 수 있습니다. 학습 목표·PDF 본문은 알림 내용에 넣지 않습니다. 이메일 문의는 이용자의 메일 서비스와 운영자의 네이버 메일을 통해 전달·보관됩니다.</p>
+          <p>호스팅·인증에 필요한 통신을 거부하려면 서비스 이용을 중단하거나 계정 삭제를 요청할 수 있습니다. PDF·캠프·알림은 사용하지 않는 방식으로 관련 처리를 피할 수 있습니다. 처리 위치·위탁 범위에 대한 자세한 확인 또는 거부·중단 요청은 운영자에게 문의해 주세요. 외부 AI 제공자에게 PDF를 전송하는 기능을 추가할 경우에는 적용 전에 별도로 안내하겠습니다.</p>
+        </section>
+
+        <section id="browser">
+          <h2>브라우저에 남는 정보</h2>
+          <p>localStorage에 타이머 설정·진행 중 세션·집중 기록·복구 정보·로그인 세션과 일부 이용 상태를 저장합니다. sessionStorage에는 캠프 재접속 정보와 같은 탭의 중복 이벤트 방지 상태 등을 저장합니다. 서비스 워커 캐시는 로고·캐릭터·공개 정적 파일과 오프라인 복구 화면을 보관하며, 인증 API 응답과 비공개 학습 자료를 캐시에 넣지 않도록 구성합니다.</p>
+          <p>브라우저의 사이트 데이터 삭제로 이 기기의 저장 정보를 지울 수 있습니다. 그러면 게스트 기록과 로그인 상태·오프라인 파일도 사라질 수 있고, 계정에 저장된 서버 데이터는 별도로 남습니다. 반대로 계정 삭제가 다른 기기의 브라우저 저장소까지 원격으로 지우지는 않습니다. 공용 기기에서는 로그아웃하고 필요한 경우 사이트 데이터도 삭제해 주세요.</p>
+          <p>현재 광고용 쿠키, 광고 추적 도구, 외부 행동 분석 SDK는 사용하지 않습니다. 기기의 사이트 저장 기능을 막으면 기록 복구·로그인이 제한될 수 있습니다.</p>
+        </section>
+
+        <section id="rights">
+          <h2>내 정보 관리하기</h2>
+          <ul>
+            <li><strong>열람·수정:</strong> 서비스의 기록·과목·퀘스트·자료 화면에서 확인·수정하거나 운영자에게 요청할 수 있습니다. 별도 내보내기·정정이 필요한 경우 이메일로 요청해 주세요.</li>
+            <li><strong>클라우드 기록 삭제:</strong> 계정 메뉴의 이 기능은 타이머 동기화 레코드를 삭제하고 자동 재저장을 멈춥니다. 계정·PDF·퀘스트 전체 삭제와 다르며 이 기기의 기록은 남을 수 있습니다.</li>
+            <li><strong>탈퇴:</strong> 계정 메뉴의 ‘계정과 모든 자료 삭제’를 선택하고 확인 문구를 입력하세요. 운영 중인 계정·연결 데이터와 해당 계정의 PDF를 삭제합니다. 과거 백업과 다른 기기의 로컬 사본에는 위 보관·브라우저 항목의 예외가 적용됩니다.</li>
+            <li><strong>처리정지·선택 철회:</strong> PDF 삭제, 캠프 퇴장, 알림 해제, 계정 삭제 또는 이메일 문의로 요청할 수 있습니다. 필요한 계정 처리를 중단하면 계정 저장·동기화 서비스가 제한될 수 있습니다.</li>
+          </ul>
+          <p>본인 또는 적법한 대리인의 요청은 필요한 최소한의 본인 확인 후 처리합니다. 비밀번호나 인증 코드를 요구하지 않습니다. 요청에 응하기 어렵거나 별도 보존 근거가 있으면 이유와 처리 범위를 안내합니다. 개인정보 관련 상담·피해 구제는 <a href="https://privacy.kisa.or.kr/" target="_blank" rel="noopener noreferrer">개인정보침해 신고센터</a> 또는 <a href="https://www.kopico.go.kr/" target="_blank" rel="noopener noreferrer">개인정보 분쟁조정위원회</a>를 이용할 수 있습니다.</p>
+        </section>
+
+        <section id="safety">
+          <h2>보호 조치와 이용 연령</h2>
+          <p>암호화된 통신, 계정별 데이터 접근 정책, 비공개 PDF 저장소, 인증 확인과 최소 범위의 서버 권한을 사용합니다. 관리자 비밀키는 서버에만 두며 공개 코드·브라우저에 넣지 않도록 검사합니다. 운영자가 장애·문의·신고를 처리할 때 필요한 범위에서 데이터에 접근할 수 있으므로 ‘운영자도 절대 볼 수 없는 저장소’라고 보장하지는 않습니다.</p>
+          <p>회원가입은 만 14세 이상만 가능합니다. 가입 때 연령을 스스로 확인하며 별도의 신원·생년월일 인증은 하지 않습니다. 현재 만 14세 미만 아동의 법정대리인 동의 절차는 제공하지 않습니다. 만 14세 미만의 가입 사실을 알게 되면 운영자에게 알려주세요. 확인 후 계정 이용 중단·삭제 등 필요한 조치를 진행합니다.</p>
+        </section>
+
+        <section id="changes">
+          <h2>변경 안내</h2>
+          <p>이 방침은 2026년 11월 25일부터 적용합니다. 처리 항목·목적·보관·공유 범위가 바뀌면 이 페이지에 변경 내용과 시행일을 알리고, 별도 안내나 동의가 필요한 변경은 적용 전에 해당 절차를 진행합니다.</p>
+          <p>최초 공개 버전: {PRIVACY_NOTICE_VERSION}. 변경 이력이 생기면 이전 버전도 확인할 수 있도록 안내하겠습니다.</p>
+        </section>
+        <footer className="privacy-footer">
+          <Link href="/" prefetch={false}>타이머로 돌아가기</Link>
+          <a href={`mailto:${PRIVACY_CONTACT.email}?subject=Focus%20Quest%20%EA%B0%9C%EC%9D%B8%EC%A0%95%EB%B3%B4%20%EB%AC%B8%EC%9D%98`}>개인정보 문의</a>
+        </footer>
+      </main>
+    </div>
+  );
+}

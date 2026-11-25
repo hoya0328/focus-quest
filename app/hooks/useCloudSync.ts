@@ -1,6 +1,7 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
+import { signupPrivacyMetadata, type SignupPrivacyConfirmation } from "@/lib/privacy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createApiCloudBackend,
@@ -453,13 +454,17 @@ export function useCloudSync({
   );
 
   const signUp = useCallback(
-    async (email: string, password: string): Promise<AuthActionResult> => {
+    async (email: string, password: string, confirmation: SignupPrivacyConfirmation): Promise<AuthActionResult> => {
+      const privacyMetadata = signupPrivacyMetadata(confirmation);
+      if (!privacyMetadata) {
+        return { message: "만 14세 이상 여부와 개인정보 처리방침을 확인해 주세요.", ok: false };
+      }
       if (!supabase) {
         return { message: "공개 계정 연결이 아직 설정되지 않았습니다.", ok: false };
       }
       const { data: authData, error } = await supabase.auth.signUp({
         email: email.trim(),
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: window.location.origin, data: privacyMetadata },
         password,
       });
       if (error) {

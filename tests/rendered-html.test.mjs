@@ -85,6 +85,7 @@ test("server-renders the adventure focus app", async (context) => {
   assert.match(normalizedHtml, /이번 주 원정 지도/);
   assert.match(normalizedHtml, /최근에 걸은 길/);
   assert.match(normalizedHtml, /companion-evolution-hike/);
+  assert.match(normalizedHtml, /href="\/privacy"/);
   assert.doesNotMatch(normalizedHtml, /codex-preview|react-loading-skeleton/);
 
   const anonymousCloud = await fetch(new URL("api/cloud-state", worker.url));
@@ -96,6 +97,15 @@ test("server-renders the adventure focus app", async (context) => {
   });
   assert.equal(forgedCloud.status, 404);
   assert.equal(forgedCloud.headers.get("cache-control"), "no-store");
+
+  const privacy = await fetch(new URL("privacy", worker.url));
+  assert.equal(privacy.status, 200);
+  const notice = (await privacy.text()).replaceAll("<!-- -->", "");
+  assert.match(notice, /<title>개인정보 처리방침 \| Focus Quest<\/title>/);
+  assert.match(notice, /조병호/);
+  assert.match(notice, /만 14세/);
+  assert.match(notice, /백업의 자동 만료/);
+  assert.match(notice, /rel="canonical" href="https:\/\/focus-quest\.hoya0328\.workers\.dev\/privacy"/);
 });
 
 test("removes starter preview code and dependencies", async () => {
