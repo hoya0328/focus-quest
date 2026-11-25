@@ -39,13 +39,17 @@ export function buildOperationsReport(
     [...userSets.entries()].map(([name, set]) => [name, set.size]),
   );
   const opens = users.app_opened ?? 0;
-  const starts = users.focus_started ?? 0;
-  const completed = users.focus_completed ?? 0;
+  const startedUsers = userSets.get("focus_started") ?? new Set<string>();
+  const completedUsers = userSets.get("focus_completed") ?? new Set<string>();
+  const openedUsers = userSets.get("app_opened") ?? new Set<string>();
+  const starts = startedUsers.size;
+  const startedAfterOpening = [...startedUsers].filter((id) => openedUsers.has(id)).length;
+  const completed = [...completedUsers].filter((id) => startedUsers.has(id)).length;
   const errors = counts.client_error ?? 0;
   const clientErrorRate = events.length > 0
     ? Math.round((errors / events.length) * 10_000) / 100
     : 0;
-  const startRate = rate(starts, opens);
+  const startRate = rate(startedAfterOpening, opens);
   const completionRate = rate(completed, starts);
   const alerts: string[] = [];
   if (starts >= 5 && completionRate !== null && completionRate < 65) {
@@ -83,10 +87,12 @@ export function validateBackupManifest(value: unknown): value is BackupManifest 
     && typeof manifest.projectRef === "string"
     && /^[a-z0-9]{20}$/.test(manifest.projectRef)
     && Array.isArray(manifest.files)
+    && manifest.files.length > 0
+    && new Set(manifest.files.map((file) => file?.path)).size === manifest.files.length
     && manifest.files.every((file) =>
       Boolean(file)
       && typeof file.path === "string"
-      && /^[a-z0-9/_-]+\.json$/i.test(file.path)
+      && /^tables\/[a-z][a-z0-9_]*\.json$/.test(file.path)
       && typeof file.sha256 === "string"
       && /^[a-f0-9]{64}$/.test(file.sha256)
       && Number.isInteger(file.records)

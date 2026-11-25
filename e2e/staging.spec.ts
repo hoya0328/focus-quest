@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import path from "node:path";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
@@ -324,6 +327,182 @@ test.describe("isolated Supabase staging", () => {
     await expect(
       page.getByText("기록했어요. 다음 문제를 고르는 데 반영할게요."),
     ).toBeVisible();
+  });
+
+  test("camp history, invitations and moderation enforce member and leader boundaries", async () => {
+    const clientA = await signInClient(userA);
+    const clientB = await signInClient(userB);
+    const outsider = await createTestUser("outsider");
+    const clientC = await signInClient(outsider);
+    const created = await clientA.rpc("create_focus_quest_camp", {
+      requested_code: "CAMPTEST", requested_nickname: "캠프A",
+      requested_adventure_id: "hike", requested_focus_minutes: 25,
+    });
+    expect(created.error).toBeNull();
+    const room = created.data[0];
+    const hidden = await clientB.from("focus_quest_camps").select("id").eq("id", room.camp_id);
+    expect(hidden.error).toBeNull();
+    expect(hidden.data).toEqual([]);
+    const joined = await clientB.rpc("join_focus_quest_camp", {
+      requested_code: room.code, requested_nickname: "캠프B",
+      requested_adventure_id: "swim", requested_focus_minutes: 25,
+    });
+    expect(joined.error).toBeNull();
+    const members = await clientB.from("focus_quest_camp_members").select("user_id").eq("camp_id", room.camp_id);
+    expect(members.error).toBeNull();
+    expect(members.data).toHaveLength(2);
+    const forbiddenCompletion = await clientB.rpc("record_focus_quest_camp_completion", {
+      requested_camp_id: room.camp_id, requested_duration_minutes: 25,
+    });
+    expect(forbiddenCompletion.error?.message).toContain("leader_required");
+    const completed = await clientA.rpc("record_focus_quest_camp_completion", {
+      requested_camp_id: room.camp_id, requested_duration_minutes: 25,
+    });
+    expect(completed.error).toBeNull();
+    const ownHistory = await clientA.from("focus_quest_camp_history").select("user_id").eq("camp_id", room.camp_id);
+    expect(ownHistory.error).toBeNull();
+    expect(ownHistory.data).toEqual([{ user_id: userA.id }]);
+    const otherHistory = await clientC.from("focus_quest_camp_history").select("user_id").eq("camp_id", room.camp_id);
+    expect(otherHistory.error).toBeNull();
+    expect(otherHistory.data).toEqual([]);
+    const contacts = await clientA.from("focus_quest_camp_contacts").select("contact_user_id").eq("user_id", userA.id);
+    expect(contacts.data).toEqual([{ contact_user_id: userB.id }]);
+    const invite = await clientA.rpc("invite_focus_quest_camp_contact", {
+      requested_camp_id: room.camp_id, requested_contact_user_id: userB.id,
+    });
+    expect(invite.error).toBeNull();
+    const invitations = await clientB.from("focus_quest_camp_invitations").select("invitee_user_id").eq("camp_id", room.camp_id);
+    expect(invitations.data).toEqual([{ invitee_user_id: userB.id }]);
+    const unrelatedInvites = await clientC.from("focus_quest_camp_invitations").select("camp_id");
+    expect(unrelatedInvites.data).toEqual([]);
+    const report = await clientB.rpc("report_focus_quest_camp_member", {
+      requested_camp_id: room.camp_id, requested_user_id: userA.id, requested_reason: "spam",
+    });
+    expect(report.error).toBeNull();
+    const unrelatedReport = await clientC.rpc("report_focus_quest_camp_member", {
+      requested_camp_id: room.camp_id, requested_user_id: userA.id, requested_reason: "spam",
+    });
+    expect(unrelatedReport.error?.message).toContain("shared_camp_required");
+    const forbiddenKick = await clientB.rpc("remove_focus_quest_camp_member", {
+      requested_camp_id: room.camp_id, requested_user_id: userA.id, should_block: true,
+    });
+    expect(forbiddenKick.error?.message).toContain("leader_required");
+    const blocked = await clientA.rpc("remove_focus_quest_camp_member", {
+      requested_camp_id: room.camp_id, requested_user_id: userB.id, should_block: true,
+    });
+    expect(blocked.error).toBeNull();
+    const rejoin = await clientB.rpc("join_focus_quest_camp", {
+      requested_code: room.code, requested_nickname: "캠프B",
+      requested_adventure_id: "swim", requested_focus_minutes: 25,
+    });
+    expect(rejoin.error?.message).toContain("camp_access_blocked");
+    const afterRemoval = await clientB.from("focus_quest_camps").select("id").eq("id", room.camp_id);
+    expect(afterRemoval.data).toEqual([]);
+    await Promise.all([clientA.auth.signOut(), clientB.auth.signOut(), clientC.auth.signOut()]);
+  });
+
+  test("two browsers share camp presence, chat, timer and reconnect", async ({ browser }) => {
+    test.setTimeout(120_000);
+    const firstContext = await browser.newContext();
+    const secondContext = await browser.newContext();
+    try {
+      const firstPage = await firstContext.newPage();
+      const secondPage = await secondContext.newPage();
+      await signInPage(firstPage, userA);
+      await signInPage(secondPage, userB);
+      for (const page of [firstPage, secondPage]) {
+        await page.getByRole("button", { name: "캠프 로비 열기" }).click();
+      }
+      await firstPage.getByLabel("캠프에서 사용할 이름").fill("브라우저A");
+      await firstPage.getByRole("button", { name: "새 캠프 만들기" }).click();
+      await expect(firstPage.locator(".camp-room-code strong")).toBeVisible({ timeout: 20_000 });
+      const code = await firstPage.locator(".camp-room-code strong").innerText();
+      await secondPage.getByLabel("캠프에서 사용할 이름").fill("브라우저B");
+      await secondPage.getByLabel("받은 코드").fill(code);
+      await secondPage.getByRole("button", { name: "들어가기", exact: true }).click();
+      await expect(firstPage.locator(".camp-member")).toHaveCount(2, { timeout: 20_000 });
+      await expect(secondPage.locator(".camp-member")).toHaveCount(2);
+      await firstPage.getByLabel("캠프 메시지").fill("함께 집중해요");
+      await firstPage.getByRole("button", { name: "보내기", exact: true }).click();
+      await expect(secondPage.locator(".camp-chat-log")).toContainText("함께 집중해요");
+      await secondPage.reload();
+      await secondPage.getByRole("button", { name: "캠프 로비 열기" }).click();
+      await expect(secondPage.locator(".camp-member")).toHaveCount(2, { timeout: 20_000 });
+      await firstPage.getByRole("button", { name: /함께 집중 시작/ }).click();
+      await expect(firstPage.locator(".timer-card")).toBeVisible();
+      await expect(secondPage.locator(".timer-card")).toBeVisible({ timeout: 10_000 });
+      const firstSession = await firstPage.evaluate(() => JSON.parse(localStorage.getItem("haru-focus-active-session")!));
+      const secondSession = await secondPage.evaluate(() => JSON.parse(localStorage.getItem("haru-focus-active-session")!));
+      expect(Math.abs(firstSession.endAt - secondSession.endAt)).toBeLessThan(2_000);
+    } finally {
+      await firstContext.close();
+      await secondContext.close();
+    }
+  });
+
+  test("server push API saves and removes only the authenticated owner's subscription", async ({ request }) => {
+    const clientA = await signInClient(userA);
+    const clientB = await signInClient(userB);
+    const tokenA = (await clientA.auth.getSession()).data.session!.access_token;
+    const tokenB = (await clientB.auth.getSession()).data.session!.access_token;
+    const endpoint = `https://example.invalid/isolated-push/${randomUUID()}`;
+    const saved = await request.post("/api/push-subscriptions", {
+      headers: { authorization: `Bearer ${tokenA}` },
+      data: {
+        subscription: { endpoint, keys: { auth: "isolated-auth", p256dh: "isolated-key" } },
+        reminderTime: "19:00", timezone: "Asia/Seoul",
+        nextDueAt: new Date(Date.now() + 86400_000).toISOString(),
+      },
+    });
+    expect(saved.status()).toBe(200);
+    expect(saved.headers()["x-request-id"]).toBeTruthy();
+    const owner = await clientA.from("focus_quest_push_subscriptions").select("user_id").eq("endpoint", endpoint);
+    expect(owner.error).toBeNull();
+    expect(owner.data).toEqual([{ user_id: userA.id }]);
+    const other = await clientB.from("focus_quest_push_subscriptions").select("user_id").eq("endpoint", endpoint);
+    expect(other.data).toEqual([]);
+    await request.delete("/api/push-subscriptions", {
+      headers: { authorization: `Bearer ${tokenB}` }, data: { endpoint },
+    });
+    const stillThere = await clientA.from("focus_quest_push_subscriptions").select("id").eq("endpoint", endpoint);
+    expect(stillThere.data).toHaveLength(1);
+    const deleted = await request.delete("/api/push-subscriptions", {
+      headers: { authorization: `Bearer ${tokenA}` }, data: { endpoint },
+    });
+    expect(deleted.status()).toBe(200);
+    const absent = await admin.from("focus_quest_push_subscriptions").select("id").eq("endpoint", endpoint);
+    expect(absent.data).toEqual([]);
+    await Promise.all([clientA.auth.signOut(), clientB.auth.signOut()]);
+  });
+
+  test("an isolated synthetic record can be exported, verified and restored", async () => {
+    test.setTimeout(120_000);
+    // The staging guard has already rejected the production project before this file runs.
+    const created = await admin.from("study_subjects").insert({ name: "복구 훈련 합성 과목", user_id: userA.id }).select("*").single();
+    expect(created.error).toBeNull();
+    const backupRoot = path.resolve("backups");
+    await mkdir(backupRoot, { recursive: true });
+    const directory = await mkdtemp(path.join(backupRoot, "isolated-restore-"));
+    try {
+      const env = { ...process.env, SUPABASE_URL: stagingUrl, SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey };
+      execFileSync(process.execPath, ["scripts/backup-production.mjs", `--out=${directory}`], { env, timeout: 60_000, stdio: "pipe" });
+      execFileSync(process.execPath, ["scripts/verify-backup.mjs", directory], { timeout: 15_000, stdio: "pipe" });
+      const subjects = JSON.parse(await readFile(path.join(directory, "tables/study_subjects.json"), "utf8"));
+      const exported = subjects.find((row: { id: string }) => row.id === created.data.id);
+      expect(exported).toEqual(created.data);
+      const removed = await admin.from("study_subjects").delete().eq("id", created.data.id);
+      expect(removed.error).toBeNull();
+      const restored = await admin.from("study_subjects").insert(exported);
+      expect(restored.error).toBeNull();
+      const owner = await signInClient(userA);
+      const visible = await owner.from("study_subjects").select("*").eq("id", exported.id).single();
+      expect(visible.error).toBeNull();
+      expect(visible.data).toEqual(exported);
+      await owner.auth.signOut();
+    } finally {
+      // Only the directory created by mkdtemp above is removed, never the backup root.
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 
   test("account deletion removes the generated staging user", async ({

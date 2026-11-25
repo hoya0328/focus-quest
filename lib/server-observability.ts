@@ -1,6 +1,6 @@
 export type ApiRequestContext = {
   requestId: string;
-  route: "account" | "cloud-state";
+  route: "account" | "cloud-state" | "push-subscriptions";
 };
 
 const SAFE_REQUEST_ID = /^[a-zA-Z0-9._:-]{6,96}$/;

@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { createClient } from "@supabase/supabase-js";
 import type { PushSubscriptionBody } from "@/lib/push-reminders";
+import { addOperationalHeaders, createApiRequestContext, logApiFailure, type ApiRequestContext } from "@/lib/server-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -44,25 +45,29 @@ function validSubscription(value: unknown): value is PushSubscriptionBody {
   );
 }
 
-function response(body: unknown, status = 200) {
+function response(body: unknown, status: number, context: ApiRequestContext) {
+  const headers = new Headers();
+  addOperationalHeaders(headers, context);
   return Response.json(body, {
     status,
-    headers: { "cache-control": "no-store" },
+    headers,
   });
 }
 
 export async function POST(request: Request) {
-  if (!sameOrigin(request)) return response({ error: "허용되지 않은 요청입니다." }, 403);
+  const context = createApiRequestContext(request, "push-subscriptions");
+  const reply = (body: unknown, status = 200) => response(body, status, context);
+  if (!sameOrigin(request)) return reply({ error: "허용되지 않은 요청입니다." }, 403);
   const configuration = serverConfiguration();
-  if (!configuration) return response({ error: "알림 서버가 준비되지 않았습니다." }, 503);
+  if (!configuration) return reply({ error: "알림 서버가 준비되지 않았습니다." }, 503);
   const token = tokenFrom(request);
-  if (!token) return response({ error: "로그인이 필요합니다." }, 401);
+  if (!token) return reply({ error: "로그인이 필요합니다." }, 401);
 
   let body: RequestBody;
   try {
     body = (await request.json()) as RequestBody;
   } catch {
-    return response({ error: "알림 설정이 올바르지 않습니다." }, 400);
+    return reply({ error: "알림 설정이 올바르지 않습니다." }, 400);
   }
   if (
     !validSubscription(body.subscription) ||
@@ -72,14 +77,14 @@ export async function POST(request: Request) {
     body.timezone.length > 80 ||
     typeof body.nextDueAt !== "string" ||
     Number.isNaN(Date.parse(body.nextDueAt))
-  ) return response({ error: "알림 설정이 올바르지 않습니다." }, 400);
+  ) return reply({ error: "알림 설정이 올바르지 않습니다." }, 400);
 
   const admin = createClient(configuration.url, configuration.key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   const userResult = await admin.auth.getUser(token);
   const user = userResult.data.user;
-  if (userResult.error || !user) return response({ error: "로그인을 확인하지 못했습니다." }, 401);
+  if (userResult.error || !user) return reply({ error: "로그인을 확인하지 못했습니다." }, 401);
 
   const subscription = body.subscription;
   const saved = await admin.from("focus_quest_push_subscriptions").upsert({
@@ -94,31 +99,39 @@ export async function POST(request: Request) {
     updated_at: new Date().toISOString(),
     user_id: user.id,
   }, { onConflict: "endpoint" });
-  if (saved.error) return response({ error: "알림 시간을 저장하지 못했습니다." }, 503);
-  return response({ saved: true });
+  if (saved.error) {
+    logApiFailure(context, "push_subscription_save_failed", 503);
+    return reply({ error: "알림 시간을 저장하지 못했습니다." }, 503);
+  }
+  return reply({ saved: true });
 }
 
 export async function DELETE(request: Request) {
-  if (!sameOrigin(request)) return response({ error: "허용되지 않은 요청입니다." }, 403);
+  const context = createApiRequestContext(request, "push-subscriptions");
+  const reply = (body: unknown, status = 200) => response(body, status, context);
+  if (!sameOrigin(request)) return reply({ error: "허용되지 않은 요청입니다." }, 403);
   const configuration = serverConfiguration();
-  if (!configuration) return response({ error: "알림 서버가 준비되지 않았습니다." }, 503);
+  if (!configuration) return reply({ error: "알림 서버가 준비되지 않았습니다." }, 503);
   const token = tokenFrom(request);
-  if (!token) return response({ error: "로그인이 필요합니다." }, 401);
+  if (!token) return reply({ error: "로그인이 필요합니다." }, 401);
   const body = (await request.json().catch(() => null)) as { endpoint?: unknown } | null;
   if (typeof body?.endpoint !== "string" || body.endpoint.length > 2048) {
-    return response({ error: "알림 구독이 올바르지 않습니다." }, 400);
+    return reply({ error: "알림 구독이 올바르지 않습니다." }, 400);
   }
   const admin = createClient(configuration.url, configuration.key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   const userResult = await admin.auth.getUser(token);
   const user = userResult.data.user;
-  if (userResult.error || !user) return response({ error: "로그인을 확인하지 못했습니다." }, 401);
+  if (userResult.error || !user) return reply({ error: "로그인을 확인하지 못했습니다." }, 401);
   const deleted = await admin
     .from("focus_quest_push_subscriptions")
     .delete()
     .eq("user_id", user.id)
     .eq("endpoint", body.endpoint);
-  if (deleted.error) return response({ error: "알림을 끄지 못했습니다." }, 503);
-  return response({ deleted: true });
+  if (deleted.error) {
+    logApiFailure(context, "push_subscription_delete_failed", 503);
+    return reply({ error: "알림을 끄지 못했습니다." }, 503);
+  }
+  return reply({ deleted: true });
 }

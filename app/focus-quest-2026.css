@@ -18,27 +18,7 @@
   accent-color: var(--color-primary);
 }
 
-/* Completion scene: keep the reward inside the adventure world instead of an
- * abstract badge-and-halo composition. */
-.focus-quest-app .complete-screen {
-  align-items: start;
-  padding: clamp(18px, 4vw, 48px) var(--gutter);
-  background:
-    linear-gradient(180deg, rgba(8, 10, 20, .7), rgba(8, 10, 20, .94)),
-    var(--page-bg) center / cover fixed no-repeat;
-}
-
-.focus-quest-app .complete-card,
-.focus-quest-app .complete-card:has(.camp-log) {
-  width: min(820px, 100%);
-  overflow: hidden;
-  padding: clamp(22px, 4vw, 40px);
-  border: 1px solid rgba(244, 235, 216, .2);
-  border-radius: 16px;
-  background: color-mix(in oklab, var(--color-surface-raised) 94%, transparent);
-  box-shadow: 0 28px 72px rgba(0, 0, 0, .42);
-}
-
+/* Completion surfaces are defined once in the final theme overrides below. */
 .focus-quest-app .complete-hero {
   position: relative;
   min-height: clamp(290px, 42vw, 390px);

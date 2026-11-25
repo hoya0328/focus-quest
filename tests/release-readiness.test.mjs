@@ -77,6 +77,16 @@ test("server failures are structured and omit identity and payload fields", asyn
   assert.doesNotMatch(source, /email|userId|token|payload|requestBody/);
 });
 
+test("operations grants are server-only and do not broaden client roles or RLS", async () => {
+  const readGrant = await read("supabase/migrations/202611250006_operations_read_access.sql");
+  const writeGrant = await read("supabase/migrations/202611250007_operations_write_access.sql");
+  assert.match(readGrant, /grant select on table/);
+  assert.match(readGrant, /to service_role;/);
+  assert.doesNotMatch(readGrant, /to (anon|authenticated|public)|disable row level/i);
+  assert.match(writeGrant, /grant update \(status, reviewed_at\)/);
+  assert.doesNotMatch(writeGrant, /grant all|to (anon|authenticated|public)|disable row level/i);
+});
+
 test("isolated Supabase E2E never targets production or repository secrets", async () => {
   const [guard, workflow, config] = await Promise.all([
     read("scripts/verify-staging-env.mjs"),

@@ -2,10 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./adventure-motion-v2.css";
 import "./focus-quest-2026.css";
+import { PUBLIC_SERVICE_URL } from "@/lib/service-config";
 
 const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(PUBLIC_SERVICE_URL),
+  alternates: { canonical: "/" },
   title: "Focus Quest | 픽셀 모험 집중 타이머",
   description: "픽셀 모험 친구와 한 칸씩 완성하는 반응형 포모도로 집중 타이머",
   applicationName: "Focus Quest",

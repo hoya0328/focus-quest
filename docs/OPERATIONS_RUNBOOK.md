@@ -2,6 +2,24 @@
 
 마지막 업데이트: 2026-11-25
 
+## 대표 서비스와 배포 경계
+
+- 정식 웹·PWA: https://focus-quest.hoya0328.workers.dev
+- GitHub: https://github.com/hoya0328/focus-quest
+- Cloudflare Worker: `focus-quest`, 설정 파일: `wrangler.public.jsonc`
+- 기존 `.chatgpt.site`는 과거 주소다. 현재 Sites 연결 계정에 편집 권한이 없으므로 그 주소를 최신 버전으로 안내하지 않는다. 프로젝트 ID는 보존한다.
+- 이번 점검 시작 시 운영 버전: `b96e3618-2df5-4fab-aa20-419322cc68bb` (소스 `0ab7ace`). 새 배포에 문제가 있으면 이 버전을 우선 롤백 후보로 사용한다.
+
+Cloudflare에서는 다음 순서로 버전을 확인하고 **실제 장애와 명시적 롤백 승인 후에만** 활성화한다.
+
+```powershell
+npx wrangler deployments list --config wrangler.public.jsonc
+npx wrangler rollback b96e3618-2df5-4fab-aa20-419322cc68bb --config wrangler.public.jsonc
+npm run security:anonymous
+```
+
+롤백 확인을 이유로 정상 운영 버전을 실제로 되돌리지 않는다. 서버 전용 권한 복구 마이그레이션은 앱의 이전 버전과 호환되며 역방향 삭제를 하지 않는다.
+
 ## 운영 원칙
 
 - 운영 데이터에서 파괴적 QA를 하지 않는다.
@@ -44,7 +62,7 @@ order by 1 desc, 2;
 
 1. 현재 장애의 요청 ID와 발생 시각을 기록한다.
 2. 마지막 통과 커밋과 현재 배포 커밋을 비교한다.
-3. Cloudflare/Sites의 이전 성공 버전을 다시 활성화한다. 소스 이력은 강제로 되돌리지 않고 별도 revert 커밋을 만든다.
+3. 위 Cloudflare Worker의 이전 성공 버전을 다시 활성화한다. Sites 권한 복구를 롤백 전제조건으로 삼지 않는다. 소스 이력은 강제로 되돌리지 않고 별도 revert 커밋을 만든다.
 4. 데이터베이스 마이그레이션은 역방향 삭제를 실행하지 않는다. 호환 가능한 후속 마이그레이션으로 복구한다.
 5. 게스트 타이머, 로그인, 저장, 모바일 화면을 확인한 뒤 장애 종료를 선언한다.
 
@@ -66,8 +84,26 @@ npm run camp:moderate -- <report-id> reviewed
 - 백업은 개인 테이블의 JSON 스냅샷, 행 수와 SHA-256을 `backups/`에 저장하며 이 폴더는 Git에서 제외된다.
 - `backup:verify`는 체크섬과 행 수만 검사한다. 운영 복원은 파괴적 작업이므로 자동 실행하지 않는다.
 - 비공개 PDF 원본은 이 스크립트에 포함되지 않는다. Storage 내보내기는 별도의 보호된 저장소와 보존 정책을 정한 뒤 실행한다.
+- 내보내기는 JSON 평문이며 도구가 디스크 암호화를 보장하지 않는다. 2026-11-25 검증본은 `backups/2026-11-25-release-check`에 현재 Windows 사용자 전용 ACL로 보관했다.
+- REST 페이지 내보내기는 시점 일관성이 있는 전체 PostgreSQL 백업이 아니다. Auth 사용자, 스키마와 PDF 원본은 별도 복구 대상이다.
+- 모든 17개 앱 테이블과 체크섬·행 수가 일치해야 검증을 통과한다. 부분 실패를 성공으로 보고하지 않는다.
+- 사용자 승인으로 Codex 자동화 `focus-quest`가 매주 월요일 오전 9시(한국 시간)에 `npm run backup:weekly`를 실행한다. 이 PC와 Codex가 실행 중이고 Supabase CLI 인증이 유효해야 한다. 새 폴더를 사용자 전용 ACL로 제한한 뒤 내보내기·검증하며 기존 백업을 삭제하지 않는다.
+- 암호화된 외부 보관과 삭제 보존 정책은 별도 확정이 필요하다. 운영 복원은 금지하고 격리 CI 합성 레코드만 복구 훈련에 사용한다.
 - `ops:report`는 전환 수와 신고 상태만 집계하며 사용자 ID, 학습 내용, 채팅 본문을 출력하지 않는다.
 - 앱 열기 대비 집중 시작률 35% 미만, 집중 완주율 55% 미만, 7일 복귀율 15% 미만, 미처리 신고 5건 이상이면 운영 확인 신호로 표시한다.
+
+현재 계정으로 승인된 Supabase CLI가 있으면 키를 파일에 복사하지 않고 메모리에서만 연결해 실행할 수 있다.
+
+```powershell
+node --env-file=.env.local scripts/run-linked-operations.mjs inspect
+node --env-file=.env.local scripts/run-linked-operations.mjs report --days=30
+node --env-file=.env.local scripts/run-linked-operations.mjs backup --out=backups/NEW_UNIQUE_DIRECTORY
+npm run backup:verify -- backups/NEW_UNIQUE_DIRECTORY
+```
+
+- 집계는 로그인 사용자만 포함한다. 기간 내 고유 사용자 비율이지 전체 방문자 전환율이나 코호트 D7 유지율이 아니다.
+- `returned_after_7d`는 이 기기·계정에서 7일 이상 지난 복귀 신호다. 첫 방문 오집계 수정 전 이벤트는 유지율 근거로 쓰지 않는다.
+- 기준치는 아직 제품 가설이다. 표본이 충분하지 않으면 수치로 성과를 판정하지 않는다.
 
 ## 사용자 피드백
 

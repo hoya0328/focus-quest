@@ -7,6 +7,7 @@ import type {
   QuizFeedbackValue,
 } from "@/lib/quiz-feedback";
 import { getSupabaseBrowserClient } from "@/lib/supabase-client";
+import { isDormantReturn, telemetryStorageKeys } from "@/lib/telemetry-session";
 
 export type ProductEventName =
   | "app_opened"
@@ -36,10 +37,6 @@ type ProductEvent = {
   feedbackValue?: QuizFeedbackValue;
 };
 
-const LAST_OPENED_KEY = "focus-quest-telemetry-last-opened";
-const SESSION_REPORTED_KEY = "focus-quest-telemetry-session-reported";
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1_000;
-
 export function useProductTelemetry(enabled: boolean) {
   const client = getSupabaseBrowserClient();
   const reportedErrors = useRef(new Set<string>());
@@ -67,21 +64,35 @@ export function useProductTelemetry(enabled: boolean) {
   );
 
   useEffect(() => {
-    if (!enabled) return;
-    try {
-      if (window.sessionStorage.getItem(SESSION_REPORTED_KEY)) return;
-      window.sessionStorage.setItem(SESSION_REPORTED_KEY, "1");
-      const now = Date.now();
-      const lastOpened = Number(window.localStorage.getItem(LAST_OPENED_KEY));
-      window.localStorage.setItem(LAST_OPENED_KEY, String(now));
-      void track("app_opened");
-      if (Number.isFinite(lastOpened) && now - lastOpened >= SEVEN_DAYS_MS) {
-        void track("returned_after_7d");
+    if (!enabled || !client) return;
+    let cancelled = false;
+    const reportOpen = async () => {
+      let reservedKey: string | null = null;
+      try {
+        const user = (await client.auth.getUser()).data.user;
+        if (!user || cancelled) return;
+        const keys = telemetryStorageKeys(user.id);
+        if (window.sessionStorage.getItem(keys.reported)) return;
+        // Reserve before awaiting network so duplicate effects cannot double-report.
+        window.sessionStorage.setItem(keys.reported, "pending");
+        reservedKey = keys.reported;
+        const now = Date.now();
+        const previous = window.localStorage.getItem(keys.lastOpened);
+        if (!(await track("app_opened"))) {
+          window.sessionStorage.removeItem(keys.reported);
+          return;
+        }
+        window.sessionStorage.setItem(keys.reported, "1");
+        window.localStorage.setItem(keys.lastOpened, String(now));
+        if (isDormantReturn(previous, now)) await track("returned_after_7d");
+      } catch {
+        try { if (reservedKey) window.sessionStorage.removeItem(reservedKey); } catch { /* Storage is optional. */ }
+        // Strict privacy modes must not block the core timer.
       }
-    } catch {
-      // Storage can be unavailable in strict privacy modes. Core focus stays usable.
-    }
-  }, [enabled, track]);
+    };
+    void reportOpen();
+    return () => { cancelled = true; };
+  }, [client, enabled, track]);
 
   useEffect(() => {
     if (!enabled) return;
