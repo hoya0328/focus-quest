@@ -5,6 +5,7 @@ import path from "node:path";
 import process from "node:process";
 import { backupTables } from "./operations-data.mjs";
 import { loadBackupKey, protectDirectory, writeArchive, pruneArchives, removeArchive } from "./encrypted-backup.mjs";
+import { cleanupDeletedPdfs } from "../lib/cleanup-deleted-pdfs.ts";
 
 const root = path.resolve("backups");
 await protectDirectory(root);
@@ -18,6 +19,7 @@ const client = createClient(url, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
   global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(30_000) }) },
 });
+await cleanupDeletedPdfs(client);
 const snapshot = await client.rpc("export_focus_quest_backup");
 if (snapshot.error || snapshot.data?.version !== 2) throw new Error("Consistent backup snapshot unavailable; no old backup was removed.");
 const required = [...Object.keys(backupTables), "focus_quest_account_acknowledgements"].sort();

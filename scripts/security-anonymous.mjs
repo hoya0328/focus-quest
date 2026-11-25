@@ -89,6 +89,8 @@ for (const [name, body] of [
   ["export_focus_quest_backup", {}],
   ["run_focus_quest_retention", {}],
   ["focus_quest_operation_status", {}],
+  ["focus_quest_pending_pdf_cleanup", {}],
+  ["acknowledge_focus_quest_pdf_cleanup", { request_ids: [] }],
   ["acknowledge_focus_quest_backup_cleanup", { request_ids: [] }],
 ]) {
   const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`, {

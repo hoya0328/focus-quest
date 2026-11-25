@@ -38,6 +38,10 @@ jobs:
       - name: Run isolated account journeys
         run: npm run test:e2e:staging
 
+      - name: Diagnose isolated Auth without exposing records
+        if: failure()
+        run: node scripts/diagnose-isolated-auth.mjs
+
       - name: Stop isolated Supabase
         if: always()
         run: npx --yes supabase@3.3.0 stop --no-backup

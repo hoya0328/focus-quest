@@ -12,6 +12,7 @@ create table public.focus_quest_deletion_ledger (
   kind text not null check (kind in ('user', 'material')),
   target_id uuid not null,
   owner_id uuid not null,
+  storage_deleted_at timestamptz,
   created_at timestamptz not null default now(),
   processed_at timestamptz,
   unique(kind, target_id)
@@ -60,8 +61,8 @@ create function public.record_focus_quest_deletion() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
   if tg_table_schema = 'auth' and tg_table_name = 'users' then
-    insert into public.focus_quest_deletion_ledger(kind, target_id, owner_id)
-      values ('user', old.id, old.id) on conflict(kind, target_id) do nothing;
+    insert into public.focus_quest_deletion_ledger(kind, target_id, owner_id, storage_deleted_at)
+      values ('user', old.id, old.id, now()) on conflict(kind, target_id) do nothing;
   else
     insert into public.focus_quest_deletion_ledger(kind, target_id, owner_id)
       values ('material', old.id, old.user_id) on conflict(kind, target_id) do nothing;
@@ -116,6 +117,9 @@ language plpgsql security definer set search_path = '' as $$
 begin
   if auth.role() is distinct from 'service_role' then raise exception 'server_required' using errcode = '42501'; end if;
   if coalesce(cardinality(request_ids), 0) > 10000 then raise exception 'cleanup_batch_too_large'; end if;
+  if exists(select 1 from public.focus_quest_deletion_ledger where id = any(request_ids) and storage_deleted_at is null) then
+    raise exception 'pdf_cleanup_pending';
+  end if;
   update public.focus_quest_deletion_ledger set processed_at = now() where id = any(request_ids);
 end;
 $$;
@@ -163,3 +167,28 @@ end;
 $$;
 revoke all on function public.focus_quest_operation_status() from public, anon, authenticated;
 grant execute on function public.focus_quest_operation_status() to service_role;
+
+create function public.focus_quest_pending_pdf_cleanup() returns table(id uuid, storage_path text)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if auth.role() is distinct from 'service_role' then raise exception 'server_required' using errcode = '42501'; end if;
+  return query select ledger.id, ledger.owner_id::text || '/' || ledger.target_id::text || '/source.pdf'
+    from public.focus_quest_deletion_ledger ledger
+    where ledger.kind = 'material' and ledger.storage_deleted_at is null
+    order by ledger.created_at limit 100;
+end;
+$$;
+revoke all on function public.focus_quest_pending_pdf_cleanup() from public, anon, authenticated;
+grant execute on function public.focus_quest_pending_pdf_cleanup() to service_role;
+
+create function public.acknowledge_focus_quest_pdf_cleanup(request_ids uuid[]) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.role() is distinct from 'service_role' then raise exception 'server_required' using errcode = '42501'; end if;
+  if coalesce(cardinality(request_ids),0) > 100 then raise exception 'cleanup_batch_too_large'; end if;
+  update public.focus_quest_deletion_ledger set storage_deleted_at = now()
+    where kind = 'material' and id = any(request_ids);
+end;
+$$;
+revoke all on function public.acknowledge_focus_quest_pdf_cleanup(uuid[]) from public, anon, authenticated;
+grant execute on function public.acknowledge_focus_quest_pdf_cleanup(uuid[]) to service_role;

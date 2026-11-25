@@ -6,6 +6,7 @@ import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
 import { readArchive } from "../scripts/encrypted-backup.mjs";
+import { cleanupDeletedPdfs } from "../lib/cleanup-deleted-pdfs";
 
 type TestUser = {
   displayName: string;
@@ -43,7 +44,7 @@ async function createTestUser(label: string): Promise<TestUser> {
     user_metadata: { full_name: user.displayName },
     app_metadata: { focus_quest_internal_provision: true },
   });
-  if (error || !data.user) throw error ?? new Error("Test user was not created");
+  if (error || !data.user) throw new Error(`Synthetic Auth provisioning failed (status ${error?.status ?? "unknown"}, code ${error?.code ?? "unknown"}).`);
   const created = { ...user, id: data.user.id };
   users.push(created);
   return created;
@@ -113,6 +114,13 @@ let userB: TestUser;
 
 test.describe("isolated Supabase staging", () => {
   test.beforeAll(async () => {
+    let ready = false;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const response = await fetch(`${stagingUrl}/auth/v1/health`, { headers: { apikey: anonKey }, signal: AbortSignal.timeout(5_000) }).catch(() => null);
+      if (response?.ok) { ready = true; break; }
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+    }
+    if (!ready) throw new Error("Isolated Auth health check failed before fixtures.");
     userA = await createTestUser("a");
     userB = await createTestUser("b");
   });
@@ -186,6 +194,14 @@ test.describe("isolated Supabase staging", () => {
     });
     expect(Number.isFinite(Date.parse(saved.data.user!.user_metadata.privacy_notice_acknowledged_at))).toBe(true);
     expect(saved.data.user?.user_metadata).not.toHaveProperty("birth_date");
+    const own = await signInClient({ id: result.user.id, email, password, displayName: "Synthetic signup" });
+    const acknowledgement = await own.from("focus_quest_account_acknowledgements").select("privacy_version,terms_version").single();
+    expect(acknowledgement.error).toBeNull();
+    expect(acknowledgement.data).toEqual({ privacy_version: "2026-11-25.1", terms_version: "2026-11-25" });
+    expect((await own.from("focus_quest_account_acknowledgements").update({ terms_version: "forged" }).eq("user_id", result.user.id)).error?.code).toBe("42501");
+    const other = await signInClient(userB);
+    expect((await other.from("focus_quest_account_acknowledgements").select("user_id").eq("user_id", result.user.id)).data).toEqual([]);
+    await Promise.all([own.auth.signOut(), other.auth.signOut()]);
   });
 
   test("two accounts cannot read, write or download each other's records", async () => {
@@ -238,7 +254,7 @@ test.describe("isolated Supabase staging", () => {
     });
     expect(response.status).toBeGreaterThanOrEqual(400);
     const client = await signInClient(userB);
-    for (const name of ["run_focus_quest_retention", "export_focus_quest_backup", "acknowledge_focus_quest_backup_cleanup"]) {
+    for (const name of ["run_focus_quest_retention", "export_focus_quest_backup", "focus_quest_operation_status", "focus_quest_pending_pdf_cleanup", "acknowledge_focus_quest_pdf_cleanup", "acknowledge_focus_quest_backup_cleanup"]) {
       const result = await client.rpc(name, name.startsWith("acknowledge") ? { request_ids: [] } : {});
       expect(result.error?.code).toBe("42501");
     }
@@ -277,6 +293,24 @@ test.describe("isolated Supabase staging", () => {
     const rows = await admin.from("focus_quest_product_events").select("id").in("id", [old, recent]);
     expect(rows.error).toBeNull();
     expect(rows.data).toEqual([{ id: recent }]);
+  });
+
+  test("deleting a subject queues and removes its private PDF bytes on the server", async () => {
+    const user = await createTestUser("cascade");
+    const owner = await signInClient(user);
+    const subject = await owner.from("study_subjects").insert({ name: "삭제 정리 합성 과목", user_id: user.id }).select("id").single();
+    expect(subject.error).toBeNull();
+    const id = randomUUID();
+    const storagePath = `${user.id}/${id}/source.pdf`;
+    const bytes = createTextPdf();
+    uploadedObjects.push(storagePath);
+    expect((await owner.storage.from("study-materials").upload(storagePath, bytes, { contentType: "application/pdf" })).error).toBeNull();
+    expect((await owner.from("study_materials").insert({ id, user_id: user.id, subject_id: subject.data.id, file_name: "delete.pdf", storage_path: storagePath, file_size_bytes: bytes.length, page_count: 1 })).error).toBeNull();
+    expect((await owner.from("study_subjects").delete().eq("id", subject.data.id)).error).toBeNull();
+    expect((await owner.storage.from("study-materials").download(storagePath)).error).toBeNull();
+    await cleanupDeletedPdfs(admin);
+    expect((await owner.storage.from("study-materials").download(storagePath)).error).not.toBeNull();
+    await owner.auth.signOut();
   });
 
   test("encrypted account, study and PDF snapshot can restore synthetic identities and file bytes", async () => {

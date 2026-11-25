@@ -3,6 +3,7 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
+import { cleanupDeletedPdfs } from "../lib/cleanup-deleted-pdfs";
 
 interface Env {
   ASSETS: Fetcher;
@@ -165,11 +166,24 @@ const worker = {
     return withSecurityHeaders(await handler.fetch(request, env, ctx), url);
   },
   async scheduled(
-    _controller: unknown,
+    controller: { cron: string },
     env: Env,
     ctx: ExecutionContext,
   ) {
-    ctx.waitUntil(sendDueReminders(env));
+    if (controller.cron === "0 18 * * *") {
+      ctx.waitUntil((async () => {
+        if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) throw new Error("Retention credentials unavailable.");
+        const admin = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+          auth: { autoRefreshToken: false, persistSession: false },
+          global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(15_000) }) },
+        });
+        await cleanupDeletedPdfs(admin);
+        const result = await admin.rpc("run_focus_quest_retention");
+        if (result.error) throw new Error("Scheduled retention failed.");
+      })());
+    } else {
+      ctx.waitUntil(sendDueReminders(env));
+    }
   },
 };
 

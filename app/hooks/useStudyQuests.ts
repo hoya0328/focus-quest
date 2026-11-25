@@ -102,6 +102,20 @@ export function useStudyQuests(enabled: boolean) {
     async (id: string) => {
       if (!client) return false;
       setStatus("saving");
+      const materials = await client.from("study_materials").select("storage_path").eq("subject_id", id);
+      if (materials.error) {
+        setStatus("error");
+        setMessage("연결된 PDF를 확인하지 못했어요. 다시 시도해 주세요.");
+        return false;
+      }
+      if (materials.data.length) {
+        const removed = await client.storage.from("study-materials").remove(materials.data.map((material) => material.storage_path));
+        if (removed.error) {
+          setStatus("error");
+          setMessage("연결된 PDF를 삭제하지 못했어요. 다시 시도해 주세요.");
+          return false;
+        }
+      }
       const { error } = await client.from("study_subjects").delete().eq("id", id);
       if (error) {
         setStatus("error");
