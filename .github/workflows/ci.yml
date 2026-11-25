@@ -11,6 +11,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -43,4 +44,14 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Test guest and responsive journeys
-        run: npm run test:e2e
+        run: npm run test:e2e -- --max-failures=3
+
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: guest-e2e-evidence
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7

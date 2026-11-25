@@ -36,6 +36,7 @@ export async function resetGuestStorage(page: Page) {
 }
 
 export async function seedHistory(page: Page, history: unknown[]) {
+  await resetGuestStorage(page);
   await page.addInitScript((records) => {
     window.localStorage.clear();
     window.localStorage.setItem("haru-focus-history", JSON.stringify(records));
