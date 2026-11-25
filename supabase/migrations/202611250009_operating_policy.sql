@@ -37,12 +37,6 @@ create policy "Users read their own acknowledgement" on public.focus_quest_accou
 create function public.enforce_focus_quest_signup() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
-  -- app_metadata is set only through the Auth administrator API, never user data.
-  -- This supports internal fixtures/disaster provisioning without inventing consent.
-  if new.raw_app_meta_data->>'focus_quest_internal_provision' = 'true' then
-    new.raw_app_meta_data := new.raw_app_meta_data - 'focus_quest_internal_provision';
-    return new;
-  end if;
   if new.raw_user_meta_data->'age_over_14_declared' is distinct from 'true'::jsonb
     or new.raw_user_meta_data->>'privacy_notice_version' is distinct from '2026-11-25.1'
     or new.raw_user_meta_data->>'terms_version' is distinct from '2026-11-25' then

@@ -41,8 +41,7 @@ async function createTestUser(label: string): Promise<TestUser> {
     email: user.email,
     email_confirm: true,
     password: user.password,
-    user_metadata: { full_name: user.displayName },
-    app_metadata: { focus_quest_internal_provision: true },
+    user_metadata: { full_name: user.displayName, age_over_14_declared: true, privacy_notice_version: "2026-11-25.1", terms_version: "2026-11-25" },
   });
   if (error || !data.user) throw new Error(`Synthetic Auth provisioning failed (status ${error?.status ?? "unknown"}, code ${error?.code ?? "unknown"}).`);
   const created = { ...user, id: data.user.id };
@@ -343,7 +342,7 @@ test.describe("isolated Supabase staging", () => {
       expect(Buffer.from(archive.files.get(`pdf/${materialId}`)!)).toEqual(bytes);
       expect((await client.storage.from("study-materials").remove([storagePath])).error).toBeNull();
       expect((await admin.auth.admin.deleteUser(user.id)).error).toBeNull();
-      const restored = await admin.auth.admin.createUser({ id: account.id, email: account.email, email_confirm: account.email_confirmed, password: user.password, user_metadata: account.user_metadata, app_metadata: { focus_quest_internal_provision: true } });
+      const restored = await admin.auth.admin.createUser({ id: account.id, email: account.email, email_confirm: account.email_confirmed, password: user.password, user_metadata: account.user_metadata });
       expect(restored.error).toBeNull();
       expect(restored.data.user?.id).toBe(user.id);
       // Restoration is deliberately restricted to this disposable local fixture.
