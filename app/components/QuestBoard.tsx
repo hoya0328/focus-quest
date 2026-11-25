@@ -89,6 +89,7 @@ export default function QuestBoard({
 }: QuestBoardProps) {
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [subjectDraft, setSubjectDraft] = useState(emptySubject);
+  const [subjectFormOpen, setSubjectFormOpen] = useState(false);
   const [questDraft, setQuestDraft] = useState(emptyQuest());
   const [editingId, setEditingId] = useState<string | null>(null);
   const materialStore = useStudyMaterials(loggedIn);
@@ -166,6 +167,7 @@ export default function QuestBoard({
     const created = await onCreateSubject(subjectDraft);
     if (!created) return;
     setSubjectDraft(emptySubject);
+    setSubjectFormOpen(false);
     setSelectedSubjectId(created.id);
     setQuestDraft(emptyQuest(created.id));
   };
@@ -248,7 +250,7 @@ export default function QuestBoard({
             ))}
           </div>
 
-          <details className="quest-form-card" open={subjects.length === 0}>
+          <details className="quest-form-card" open={subjectFormOpen || subjects.length === 0} onToggle={(event) => setSubjectFormOpen(event.currentTarget.open)}>
             <summary>+ 새 과목</summary>
             <form onSubmit={submitSubject}>
               <label>

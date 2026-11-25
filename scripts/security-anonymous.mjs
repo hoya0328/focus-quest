@@ -81,6 +81,7 @@ for (const [table, identityColumn] of Object.entries({
   focus_quest_account_acknowledgements: "user_id",
   focus_quest_deletion_ledger: "id",
   focus_quest_operation_runs: "operation",
+  focus_quest_pdf_quotas: "user_id",
 })) {
   await expectAnonymousTableDeniedOrEmpty(table, identityColumn);
 }

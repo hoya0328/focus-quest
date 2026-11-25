@@ -23,12 +23,18 @@ create table public.focus_quest_operation_runs (
   completed_at timestamptz not null,
   counts jsonb not null default '{}'::jsonb
 );
+-- Derived Storage counters use an atomic row update, not a racy SELECT count.
+create table public.focus_quest_pdf_quotas (
+  user_id uuid primary key,
+  object_count integer not null check (object_count >= 0)
+);
 
 alter table public.focus_quest_account_acknowledgements enable row level security;
 alter table public.focus_quest_deletion_ledger enable row level security;
 alter table public.focus_quest_operation_runs enable row level security;
+alter table public.focus_quest_pdf_quotas enable row level security;
 revoke all on public.focus_quest_account_acknowledgements,
-  public.focus_quest_deletion_ledger, public.focus_quest_operation_runs
+  public.focus_quest_deletion_ledger, public.focus_quest_operation_runs, public.focus_quest_pdf_quotas
   from public, anon, authenticated, service_role;
 grant select on public.focus_quest_account_acknowledgements to authenticated;
 create policy "Users read their own acknowledgement" on public.focus_quest_account_acknowledgements
@@ -55,6 +61,7 @@ create function public.record_focus_quest_deletion() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
   if tg_table_schema = 'auth' and tg_table_name = 'users' then
+    delete from public.focus_quest_pdf_quotas where user_id = old.id;
     insert into public.focus_quest_deletion_ledger(kind, target_id, owner_id, storage_deleted_at)
       values ('user', old.id, old.id, now()) on conflict(kind, target_id) do nothing;
   else
@@ -72,18 +79,33 @@ create trigger record_focus_quest_material_deletion after delete on public.study
 
 create function public.enforce_focus_quest_pdf_quota() returns trigger
 language plpgsql security definer set search_path = '' as $$
+declare owner_uuid uuid; reserved integer;
 begin
-  if new.bucket_id <> 'study-materials' or auth.uid() is null or auth.role() = 'service_role' then return new; end if;
-  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('focus-quest-pdf:' || auth.uid()::text, 0));
-  if split_part(new.name, '/', 1) <> auth.uid()::text then raise exception 'focus_quest_pdf_owner_required' using errcode = '42501'; end if;
-  if (select count(*) from storage.objects where bucket_id = 'study-materials' and split_part(name, '/', 1) = auth.uid()::text) >= 3 then
-    raise exception 'focus_quest_pdf_quota_exceeded' using errcode = '23514';
+  if tg_op = 'DELETE' then
+    if old.bucket_id = 'study-materials' and split_part(old.name, '/', 1) ~* '^[a-f0-9-]{36}$' then
+      update public.focus_quest_pdf_quotas set object_count = greatest(0, object_count - 1)
+        where user_id = split_part(old.name, '/', 1)::uuid;
+    end if;
+    return old;
   end if;
+  if new.bucket_id <> 'study-materials' then return new; end if;
+  -- Storage writes can use its internal service connection: auth.uid() alone is
+  -- not an upload quota boundary. The already RLS-checked owner path is canonical.
+  owner_uuid := split_part(new.name, '/', 1)::uuid;
+  insert into public.focus_quest_pdf_quotas(user_id, object_count)
+    select owner_uuid, count(*) from storage.objects
+    where bucket_id = 'study-materials' and split_part(name, '/', 1) = owner_uuid::text
+    on conflict(user_id) do nothing;
+  update public.focus_quest_pdf_quotas set object_count = object_count + 1
+    where user_id = owner_uuid and object_count < 3 returning object_count into reserved;
+  if reserved is null then raise exception 'focus_quest_pdf_quota_exceeded' using errcode = '23514'; end if;
   return new;
 end;
 $$;
 revoke all on function public.enforce_focus_quest_pdf_quota() from public, anon, authenticated, service_role;
 create trigger enforce_focus_quest_pdf_quota before insert on storage.objects
+  for each row execute function public.enforce_focus_quest_pdf_quota();
+create trigger release_focus_quest_pdf_quota after delete on storage.objects
   for each row execute function public.enforce_focus_quest_pdf_quota();
 
 create function public.run_focus_quest_retention() returns jsonb
