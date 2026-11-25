@@ -26,7 +26,11 @@ if (!key) {
   } catch {
     throw new Error("Supabase CLI authorization is unavailable; no credentials were printed or saved.");
   }
-  const keys = JSON.parse(output);
+  let keys;
+  try { keys = JSON.parse(output); } catch {
+    throw new Error("Supabase CLI returned invalid credential metadata; raw output was suppressed.");
+  }
+  if (!Array.isArray(keys)) throw new Error("Supabase CLI returned an unexpected credential schema.");
   key = keys.find((entry) => entry.name === "service_role")?.api_key;
 }
 if (!key) throw new Error("Server-only operations credentials are unavailable.");

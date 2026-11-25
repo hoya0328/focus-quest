@@ -69,8 +69,8 @@ declare
 begin
   if caller_id is null then raise exception 'authentication_required'; end if;
   if not exists (
-    select 1 from public.focus_quest_camp_history
-    where camp_id = previous_camp_id and user_id = caller_id
+    select 1 from public.focus_quest_camp_history history
+    where history.camp_id = previous_camp_id and history.user_id = caller_id
   ) then raise exception 'camp_history_required'; end if;
   if clean_code !~ '^[A-HJ-NP-Z2-9]{6,8}$' then raise exception 'invalid_camp_code'; end if;
   if char_length(clean_nickname) not between 1 and 12 then raise exception 'invalid_nickname'; end if;
@@ -86,8 +86,8 @@ begin
     created_camp.id, caller_id, clean_nickname, requested_adventure_id, requested_focus_minutes
   );
 
-  for previous_member in select * from public.focus_quest_camp_members
-    where camp_id = previous_camp_id and user_id <> caller_id
+  for previous_member in select * from public.focus_quest_camp_members member
+    where member.camp_id = previous_camp_id and member.user_id <> caller_id
   loop
     insert into public.focus_quest_camp_invitations (
       camp_id, camp_code, inviter_user_id, invitee_user_id, inviter_nickname
