@@ -2882,7 +2882,7 @@
 .focus-quest-app .exit-button,
 .focus-quest-app .confirm-exit { border: var(--rule-hair) solid var(--color-border-strong); background: transparent; color: var(--color-text-soft); }
 .focus-quest-app .modal-backdrop,
-.focus-quest-app .auth-dialog-backdrop { background: var(--color-overlay); }
+.focus-quest-app .auth-dialog-backdrop { background: var(--color-overlay); z-index: var(--z-modal); }
 .focus-quest-app .auth-dialog .auth-privacy-intro { color: var(--color-text-soft); font-size: .875rem; line-height: 1.7; }
 .focus-quest-app .auth-privacy-intro a { color: var(--color-info); text-underline-offset: .2em; }
 .focus-quest-app .auth-privacy-checks { border: 0; padding: 0; margin: 0; min-width: 0; }
