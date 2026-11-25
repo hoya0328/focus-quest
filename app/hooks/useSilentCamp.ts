@@ -108,6 +108,7 @@ export function useSilentCamp({
   focusMinutes,
   nickname,
   onJoined,
+  onNicknameRestored,
   onRemoteTimer,
 }: {
   activeTimer: SilentCampTimer | null;
@@ -115,6 +116,7 @@ export function useSilentCamp({
   focusMinutes: number;
   nickname: string;
   onJoined?: (created: boolean) => void;
+  onNicknameRestored?: (nickname: string) => void;
   onRemoteTimer: (timer: SilentCampTimer) => void;
 }) {
   const [code, setCodeState] = useState("");
@@ -276,7 +278,22 @@ export function useSilentCamp({
       setMessage("비공개 캠프를 준비하고 있어요.");
 
       try {
-        const cleanNickname = normalizeCampNickname(nickname) || "모험가";
+        let cleanNickname = normalizeCampNickname(nickname) || "모험가";
+        const resume = readCampResumeState();
+        if (requested && resume?.code === requested && resume.memberId === user.id) {
+          const previousRoom = await client.from("focus_quest_camps")
+            .select("id").eq("code", requested).maybeSingle();
+          if (previousRoom.data) {
+            const profile = await client.from("focus_quest_camp_members")
+              .select("nickname").eq("camp_id", previousRoom.data.id)
+              .eq("user_id", user.id).is("left_at", null).maybeSingle();
+            const restoredName = normalizeCampNickname(profile.data?.nickname ?? "");
+            if (restoredName) {
+              cleanNickname = restoredName;
+              onNicknameRestored?.(restoredName);
+            }
+          }
+        }
         let room: CampRoom | null;
         if (requested) {
           const result = await client.rpc("join_focus_quest_camp", {
@@ -383,7 +400,7 @@ export function useSilentCamp({
         setMessage(campFailureMessage(failure instanceof Error ? failure.message : ""));
       }
     },
-    [adventureId, appendChatMessage, code, focusMinutes, nickname, refreshCommunity, refreshLeader, resetLocalCamp],
+    [adventureId, appendChatMessage, code, focusMinutes, nickname, onNicknameRestored, refreshCommunity, refreshLeader, resetLocalCamp],
   );
 
   useEffect(() => {

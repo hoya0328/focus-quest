@@ -431,8 +431,9 @@ test.describe("isolated Supabase staging", () => {
       await firstPage.getByRole("button", { name: "보내기", exact: true }).click();
       await expect(secondPage.locator(".camp-chat-log")).toContainText("함께 집중해요");
       await secondPage.reload();
-      await secondPage.getByRole("button", { name: "캠프 로비 열기" }).click();
+      await expect(secondPage.getByRole("heading", { name: "친구와 함께 모험하기" })).toBeVisible();
       await expect(secondPage.locator(".camp-member")).toHaveCount(2, { timeout: 20_000 });
+      await expect(secondPage.getByLabel("내 이름")).toHaveValue("브라우저B");
       await firstPage.getByRole("button", { name: /함께 집중 시작/ }).click();
       await expect(firstPage.locator(".timer-card")).toBeVisible();
       await expect(secondPage.locator(".timer-card")).toBeVisible({ timeout: 10_000 });
@@ -440,8 +441,7 @@ test.describe("isolated Supabase staging", () => {
       const secondSession = await secondPage.evaluate(() => JSON.parse(localStorage.getItem("haru-focus-active-session")!));
       expect(Math.abs(firstSession.endAt - secondSession.endAt)).toBeLessThan(2_000);
     } finally {
-      await firstContext.close();
-      await secondContext.close();
+      await Promise.all([firstContext.close().catch(() => {}), secondContext.close().catch(() => {})]);
     }
   });
 

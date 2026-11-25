@@ -1,7 +1,8 @@
-const CACHE_NAME = "focus-quest-v7";
+const CACHE_NAME = "focus-quest-v8";
 const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const OFFLINE_PAGE_KEY = `${BASE_PATH}/__focus-quest-offline`;
 const CORE_ASSETS = [
+  `${BASE_PATH}/offline.html`,
   `${BASE_PATH}/manifest.webmanifest`,
   `${BASE_PATH}/brand/focus-quest-logo.png`,
   `${BASE_PATH}/brand/focus-quest-mark.png`,
@@ -57,10 +58,7 @@ self.addEventListener("activate", (event) => {
       );
       await self.clients.claim();
 
-      const windows = await self.clients.matchAll({ type: "window" });
-      await Promise.all(
-        windows.map((client) => client.navigate(client.url).catch(() => undefined))
-      );
+      // Do not reload running focus sessions when a new worker takes control.
     })()
   );
 });
@@ -85,10 +83,15 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(async () => {
-          return (
-            (await caches.match(OFFLINE_PAGE_KEY)) ||
-            Response.error()
+          const fallback = (
+            (await caches.match(`${BASE_PATH}/offline.html`)) ||
+            (await caches.match(OFFLINE_PAGE_KEY))
           );
+          // Static HTML may have a canonical redirect; navigation cannot reuse
+          // its redirected response under a different URL. Rebuild a clean response.
+          return fallback
+            ? new Response(fallback.body, { status: 200, headers: fallback.headers })
+            : Response.error();
         })
     );
     return;

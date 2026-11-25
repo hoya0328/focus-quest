@@ -36,3 +36,38 @@ test("a cloud failure never blocks the guest timer path", async ({ page }) => {
   await openSetup(page);
   await expect(page.locator(".primary-button")).toBeEnabled();
 });
+
+test("offline navigation has a private-data-free recovery screen", async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ serviceWorkers: "allow" });
+  try {
+    const page = await context.newPage();
+    await page.goto(baseURL!);
+    await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null), { timeout: 10_000 }).toBe(true);
+    const cachedRecovery = await page.evaluate(async () => {
+      const response = await caches.match("/offline.html");
+      return {
+        version: await caches.keys(),
+        controller: navigator.serviceWorker.controller?.scriptURL,
+        hasRecovery: Boolean(response && (await response.text()).includes("연결을 잠시 놓쳤어요")),
+        hasNavigationCache: Boolean(await caches.match("/__focus-quest-offline")),
+      };
+    });
+    console.log("Offline cache control", cachedRecovery);
+    expect(cachedRecovery.hasRecovery).toBe(true);
+    // Chromium can keep a worker online when only its page is emulated offline.
+    await context.route("**/offline-probe", (route) =>
+      route.request().serviceWorker() ? route.abort("internetdisconnected") : route.continue(),
+    );
+    await context.setOffline(true);
+    await page.goto(`${baseURL}/offline-probe`);
+    await expect(page.getByRole("heading", { name: "연결을 잠시 놓쳤어요." })).toBeVisible();
+    await expect(page.getByRole("button", { name: "다시 연결하기" })).toBeVisible();
+    await context.setOffline(false);
+    await page.goto(baseURL!);
+    await expect(page.getByRole("heading", { name: "누구와 집중할까요?" })).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});

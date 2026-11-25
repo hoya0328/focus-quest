@@ -1787,6 +1787,7 @@ export default function Home() {
       });
     },
     onRemoteTimer: applySilentCampTimer,
+    onNicknameRestored: setCampNickname,
   });
 
   const recordedCampCompletionsRef = useRef(new Set<string>());

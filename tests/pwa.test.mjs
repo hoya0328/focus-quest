@@ -28,7 +28,8 @@ test("the service worker provides an offline navigation fallback", async () => {
   assert.match(serviceWorker, /event\.request\.mode === "navigate"/);
   assert.match(serviceWorker, /caches\.match\(OFFLINE_PAGE_KEY\)/);
   assert.match(serviceWorker, /requestUrl\.origin !== self\.location\.origin/);
-  assert.match(serviceWorker, /focus-quest-v7/);
+  assert.match(serviceWorker, /focus-quest-v8/);
+  assert.match(serviceWorker, /caches\.match\(`\$\{BASE_PATH\}\/offline\.html`\)/);
   assert.match(serviceWorker, /addEventListener\("push"/);
   assert.match(serviceWorker, /showNotification/);
   assert.match(serviceWorker, /addEventListener\("notificationclick"/);
@@ -38,7 +39,8 @@ test("the service worker provides an offline navigation fallback", async () => {
   assert.match(serviceWorker, /characters\/naru-rest\.webp/);
   assert.match(serviceWorker, /characters\/bori-rest\.webp/);
   assert.match(serviceWorker, /cache: "no-store"/);
-  assert.match(serviceWorker, /client\.navigate\(client\.url\)/);
+  assert.match(serviceWorker, /self\.clients\.claim\(\)/);
+  assert.doesNotMatch(serviceWorker, /client\.navigate\(client\.url\)/);
   assert.match(serviceWorker, /isPrivatePath\(requestUrl\)/);
   assert.match(serviceWorker, /pathname\.startsWith\(`\$\{BASE_PATH\}\/api\/`\)/);
   assert.match(serviceWorker, /responseAllowsStorage\(response\)/);
@@ -49,4 +51,11 @@ test("the service worker provides an offline navigation fallback", async () => {
     serviceWorker,
     /const CORE_ASSETS = \[\s*`\$\{BASE_PATH\}\/`,/
   );
+});
+
+test("offline recovery never writes private records or attempts cloud synchronization", async () => {
+  const offline = await readFile(new URL("../public/offline.html", import.meta.url), "utf8");
+  assert.match(offline, /연결을 잠시 놓쳤어요/);
+  assert.match(offline, /haru-focus-active-session/);
+  assert.doesNotMatch(offline, /localStorage\.(setItem|removeItem)|fetch\(|innerHTML|supabase/);
 });

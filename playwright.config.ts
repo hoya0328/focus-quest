@@ -23,7 +23,7 @@ export default defineConfig({
   },
   webServer: {
     command:
-      "npx wrangler dev --cwd dist/server --config wrangler.json --ip 127.0.0.1 --port 3110 --local",
+      "npx wrangler dev --config wrangler.public.jsonc --ip 127.0.0.1 --port 3110 --local",
     env: {
       CLOUDFLARE_DEV_REGISTRY_PATH: `${process.cwd()}/.wrangler/e2e-registry`,
       XDG_CONFIG_HOME: `${process.cwd()}/.wrangler/xdg-e2e`,
