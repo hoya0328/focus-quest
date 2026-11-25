@@ -8,14 +8,14 @@
 - GitHub: https://github.com/hoya0328/focus-quest
 - Cloudflare Worker: `focus-quest`, 설정 파일: `wrangler.public.jsonc`
 - 기존 `.chatgpt.site`는 과거 주소다. 현재 Sites 연결 계정에 편집 권한이 없으므로 그 주소를 최신 버전으로 안내하지 않는다. 프로젝트 ID는 보존한다.
-- 이번 점검 시작 시 운영 버전: `b96e3618-2df5-4fab-aa20-419322cc68bb` (소스 `0ab7ace`). 새 배포에 문제가 있으면 이 버전을 우선 롤백 후보로 사용한다.
-- 최종 배포: `fbbf931f-2178-4164-b303-8f54870fd664`, 검증 소스 `73ef065d56e073b70f75ae05b7179a1d80a5fd8e`. 일반 CI `45543882440`과 운영 HTTP·권한 점검을 통과했다. 후속 문서 커밋과 런타임 배포 소스를 구분한다.
+- 직전 검증 운영 버전: `fbbf931f-2178-4164-b303-8f54870fd664` (소스 `73ef065`). 장애 시 우선 롤백 후보이며 이전 UI에는 개인정보 경로가 없으므로 안내 링크의 영향도 함께 확인한다.
+- 최종 배포: `83449a0e-65f6-412c-b3e3-0759fb80f9b0`, 검증 소스 `9cd41b103bd5fc4ba68cb5dfe317eea4e08308e5`. 일반 CI `45550010214`, 격리 계정 CI `45550010689`와 운영 HTTP·권한 점검을 통과했다. 후속 문서 커밋과 런타임 소스를 구분한다.
 
 Cloudflare에서는 다음 순서로 버전을 확인하고 **실제 장애와 명시적 롤백 승인 후에만** 활성화한다.
 
 ```powershell
 npx wrangler deployments list --config wrangler.public.jsonc
-npx wrangler rollback b96e3618-2df5-4fab-aa20-419322cc68bb --config wrangler.public.jsonc
+npx wrangler rollback fbbf931f-2178-4164-b303-8f54870fd664 --config wrangler.public.jsonc
 npm run security:anonymous
 ```
 

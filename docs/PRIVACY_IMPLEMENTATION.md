@@ -44,3 +44,7 @@
 - [개인정보보호위원회 — 2026.4 개인정보 처리방침 작성지침 목록](https://pipc.go.kr/np/cop/bbs/selectBoardList.do?bbsId=BS217&mCode=I030010000)
 - [Supabase 리전](https://supabase.com/docs/guides/platform/regions), [개인정보 안내](https://supabase.com/privacy), [하위 처리업체](https://supabase.com/legal/customer-resources/subprocessor-list)
 - [Cloudflare 개인정보 안내](https://www.cloudflare.com/privacypolicy/), [Workers 로그 보관·위치](https://developers.cloudflare.com/workers/observability/logs/workers-logs/)
+
+## 최종 검증
+
+일반 CI `45550010214`와 격리 Supabase CI `45550010689`가 통과했다. 실제 합성 가입의 확인 기록 저장과 창 초기화, 97개 로직·렌더 2개·브라우저 16개·계정 경계 10개를 확인했다. 최초 격리 검사가 발견한 모달 닫기 버튼 클릭 가림도 수정하고 실제 클릭으로 재검증했다. 운영 문서·안전한 링크·보안 헤더와 익명 경계 29개가 배포 후에도 통과했다.
