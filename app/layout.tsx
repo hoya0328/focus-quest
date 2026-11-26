@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./adventure-motion-v2.css";
 import "./focus-quest-2026.css";
-import { PUBLIC_SERVICE_URL } from "@/lib/service-config";
+import { GOOGLE_SITE_VERIFICATION, PUBLIC_SERVICE_URL } from "@/lib/service-config";
 import VisitAnalytics from "@/app/components/VisitAnalytics";
 
 const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   twitter: { card: "summary", title: "Focus Quest | 픽셀 모험 집중 타이머", images: ["/brand/focus-quest-512.png"] },
   applicationName: "Focus Quest",
   verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || GOOGLE_SITE_VERIFICATION,
     other: process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION
       ? { "naver-site-verification": process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION }
       : {},

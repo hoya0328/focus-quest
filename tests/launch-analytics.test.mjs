@@ -4,6 +4,13 @@ import { readFile } from "node:fs/promises";
 import { buildDashboard, createOperationsEndpoint, operatorIds } from "../lib/operations-dashboard.ts";
 import { robotsText, sitemapXml, PUBLIC_INDEX_PATHS } from "../lib/search-discovery.ts";
 import { validAnalyticsToken, visitAnalyticsAllowed } from "../lib/visit-analytics.ts";
+import { GOOGLE_SITE_VERIFICATION } from "../lib/service-config.ts";
+
+test("Google ownership proof has a stable public fallback in server-rendered metadata", async () => {
+  assert.equal(GOOGLE_SITE_VERIFICATION, "C5Dx4Gsws6Aav6vY-VEaChQoraxspO9EPBSqVcKR_I0");
+  const layout = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
+  assert.match(layout, /google: process\.env\.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION \|\| GOOGLE_SITE_VERIFICATION/);
+});
 
 const OPERATOR = "10000000-0000-4000-8000-000000000001";
 const MEMBER = "10000000-0000-4000-8000-000000000002";
