@@ -6,6 +6,9 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "docs:generate": "node scripts/generate-source-map.mjs",
+    "docs:check": "node scripts/check-documentation.mjs",
+    "test:docs": "node --test tests/documentation.test.mjs",
     "dev": "vite dev",
     "build": "vite build",
     "build:public": "vite build",

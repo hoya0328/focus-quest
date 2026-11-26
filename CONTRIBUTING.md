@@ -1,9 +1,27 @@
-# Contributing
+# 개발·리뷰 안내
 
-Focus Quest is a portfolio product under active iteration.
+Focus Quest의 현재 기술 계약은 [기술 인수인계](docs/engineering/README.md)에서 시작한다. 외부 기여를 받는 경우에도 [권리 고지](NOTICE.md)를 별도로 확인한다. 공개 저장소가 재배포 허가를 뜻하지 않는다.
 
-1. Open an issue describing the user problem before a substantial change.
-2. Preserve the core `선택 → 몰입 → 완주 → 보상` experience and guest-first behavior.
-3. Run `npm run lint` and `npm test` before opening a pull request.
-4. Do not add credentials, personal study data, or assets without clear usage rights.
-5. Update `docs/DECISIONS.md` and `docs/HANDOFF.md` when product behavior changes.
+## 변경 절차
+
+1. 바꿀 사용자 문제·기능 ID·성공/실패 조건을 정한다. 기존 `선택 → 몰입 → 완주 → 복귀`와 게스트 시작을 보존한다.
+2. 기존 Git 변경·아키텍처·환경을 확인하고 변경을 작게 나눈다. 무관한 리팩터링·lockfile 갱신·라이브러리 교체를 섞지 않는다.
+3. [위험별 검사](docs/engineering/QUALITY.md)로 검증한다. 주석만 수정하면서 전체 E2E를 반복하거나 반대로 권한 변경을 정적 검사로만 끝내지 않는다.
+4. 관련 명세·API/DB 계약·테스트를 갱신하고 `npm run docs:generate`, `npm run docs:check`를 실행한다.
+5. diff·보안·개인정보·호환성을 리뷰하고 간결한 영어 outcome 커밋을 만든다. push/배포는 요청·승인 범위에서만 수행한다.
+
+## 주석 기준
+
+- 타입/함수명으로 읽히는 일을 반복하지 않는다. **왜 필요한지, 불변 조건, 부작용, 실패/재시도 조건**을 설명한다.
+- 공개 helper나 위험 경계에는 짧은 JSDoc을 사용한다. 단위·null 의미·소유권·멱등성·비원자적 처리 여부를 우선한다.
+- 예: `endAt`은 ms, paused 남은 시간은 seconds. 완료 ID는 재시도에도 같아야 한다. CAS는 unconditional upsert로 바꾸지 않는다.
+- 기술 부채는 [LIMITATIONS](docs/engineering/LIMITATIONS.md)에 영향과 완료 조건을 적는다. 근거 없는 TODO, “나중에 수정”, 가짜 이슈/담당자/완료일을 넣지 않는다.
+- 주석이 구현과 다르면 같은 변경에서 고친다. 날짜별 실행 일지나 대화 문장을 코드 주석으로 쌓지 않는다.
+
+## 보안·운영 경계
+
+- Secret·토큰·인증 링크·실제 PDF·채팅·회상·이메일을 코드/fixture/로그/이슈에 복사하지 않는다.
+- 서버 키를 `NEXT_PUBLIC_`에 넣지 않는다. RLS를 화면 조건으로 대체하지 않는다.
+- migration은 후속 파일로 추가한다. 운영 권한/파괴적 작업/복원/키 교체/과금은 별도 승인 대상이다.
+- 문서에는 현재 구현 계약을 남기고 개인 작업 체계·상세 실행/승인 이력은 공개하지 않는다.
+- 테스트 결과는 실행한 범위만 기록한다. 가상 사용자·뷰포트 테스트를 실제 사용자·실기기 QA로 표현하지 않는다.

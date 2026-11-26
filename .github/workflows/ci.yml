@@ -28,6 +28,11 @@ jobs:
       - name: Test product rules
         run: npm run test:logic
 
+      - name: Check technical documentation
+        run: |
+          npm run docs:check
+          npm run test:docs
+
       - name: Lint source
         run: npm run lint
 

@@ -1,0 +1,723 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Focus Quest HTTP contracts",
+    "version": "1.0.0",
+    "description": "코드 기준의 Worker API. 과목/클라우드/PDF/캠프 대부분은 Supabase 직접 연동이다. legacy 작업은 현재 공개 Worker에서 404."
+  },
+  "servers": [
+    {
+      "url": "https://focus-quest.hoya0328.workers.dev"
+    },
+    {
+      "url": "http://127.0.0.1:3110",
+      "description": "로컬 검증 예시; 실제 개발 포트는 서버 출력 확인"
+    }
+  ],
+  "paths": {
+    "/api/account": {
+      "delete": {
+        "operationId": "deleteAccount",
+        "summary": "검증된 자기 계정과 연결 자료 삭제",
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": false,
+            "description": "있으면 요청 URL과 같은 origin이어야 한다. 인증을 대체하지 않는다.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "confirmation"
+                ],
+                "properties": {
+                  "confirmation": {
+                    "const": "delete-my-focus-quest-account"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabaseBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "deleted"
+                  ],
+                  "properties": {
+                    "deleted": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/push-subscriptions": {
+      "post": {
+        "operationId": "savePushSubscription",
+        "summary": "자기 출발 알림 구독 저장",
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": false,
+            "description": "있으면 요청 URL과 같은 origin이어야 한다. 인증을 대체하지 않는다.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "subscription",
+                  "reminderTime",
+                  "timezone",
+                  "nextDueAt"
+                ],
+                "properties": {
+                  "subscription": {
+                    "$ref": "#/components/schemas/PushSubscription"
+                  },
+                  "reminderTime": {
+                    "type": "string",
+                    "pattern": "^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "description": "길이 검사만 수행. IANA 유효성 보증 아님."
+                  },
+                  "nextDueAt": {
+                    "type": "string",
+                    "description": "JavaScript Date.parse 가능 문자열."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabaseBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "saved"
+                  ],
+                  "properties": {
+                    "saved": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePushSubscription",
+        "summary": "자기 endpoint 알림 구독 삭제",
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": false,
+            "description": "있으면 요청 URL과 같은 origin이어야 한다. 인증을 대체하지 않는다.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "endpoint"
+                ],
+                "properties": {
+                  "endpoint": {
+                    "type": "string",
+                    "maxLength": 2048
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabaseBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "deleted"
+                  ],
+                  "properties": {
+                    "deleted": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud-state": {
+      "get": {
+        "operationId": "legacyCloudStateGet",
+        "summary": "레거시 Sites/D1 경로 — 공개판 404",
+        "deprecated": true,
+        "x-release-profile": "legacy-sites-d1",
+        "security": [],
+        "description": "D1 binding과 검증된 ChatGPT 사용자 세션이 있는 옛 환경 전용. 공개판 Supabase 저장 API가 아니다.",
+        "responses": {
+          "200": {
+            "description": "레거시 환경에서만 가능한 성공. cloudState 또는 deleted 결과."
+          },
+          "401": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "현재 공개 환경에서 의도된 응답."
+          },
+          "503": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "legacyCloudStatePut",
+        "summary": "레거시 Sites/D1 경로 — 공개판 404",
+        "deprecated": true,
+        "x-release-profile": "legacy-sites-d1",
+        "security": [],
+        "description": "D1 binding과 검증된 ChatGPT 사용자 세션이 있는 옛 환경 전용. 공개판 Supabase 저장 API가 아니다.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "baseVersion",
+                  "data"
+                ],
+                "properties": {
+                  "baseVersion": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "data": {
+                    "type": "object",
+                    "description": "CloudStateData v4. lib/cloud-state.ts의 검증 계약 참조."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "레거시 환경에서만 가능한 성공. cloudState 또는 deleted 결과."
+          },
+          "400": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "현재 공개 환경에서 의도된 응답."
+          },
+          "409": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "legacyCloudStateDelete",
+        "summary": "레거시 Sites/D1 경로 — 공개판 404",
+        "deprecated": true,
+        "x-release-profile": "legacy-sites-d1",
+        "security": [],
+        "description": "D1 binding과 검증된 ChatGPT 사용자 세션이 있는 옛 환경 전용. 공개판 Supabase 저장 API가 아니다.",
+        "responses": {
+          "200": {
+            "description": "레거시 환경에서만 가능한 성공. cloudState 또는 deleted 결과."
+          },
+          "401": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "현재 공개 환경에서 의도된 응답."
+          },
+          "503": {
+            "description": "오류. HTTP 상태별 처리 계약은 API_CONTRACTS.md 참조.",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "supabaseBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Supabase access token"
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string",
+            "description": "account/legacy 응답의 선택 값. 공통 추적은 응답 헤더."
+          }
+        }
+      },
+      "PushSubscription": {
+        "type": "object",
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 2048,
+            "pattern": "^https://"
+          },
+          "keys": {
+            "type": "object",
+            "required": [
+              "auth",
+              "p256dh"
+            ],
+            "properties": {
+              "auth": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 80
+              },
+              "p256dh": {
+                "type": "string",
+                "minLength": 40,
+                "maxLength": 180
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

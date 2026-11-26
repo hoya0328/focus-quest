@@ -124,6 +124,11 @@ async function listOwnedStorageObjects(
   return paths;
 }
 
+/**
+ * Deletes only the verified Bearer user's Storage objects, then the Auth account.
+ * Not cross-service atomic: a 503 can follow partial file removal. Never accept
+ * a client-supplied user ID or treat a failed response as proof of zero changes.
+ */
 export async function DELETE(request: Request) {
   const context = createApiRequestContext(request, "account");
   if (!sameOrigin(request)) {

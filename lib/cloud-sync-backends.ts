@@ -79,6 +79,7 @@ function parseJson(value: string): unknown {
   }
 }
 
+/** Legacy Sites/D1 adapter; the public Worker has no DB binding and returns 404. */
 export function createApiCloudBackend(): CloudBackend {
   const request = async (
     method: "DELETE" | "GET" | "PUT",
@@ -109,6 +110,10 @@ export function createApiCloudBackend(): CloudBackend {
   };
 }
 
+/**
+ * Public account adapter. Writes are compare-and-swap on (user_id, version),
+ * never unconditional upserts; 409 is a domain result consumed by useCloudSync.
+ */
 export function createSupabaseCloudBackend(
   client: SupabaseClient,
   user: User,

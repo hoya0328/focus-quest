@@ -82,6 +82,10 @@ export function createEmptyCloudState(): CloudStateData {
   };
 }
 
+/**
+ * Guest data may migrate on first login; data owned by another account must not.
+ * This is a cache isolation rule, not a substitute for database RLS.
+ */
 export function resolveLocalStateForAccount(
   local: CloudStateData,
   storedOwnerId: string | null,
@@ -149,6 +153,7 @@ function parsePreferences(value: unknown): CloudPreferences | null {
   };
 }
 
+/** Reads supported v1-v4 payloads and normalizes to v4; invalid records fail closed. */
 export function parseCloudStateData(value: unknown): CloudStateData | null {
   if (!value || typeof value !== "object") return null;
   const candidate = value as Partial<
@@ -221,6 +226,11 @@ export function parseCloudStateData(value: unknown): CloudStateData | null {
   };
 }
 
+/**
+ * Merge policy: cloud preferences win; record IDs deduplicate history; the newest
+ * session/recovery timestamps win (including null tombstones). Reflection savedAt
+ * is resolved independently. Inputs are already validated and are not mutated.
+ */
 export function mergeCloudStates(
   local: CloudStateData,
   cloud: CloudStateData,

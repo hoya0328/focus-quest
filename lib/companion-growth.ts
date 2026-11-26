@@ -75,6 +75,7 @@ export function growthEntriesFromHistory(
   }));
 }
 
+/** Deduplicates by sessionId before summing time; first source wins on duplicates. */
 export function mergeCompanionGrowthEntries(
   ...sources: CompanionGrowthEntry[][]
 ): CompanionGrowthEntry[] {
@@ -100,6 +101,7 @@ export function addCompanionGrowthRecord(
   return mergeCompanionGrowthEntries(entries, growthEntriesFromHistory([record]));
 }
 
+/** Companion evolution uses completed minutes, independently of world milestones. */
 export function getCompanionGrowth(
   entries: CompanionGrowthEntry[],
   adventureId: AdventureId,

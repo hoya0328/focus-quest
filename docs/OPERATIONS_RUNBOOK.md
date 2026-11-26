@@ -1,112 +1,109 @@
 # Focus Quest 운영 런북
 
-마지막 업데이트: 2026-11-25
+현재 기술 절차 문서다. 실제 실행 이력·승인 기록·키·사용자 데이터는 이 문서나 공개 GitHub에 추가하지 않는다. 배포 후보 SHA/사업자 버전·최근 성공 시각은 승인된 비공개 운영 기록에서 확인한다. 과거 날짜별 HANDOFF의 수치를 현재 상태로 간주하지 않는다.
 
-## 대표 서비스와 배포 경계
+## 1. 환경과 운영 권한
 
-- 정식 웹·PWA: https://focus-quest.hoya0328.workers.dev
-- GitHub: https://github.com/hoya0328/focus-quest
-- Cloudflare Worker: `focus-quest`, 설정 파일: `wrangler.public.jsonc`
-- 기존 `.chatgpt.site`는 과거 주소다. 현재 Sites 연결 계정에 편집 권한이 없으므로 그 주소를 최신 버전으로 안내하지 않는다. 프로젝트 ID는 보존한다.
-- 직전 검증 운영 버전: `fbbf931f-2178-4164-b303-8f54870fd664` (소스 `73ef065`). 장애 시 우선 롤백 후보이며 이전 UI에는 개인정보 경로가 없으므로 안내 링크의 영향도 함께 확인한다.
-- 최종 배포: `83449a0e-65f6-412c-b3e3-0759fb80f9b0`, 검증 소스 `9cd41b103bd5fc4ba68cb5dfe317eea4e08308e5`. 일반 CI `45550010214`, 격리 계정 CI `45550010689`와 운영 HTTP·권한 점검을 통과했다. 후속 문서 커밋과 런타임 소스를 구분한다.
-- 운영 정책 배포: 소스 `12c1a6360d806c930bb3056f88abc60b1a1076fb`, 버전 `65e634b4-91dd-4244-85e4-b1f5aede9adc`, CI `45585481667`/`45585482096` 통과. 이후 생성 전용 안전장치·승인 대기 고지를 추가했다. 최신 런타임 식별자는 인계 최신 항목을 따른다.
-- 최종 생성 전용 안전장치·고지 배포: 소스 `46561b9efb3ef25ec8d296b263708a3d5339f39c`, 버전 `6eb30106-fb82-492f-9e79-7a568d40359a`, 일반 CI `45587526500` 통과. 직전 정책 버전과 서버 기능은 같으며 백업 삭제 승인 대기 상태를 안내한다.
-- 마이그레이션009 이후 과거 UI로 롤백하면 신규 가입의 문서 버전/약관 확인이 맞지 않아 거부될 수 있다. 기존 로그인·게스트 타이머와 신규 가입 복구를 구분하고, 서버 확인을 우회하지 말고 호환 UI로 수정 배포한다. 스키마·확인 기록을 파괴적으로 되돌리지 않는다.
+- 공개 웹/PWA: [Focus Quest](https://focus-quest.hoya0328.workers.dev), Worker 설정 [wrangler.public.jsonc](../wrangler.public.jsonc).
+- [API 계약](engineering/API_CONTRACTS.md), [권한](engineering/DATA_MODEL.md), [보관 정책](OPERATING_POLICY.md)을 먼저 읽는다.
+- 브라우저는 공개키+사용자 JWT, 서버는 Secret/업무 grant/RPC를 사용한다. 운영 키를 개발 편의를 위해 클라이언트로 옮기지 않는다.
+- 과금·계정 초대·권한 변경·키 교체·파괴적 작업·운영 복원은 해당 범위 승인이 필요하다.
+- 역할은 개발(수정/회귀), QA(실제 사용자·기기 확인), 운영(배포/백업/알림), 개인정보 담당(문의/삭제 확인)으로 구분한다. 실제 담당자/긴급 연락은 비공개로 지정한다.
 
-Cloudflare에서는 다음 순서로 버전을 확인하고 **실제 장애와 명시적 롤백 승인 후에만** 활성화한다.
+## 2. 일상 점검
 
-```powershell
-npx wrangler deployments list --config wrangler.public.jsonc
-npx wrangler rollback fbbf931f-2178-4164-b303-8f54870fd664 --config wrangler.public.jsonc
+1. 홈·개인정보·약관 응답, 인증 없는 API 거절과 보안 헤더.
+2. 오류 requestId로 한정한 Worker 상태·개인정보 없는 제품 집계.
+3. 최근 DB 보관 정리 성공과 미처리 백업 삭제 건수.
+4. 최신 암호화 백업의 전체 검증, 예약 작업의 최근 성공·PC/CLI 인증 상태.
+5. 실제 비용/메일 발송 한도/실패 구독/미처리 신고/문의 기한.
+
+```bash
 npm run security:anonymous
+node --env-file=.env.local scripts/run-linked-operations.mjs maintenance
+npm run backup:verify:encrypted
 ```
 
-롤백 확인을 이유로 정상 운영 버전을 실제로 되돌리지 않는다. 서버 전용 권한 복구 마이그레이션은 앱의 이전 버전과 호환되며 역방향 삭제를 하지 않는다.
+위 명령도 네트워크·보호 폴더 접근 승인이 필요할 수 있다. maintenance 조회는 상태 확인이며 보관 삭제 실행으로 간주하지 않는다. 출력/이슈에는 사용자 ID·본문·키 대신 개수·상태·requestId만 남긴다.
 
-## 운영 원칙
+## 3. 스케줄을 구분한다
 
-- 운영 데이터에서 파괴적 QA를 하지 않는다.
-- 목표 문장, PDF 본문, 퀴즈 문항, Camp Log 자유 입력은 분석 로그에 남기지 않는다.
-- 사용자 문의에는 요청 ID, 발생 시각, 화면 이름만 받는다. 계정 비밀번호·API 키·공부 자료는 받지 않는다.
-- Supabase 관리자 키는 Cloudflare 암호화 Secret과 격리 E2E 러너에만 둔다.
+| 실행 | 주기 | 책임과 실패 영향 |
+| --- | --- | --- |
+| Cloudflare Cron | 매분 | 최대 100개 due 출발 Push. 404/410 폐기, 반복 실패 비활성화 |
+| Cloudflare Cron | UTC 18:00 = 다음 날 KST 03:00 | 삭제 PDF 재처리 후 DB 보관 정리 RPC. 실패를 완료로 기록하지 않음 |
+| 로컬 예약 | KST 매일 21:00 | 암호화 백업 생성·검증 후 승인된 사본 정리. PC/Codex/CLI 인증 필요 |
 
-## 매일 확인할 신호
+앱이 닫힌 뒤의 출발 Push와 집중 세션 종료 알림은 다르다. Worker Cron 정상만으로 PC 백업이나 실제 OS 알림 수신이 성공했다고 말하지 않는다.
 
-1. Cloudflare Worker의 오류율과 `client_error` 증가
-2. Supabase Auth·Storage·Realtime 상태와 프로젝트 활성 상태
-3. `app_opened → focus_started → focus_completed → returned_after_7d` 전환
-4. 버그 신고 메일과 재현 가능한 브라우저·화면 정보
-
-제품 이벤트는 다음 집계처럼 본문 없이 확인한다.
-
-```sql
-select
-  date_trunc('day', created_at) as day,
-  event_name,
-  count(*) as events,
-  count(distinct user_id) as users
-from public.focus_quest_product_events
-where created_at >= now() - interval '30 days'
-group by 1, 2
-order by 1 desc, 2;
-```
-
-## 구조화 오류 로그
-
-서버 오류는 `service`, `route`, `code`, `status`, `requestId`, `timestamp`만 기록한다. 사용자 ID, 이메일, 토큰, 요청 본문과 저장 데이터는 기록하지 않는다. 사용자가 오류를 신고하면 응답의 `X-Request-Id`로 Cloudflare 로그를 찾는다.
-
-## 장애 등급
-
-- **SEV-1:** 계정 간 데이터 노출, 비밀키 노출, 데이터 삭제 오작동. 즉시 신규 배포를 중단하고 관련 키·정책을 격리한다.
-- **SEV-2:** 로그인, 동기화, 타이머 시작이 다수 사용자에게 실패. 30분 안에 이전 검증 버전으로 롤백을 판단한다.
-- **SEV-3:** 특정 화면·브라우저의 비핵심 기능 실패. 핵심 타이머 우회 경로를 안내하고 다음 패치에 수정한다.
-
-## 롤백
-
-1. 현재 장애의 요청 ID와 발생 시각을 기록한다.
-2. 마지막 통과 커밋과 현재 배포 커밋을 비교한다.
-3. 위 Cloudflare Worker의 이전 성공 버전을 다시 활성화한다. Sites 권한 복구를 롤백 전제조건으로 삼지 않는다. 소스 이력은 강제로 되돌리지 않고 별도 revert 커밋을 만든다.
-4. 데이터베이스 마이그레이션은 역방향 삭제를 실행하지 않는다. 호환 가능한 후속 마이그레이션으로 복구한다.
-5. 게스트 타이머, 로그인, 저장, 모바일 화면을 확인한 뒤 장애 종료를 선언한다.
-
-## 백업과 복구
-
-- 파괴적 스키마 변경 전에는 Supabase 백업 가용성을 확인하고, 무료 플랜에서 백업이 없다면 SQL·Storage 내보내기 계획을 먼저 만든다.
-- PDF와 사용자 계정 삭제는 되돌릴 수 없다. 운영 계정으로 삭제 QA를 하지 않는다.
-- 로컬 게스트 기록은 브라우저 저장소에만 있으므로 브라우저 데이터 삭제 후 서버에서 복구되지 않는다.
-
-최신 기준은 [OPERATING_POLICY.md](OPERATING_POLICY.md)를 따른다. 관리자 키는 기존 Supabase CLI에서 메모리로만 받아 사용하며 브라우저·빌드에 넣지 않는다.
+## 4. 암호화 백업
 
 ```bash
 npm run backup:daily
-npm run ops:report
-npm run camp:moderate -- <report-id> reviewed
+npm run backup:verify:encrypted
 ```
 
-- 새 백업은 앱18개 테이블·최소 계정 식별 정보·연결 PDF를 AES-256-GCM으로 암호화하고 각 객체·목록의 무결성을 검증한다. `backups/`와 DPAPI 보호 키는 Git 제외·현재 사용자 전용 ACL이다.
-- 새 전체 사본 검증 후 기존 평문17개 테이블 내보내기를 검증·암호화 전환하고 원래 평문 폴더만 제거한다. 과거17테이블 검증 도구는 격리 회귀·이관에만 사용하며 새 운영 평문 내보내기는 차단했다.
-- 생성 후30일 사본과 삭제 대장에 해당하는 과거 사본을 정리하는 코드는 있으나, 현재 예약은 생성 전용이다. 원본 정리·자동 삭제에 대한 구체적 승인 후에만 `--migrate-legacy`/`--apply-retention`을 사용한다. PC/Codex/CLI 인증에 의존하며 매일 실행 결과·미처리 삭제 건수를 확인한다.
-- R2 미활성화로 외부 보관은 아직 안 된다. 결제수단 등록이나 과금 승인 없이 활성화 가능할 때만 진행한다. PC 손실 시 키를 복구할 별도 보관 수단도 미완료다.
-- 스키마·비밀번호·토큰·MFA·OAuth 연결의 완전한 복구를 보장하지 않는다. DB 행의 단일 읽기 시점과 후속 PDF 다운로드는 다르며 참조 파일이 빠지면 실패한다. 실제 운영 복원은 별도 승인, 격리 검증과 사용자 인증 재설정 안내가 필요하다.
-- 기존 주간 예약을 매일21:00 KST 암호화 백업 생성·검증으로 갱신했다. 현재 자동 삭제는 비활성이다. PC와 Codex가 실행 중이고 Supabase CLI 인증·보호 폴더 실행 권한이 필요하다.
-- `ops:report`는 전환 수와 신고 상태만 집계하며 사용자 ID, 학습 내용, 채팅 본문을 출력하지 않는다.
-- 현재 자동 경고는 시작 사용자 5명 이상일 때 완주 비율 65% 미만, 이벤트 20개 이상일 때 client_error 비중 2% 초과에만 발생한다. 첫 시작·D7 유지율과 신고량의 추가 임계값은 표본과 측정 모수를 검증한 뒤 정한다.
+기본 명령은 생성 전용이다. 관리자 RPC의 앱 18개 테이블·최소 계정 정보와 연결 PDF를 암호화한다. Windows는 CurrentUser DPAPI, 기타 환경은 외부 보호 키가 필요하다. 백업과 키는 Git 제외·사용자 전용 폴더에 둔다. 스키마·인증 비밀번호/세션/MFA/OAuth·DB 물리 상태 전체 백업이 아니다.
 
-현재 계정으로 승인된 Supabase CLI가 있으면 키를 파일에 복사하지 않고 메모리에서만 연결해 실행할 수 있다.
+승인된 정기 사본 정리는 다음 **별도 파괴적 모드**다.
 
-```powershell
-node --env-file=.env.local scripts/run-linked-operations.mjs inspect
-node --env-file=.env.local scripts/run-linked-operations.mjs report --days=30
-npm run backup:daily
-node --env-file=.env.local scripts/run-linked-operations.mjs maintenance
+```bash
+npm run backup:daily -- --apply-retention
 ```
 
-- 집계는 로그인 사용자만 포함한다. 기간 내 고유 사용자 비율이지 전체 방문자 전환율이나 코호트 D7 유지율이 아니다.
-- `maintenance --run-retention`은 승인된 만료 정리만 실행한다. 서버는 매일03:00 KST 같은 RPC를 실행한다. 익명·일반 사용자에게 실행 권한이 없다.
-- `returned_after_7d`는 이 기기·계정에서 7일 이상 지난 복귀 신호다. 첫 방문 오집계 수정 전 이벤트는 유지율 근거로 쓰지 않는다.
-- 기준치는 아직 제품 가설이다. 표본이 충분하지 않으면 수치로 성과를 판정하지 않는다.
+- 기존 사본/프로젝트/키와 새 사본 무결성 검증 후 만료 30일 또는 삭제 대장 정보가 포함된 과거 사본을 전체 폐기한다.
+- 현재 보관 정책은 이 정기 정리 모드를 사용한다. 기본 생성 명령만 실행하고 삭제 요청 처리가 끝났다고 판단하지 않는다.
+- 평문 전환 `--migrate-legacy`는 매일 넣는 옵션이 아니다. 정확한 기존 원본 목록과 승인 확인, 새 전체 백업 검증, 각 원본 checksum/암호화/복호화 검증 후에만 원본을 제거한다.
+- 사본 손상/누락/목록 외 파일/혼합 프로젝트/보호 키 분실 시 중단한다. 통과한 사본만 먼저 삭제하거나 임의 대체 키를 만들지 않는다.
+- lock이 남으면 실제 PID와 실행 상황을 확인한다. 다른 작업의 lock이나 백업 폴더를 일괄 삭제하지 않는다.
+- 외부 사본과 독립 키 복구는 아직 없다. R2가 결제수단/계약/과금 승인을 요구하면 진행하지 않는다.
 
-## 사용자 피드백
+## 5. 삭제 요청과 문의
 
-첫 화면의 `버그 신고 · 문의` 링크는 `letshoya@naver.com`으로 연결한다. 공개 이슈에는 보안 취약점·개인 기록·재현용 토큰을 올리지 않고, 보안 문제는 GitHub Security Advisory를 사용한다.
+- 계정 삭제 API는 Storage를 먼저 지우므로 실패 응답 뒤에도 부분 변경이 있을 수 있다. 인증 사용자와 소유 경로를 확인하고 재시도한다.
+- 자료 삭제 대장의 미처리 PDF는 Storage API로 제거한 뒤 확인 표시한다. 파일 metadata만 SQL로 지우지 않는다.
+- 사본 정리 확인 전 삭제 완료·운영 복원 가능으로 안내하지 않는다. 타 기기 LocalStorage 예외도 설명한다.
+- 문의는 최소 계정 이메일/오류 화면/시각/requestId로 접수한다. 비밀번호·인증 링크·학습 원본을 요구하지 않는다.
+- 첫 답변 3영업일 목표, 법정 기한 우선. 처리 완료 메일/첨부는 정책의 90일 기준으로 수동 정리하며 자동 메일함 삭제를 제공하지 않는다.
+- 미처리 삭제/신고는 단순 보관기한 경과만으로 없애지 않는다.
+
+신고 상태 처리 도구:
+
+```bash
+npm run camp:moderate -- REPORT_ID reviewed
+```
+
+실제 report ID와 서버 환경을 확인한 승인된 담당자만 실행한다. 공개 저장소에 신고 당사자/사유 본문을 붙이지 않는다.
+
+## 6. 장애 대응
+
+| 유형 | 우선 조치 |
+| --- | --- |
+| 데이터 노출/권한 우회 의심 | 증거 최소 보존, 영향 기능/모집 축소 판단, 자격 증명 노출 여부 확인. 임의 로그·키 공개 금지 |
+| 로그인/저장/타이머 다수 실패 | requestId·배포/마이그레이션 경계 확인, 호환 이전 버전 또는 수정 배포 판단 |
+| 알림/오디오/특정 기기 오류 | 핵심 집중 경로와 분리, 지원/미지원 안내, 실기기 재현 |
+| 백업/사본 삭제 실패 | 성공 처리 중단, PC/인증/lock/키/사본 손상 구분. 삭제 요청 기한 확인 |
+
+로그 기준은 [server-observability](../lib/server-observability.ts). route/code/status/requestId/timestamp 외 사용자 본문을 원인 진단용으로 무제한 추가하지 않는다.
+
+## 7. 배포와 롤백
+
+1. Git 상태·해당 소스 SHA·필요 migration 적용·일반/격리 검사 결과를 확인한다.
+2. 검증한 정확한 소스를 기존 승인 Git 원격에 반영한다. 명세 정리 요청만으로 외부 push/배포까지 허용됐다고 가정하지 않는다.
+3. 현재 승인된 배포 경로를 사용한다. Sites를 쓸 경우 원래 hosting.json ID를 유지하며 NOT_FOUND를 새 프로젝트 생성/접근 공개로 우회하지 않는다. 기존 공개 Worker 대상 배포와 구분한다.
+4. 배포 후 HTTP/정책/헤더/인증 거절·핵심 흐름 smoke, 스케줄 유지와 오류 확인.
+5. 실제 장애+롤백 승인 시 이전 **호환** 버전을 선택한다.
+
+```bash
+npx wrangler deployments list --config wrangler.public.jsonc
+npx wrangler versions list --config wrangler.public.jsonc
+npx wrangler rollback COMPATIBLE_VERSION_ID --config wrangler.public.jsonc
+```
+
+`COMPATIBLE_VERSION_ID`는 비공개 검증 기록과 사업자 목록을 대조해 교체한다. 오래된 UI는 현재 신규 가입 확인 버전과 달라 가입 실패를 만들 수 있다. Auth trigger를 느슨하게 하거나 schema/data를 파괴적으로 되돌리는 우회는 금지한다. 정상 운영 중 롤백 훈련을 실행하지 않는다.
+
+## 8. 복원·종료
+
+실제 운영 복원은 자동화하지 않는다. 별도 승인 → 삭제 대장/사본 정리 확인 → 격리 환경에서 복호화·관계·소유자 접근·PDF 검증 → 계정 본인 확인/비밀번호 재설정 계획 → 사용자 안내 → 운영 적용 순서다. 현재 검증 도구는 운영 Auth 전체 복원기를 제공하지 않는다.
+
+계획된 서비스 종료는 정책의 30일 전 안내, 데이터 내보내기/삭제 요청, 운영 자료·사본·키의 안전한 폐기 순서를 정한다. 법정 보존 예외는 전문 검토가 필요하다.

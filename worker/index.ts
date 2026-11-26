@@ -1,4 +1,4 @@
-/** Cloudflare Worker entry point for the vinext-starter template. */
+/** Public Vinext HTTP entry, security headers, Web Push and retention scheduler. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { createClient } from "@supabase/supabase-js";
@@ -35,6 +35,7 @@ type PushSubscriptionRow = {
   failed_attempts: number;
 };
 
+/** Daily departure reminder, not an OS-level guarantee of focus-timer completion. */
 async function sendDueReminders(env: Env) {
   if (
     !env.SUPABASE_URL ||
@@ -170,6 +171,7 @@ const worker = {
     env: Env,
     ctx: ExecutionContext,
   ) {
+    // Cron is UTC: 18:00 is 03:00 KST on the next day. Local backup is separate.
     if (controller.cron === "0 18 * * *") {
       ctx.waitUntil((async () => {
         if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) throw new Error("Retention credentials unavailable.");

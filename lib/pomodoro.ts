@@ -23,7 +23,9 @@ export type ActiveSession = {
   version: 1;
   mode: SessionMode;
   durationMinutes: number;
+  /** Paused snapshot in seconds; a running session derives this from endAt. */
   remainingSeconds: number;
+  /** Unix milliseconds, not seconds. Null while paused. */
   endAt: number | null;
   paused: boolean;
   startedAt: string;
@@ -130,6 +132,7 @@ function isValidCampReflection(value: unknown): value is CampReflection {
   );
 }
 
+/** Uses the device's calendar day; UTC ISO slicing would shift local daily totals. */
 export function localDateKey(input: Date | number | string = new Date()) {
   const date = input instanceof Date ? input : new Date(input);
   return [
@@ -176,6 +179,10 @@ export function createActiveSession({
   };
 }
 
+/**
+ * Derives time from an absolute deadline, so throttled browser ticks do not drift.
+ * `now` is Unix milliseconds and injectable for deterministic recovery tests.
+ */
 export function remainingForSession(session: ActiveSession, now = Date.now()) {
   if (session.paused || session.endAt === null) {
     return Math.max(0, Math.ceil(session.remainingSeconds));
@@ -208,6 +215,7 @@ export function resumeActiveSession(
   };
 }
 
+/** Validates persisted input; an expired valid session is returned, not discarded. */
 export function parseActiveSession(raw: string | null, now = Date.now()) {
   if (!raw) return null;
   try {

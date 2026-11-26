@@ -10,6 +10,7 @@ export const MAX_EXTRACTED_TEXT_CHARACTERS = 160_000;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+/** Stable owner/material UUID path; user-supplied filenames never form object keys. */
 export function createStudyMaterialStoragePath(
   userId: string,
   materialId: string,

@@ -1,106 +1,91 @@
 # Focus Quest 서비스 아키텍처
 
-마지막 업데이트: 2026-07-26
+현재 구현 계약. 기능별 수용 기준은 [기술 인수인계](engineering/README.md), 제약은 [LIMITATIONS](engineering/LIMITATIONS.md)를 따른다.
 
-## 목표
+## 1. 실행 구조
 
-워크스페이스에 속하지 않은 일반 사용자도 이메일 또는 Google 계정으로
-가입하고, 동일 계정으로 PC와 휴대폰에서 설정·기록·진행 중 타이머를
-이어 쓸 수 있게 한다.
+```text
+브라우저
+ ├─ React/Next App Router: 선택·준비·집중·완료·기록·캠프
+ ├─ 순수 TypeScript: 시간 계산·병합·성장·문제·추천
+ ├─ Phaser: 집중/완료/휴식 장면 (권한·완료 기록의 주체 아님)
+ ├─ Web Audio / 지원 시 PiP / Service Worker
+ └─ Supabase JS + 사용자 JWT
+       ├─ Auth: 이메일 계정·재설정·선택 OAuth
+       ├─ PostgREST/RPC: 개인 상태·학습·캠프 권한
+       ├─ private Storage: PDF 원본
+       └─ private Realtime: 멤버 현존·공유 타이머·임시 채팅
 
-기존 React·Next.js·Vinext·Phaser·PWA 구조와 모험 장면은 유지한다.
+Cloudflare Worker (Vinext/Vite 빌드 + Static Assets)
+ ├─ HTTP: 렌더링·계정 삭제·Push 구독 API·보안 헤더
+ └─ Cron: 매분 출발 Push / 매일 UTC 18:00 보관 정리
 
-## 사용자 흐름
+운영 프로세스 (공개 HTTP 경로 아님)
+ └─ 최소 권한 관리자 RPC → 암호화 로컬 백업·검증·삭제 대장 처리
+```
 
-1. 사용자는 로그인 없이 타이머를 체험하고 기록을 브라우저에 저장한다.
-2. `기록 이어하기`에서 이메일 회원가입·로그인 또는 Google 로그인을 선택한다.
-3. 첫 로그인 시 로컬 기록과 계정의 클라우드 기록을 병합한다.
-4. 로그인된 기기는 변경을 저장하고 10초 간격 및 화면 복귀 시 최신 상태를 확인한다.
-5. 로그아웃 전 마지막 변경을 저장하고 계정 기록을 공용 화면에서 제거한다.
-6. 같은 계정으로 다시 로그인하면 클라우드 기록을 복구하며, 다른 계정에는 이전 계정 로컬 기록을 병합하지 않는다.
-7. 클라우드 기록 삭제 시 서버 데이터만 지우고 로그인 중인 해당 기기의 로컬 기록은 보존한다.
+공개판은 서버 Secret을 사용한다. 예전 “공개 Worker는 비밀키를 쓰지 않는다”는 설명은 현재의 계정 삭제·Push·보관 정리에 적용되지 않는다. 서버 키는 브라우저 번들에 포함하지 않는다.
 
-## 경계와 책임
+## 2. 모듈 책임과 의존 방향
 
-| 영역 | 책임 |
-| --- | --- |
-| React UI | 가입·로그인·로그아웃·복구 상태, 게스트 체험, 동기화 상태 표시 |
-| Supabase Auth | 이메일 비밀번호, 이메일 확인, 비밀번호 재설정, 선택형 Google OAuth, 다기기 세션 |
-| Supabase Postgres | 사용자별 클라우드 상태와 낙관적 버전 저장 |
-| Row Level Security | 로그인 토큰의 `auth.uid()`와 행의 `user_id`가 같은 경우만 접근 허용 |
-| LocalStorage | 비로그인 기록, 오프라인 복구, 첫 로그인 마이그레이션 원본 |
-| Cloudflare Worker | 공개 앱과 정적 에셋 제공. 공개 인증 경로에서는 비밀키와 D1을 사용하지 않음 |
-| Sites + D1 | 기존 소유자 전용 운영판의 임시 호환 경로 |
-
-## 데이터 모델
-
-### `focus_quest_cloud_states`
-
-| 필드 | 형식 | 규칙 |
+| 계층 | 파일 | 책임/금지 |
 | --- | --- | --- |
-| `user_id` | UUID | `auth.users.id` 참조, 기본 키, 계정 삭제 시 연쇄 삭제 |
-| `version` | BIGINT | 1 이상, 동시 저장 충돌 감지 |
-| `payload` | JSONB | 검증된 Focus Quest 클라우드 상태 |
-| `updated_at` | TIMESTAMPTZ | UTC 저장 시각 |
+| 화면 조합 | [app/page.tsx](../app/page.tsx) | 상태 전이·완료 순서·부수효과 연결. DB 인가의 근거로 쓰지 않음 |
+| 표현 | [components](../app/components) | 폼·기록·장면 표현. Phaser가 집중 기록을 직접 확정하지 않음 |
+| 외부 동기화 | [hooks](../app/hooks) | 인증·저장 큐·질의 상태·실패 표시 |
+| 도메인 | [lib](../lib) | 주입 가능한 시간·직렬화·중복 제거·규칙. UI/Worker 환경에 불필요하게 결합하지 않음 |
+| 서버 경계 | [routes](../app/api), [Worker](../worker/index.ts) | 검증된 Bearer 사용자, Secret, 로그 최소화, Cron |
+| 영구 권한 | [migrations](../supabase/migrations) | RLS·grant·FK·RPC·trigger. 클라이언트 필터와 별개 |
+| 운영 도구 | [scripts](../scripts) | 집계·검증·승인된 백업/정리. 일반 사용자 엔드포인트 아님 |
 
-현재 JSON에는 타이머 설정, 완료 기록, 진행 중 세션이 들어간다. 과목과
-퀘스트가 구현되면 조회·권한·보존 요구에 맞춰 별도 테이블로 분리한다.
+부작용은 hook/route/Worker/운영 도구에 모으고 계산은 lib에서 테스트한다. 현재 큰 Home 조합을 분리하려면 세션·클라우드·캠프 계약 단위로 단계적으로 한다. 이 문서는 대규모 구조 변경 승인이 아니다.
 
-## 인증과 권한
+## 3. 상태와 저장
 
-- 브라우저에는 Supabase URL과 publishable/anon key만 둔다.
-- `service_role` 키는 브라우저, 저장소, 빌드 결과에 넣지 않는다.
-- `anon` 역할은 클라우드 테이블에 접근할 수 없다.
-- `authenticated` 역할도 RLS가 허용하는 자신의 한 행만 읽고 쓸 수 있다.
-- 이메일 확인 여부, 비밀번호 정책, OAuth 리디렉션은 Supabase 운영 설정에서 관리한다.
-- Google 로그인 버튼은 제공자 설정과 리디렉션 검증이 끝난 뒤 환경 변수로 활성화한다.
+- 세션은 ActiveSession v1: absolute deadline(ms), paused seconds, startedAt, mode, 동료/음악/목표/선택 quest·원정.
+- React의 250ms 갱신은 시간의 원천이 아니다. 복귀 후 deadline과 현재 시각 차이를 계산한다.
+- 완료 ID는 시작시각+동료로 안정화해 새로고침·RPC 재시도를 중복 완주로 세지 않는다.
+- CloudStateData v4와 서버 row revision은 서로 다른 버전이다. payload는 v1~v4를 읽고 v4로 정규화한다.
+- JSON 상태는 설정·history·활성 세션·복귀·동료 성장. 과목/자료/퀴즈/캠프는 관계형 테이블이다.
+- history 400개, 성장 원장 2,000개 상한이 있다. 영구 무제한 누적을 보장하지 않는다.
 
-## 저장 계약
+[필드·키·소유 관계](engineering/DATA_MODEL.md)와 [집중 기능](engineering/FEATURES_CORE.md)을 참조한다.
 
-- 읽기: 사용자 행이 없으면 로컬 데이터를 첫 버전으로 저장한다.
-- 쓰기: 클라이언트가 알고 있는 `baseVersion`과 서버 버전이 같을 때만 갱신한다.
-- 충돌: 서버 최신 상태와 로컬 상태를 병합한 뒤 한 번 재시도한다.
-- 세션: 더 최근의 `sessionUpdatedAt`을 적용한다.
-- 완료 기록: 결정적인 세션 ID로 중복을 제거한다.
-- 로컬 소유권: 사용자 ID 표식이 같은 계정에만 로컬 캐시를 병합한다.
-- 계정 전환: 소유자 표식이 다른 로컬 상태는 비운 뒤 새 계정의 클라우드 상태를 적용한다.
-- 로그아웃: 저장 큐를 비운 뒤에만 세션을 종료하고 공용 로컬 화면을 초기화한다.
+## 4. 계정·동기화 계약
 
-## 장애와 복구
+1. 게스트는 해당 브라우저 저장으로 시작한다.
+2. 로그인 시 로컬 owner 표식을 비교한다. 다른 계정 소유 데이터는 이관하지 않는다.
+3. Supabase adapter가 자기 행을 읽고 version 조건부 저장한다. 최초 insert 경쟁과 수정 CAS 실패를 409 도메인 결과로 정규화한다.
+4. 저장 큐를 직렬화하고 충돌은 최신 cloud와 병합 후 한 번 재시도한다.
+5. 설정은 cloud 우선, history는 ID 기준, 회상은 savedAt, 세션/복귀는 각각 최신 변경시각 기준이다. null은 종료의 tombstone이 될 수 있다.
+6. visible tab은 10초 주기와 화면 복귀에 pull한다. 다기기 즉시 lockstep 편집기는 아니다.
+7. 최종 저장 실패 시 로그아웃을 중단한다. 성공 후 계정 소유 캐시를 비운다.
 
-- 인증 실패: 로컬 게스트 모드는 계속 사용할 수 있다.
-- 네트워크 실패: 로컬 기록을 보존하고 동기화 오류를 표시한다.
-- RLS/테이블 미설정: `클라우드 초기 설정을 확인해 주세요`로 구분한다.
-- 이메일 미확인: 인증 메일 안내를 유지하고 로컬 기록은 삭제하지 않는다.
-- 배포 실패: 기존 Sites 운영판은 그대로 보존한다.
+## 5. 학습·공동 집중 경계
 
-## 배포
+- PDF.js는 브라우저에서 글자를 추출하지만 계정 PDF 원본과 퀴즈 소스는 Supabase에 저장한다. OCR·유료 AI 분석은 없다.
+- Storage 업로드와 metadata insert, 파일 삭제와 Auth 삭제는 서로 다른 서비스 작업이다. 보상/재처리 경로는 있지만 원자 트랜잭션이 아니다.
+- 세트 완료/학습 진척은 소유 관계를 검증하는 SQL RPC를 사용한다.
+- 캠프는 DB 멤버십 + private Realtime이다. 개인 목표·자료·퀘스트는 공유 timer DTO에서 제외한다.
+- 채팅은 임시 broadcast다. 멤버십 인증을 payload 서명·영구 감사·서버 rate limiting으로 확대 해석하지 않는다.
 
-### 공개 운영판
+## 6. 인증·보안·관측
 
-- Cloudflare Workers의 Worker + Static Assets 구성
-- Supabase Auth + Postgres
-- 필요한 공개 빌드 환경 변수:
-  - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  - `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH`
-- 배포 전 Supabase SQL 마이그레이션과 인증 리디렉션 URL을 설정한다.
+- 공개 Supabase 키는 노출 가능한 설정이며 RLS/FK/RPC/Storage가 데이터 경계다.
+- Worker의 service_role/VAPID 개인키는 Secret 전용. metadata/초대 코드/요청 ID는 관리자 권한이 아니다.
+- 신규 가입 확인은 Auth trigger와 읽기 전용 acknowledgement로 서버에 남긴다. UI 문서 버전과 trigger 버전을 함께 변경한다.
+- API는 no-store·요청 ID, Worker는 CSP/HSTS/nosniff/iframe 금지 등 헤더를 적용한다. 현재 CSP의 inline 허용을 완전한 XSS 방어로 설명하지 않는다.
+- 운영 오류 로그는 route/code/status/requestId/timestamp 등 제한된 필드만 남긴다. 학습 본문과 키는 남기지 않는다.
+- 제품 이벤트는 로그인 사용자 중심의 제한 집계다. 전체 방문자나 유료 전환 지표가 아니다.
 
-### 기존 운영판
+## 7. 배포·운영·호환
 
-- Sites 프로젝트 ID와 D1 바인딩은 삭제하거나 변경하지 않는다.
-- 공개 운영판이 검증될 때까지 소유자 전용 회귀 테스트 용도로 유지한다.
+- 대표 서비스는 [service-config](../lib/service-config.ts), 운영 설정은 [wrangler.public.jsonc](../wrangler.public.jsonc).
+- Next/React 소스를 Vinext/Vite로 Worker 대상으로 빌드한다. GitHub Pages 정적 export나 표준 Next 서버 배포로 간주하지 않는다.
+- GitHub CI는 규칙·문서·린트·빌드·비밀값·렌더·브라우저, 별도 workflow는 격리 Supabase를 검증한다.
+- Worker의 매일 UTC 18:00은 KST 다음 날 03:00이다. PC의 매일 21:00 암호화 백업 예약과 별개다.
+- 외부 사본/독립 키 복구는 아직 미구성. 자동 사본 정리는 PC/Codex/CLI 인증에 의존한다.
+- 기존 Sites 프로젝트 식별자와 hosting.json은 보존한다. 옛 ChatGPT/D1 API는 공개판에서 DB 미바인딩 404가 정상이다. 권한 오류를 숨기려고 공개판에 D1을 붙이지 않는다.
+- 롤백은 현재 DB/가입 trigger와 호환되는 소스로만 한다. 과거 UI로 무조건 되돌리는 방법은 아니다.
 
-## 수용 기준
-
-- 워크스페이스 외부 이메일로 가입하고 로그인할 수 있다.
-- 같은 계정으로 두 기기에서 설정·기록·진행 중 타이머가 동기화된다.
-- 서로 다른 두 계정은 상대방 데이터를 읽거나 수정할 수 없다.
-- 게스트 기록이 첫 로그인에서 사라지지 않는다.
-- 로그인·클라우드 장애가 타이머 사용을 막지 않는다.
-- 모바일에서 가입·로그인 화면이 키보드와 안전 영역을 포함해 동작한다.
-
-## 남은 외부 설정
-
-1. 선택 시 Google OAuth 클라이언트와 리디렉션 URL 설정
-2. 실제 서로 다른 두 계정으로 RLS와 다기기 동기화 검증
+[API](engineering/API_CONTRACTS.md) · [운영](OPERATIONS_RUNBOOK.md) · [검증](engineering/QUALITY.md)

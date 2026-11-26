@@ -44,6 +44,11 @@ type UseCloudSyncOptions = {
   hydrated: boolean;
 };
 
+/**
+ * Owns authentication, serialized saves and visible-tab refresh, not timer math.
+ * Keep account cache isolation and save-before-sign-out behavior intact.
+ * Contract: docs/engineering/API_CONTRACTS.md and docs/engineering/FEATURES_CORE.md.
+ */
 export function useCloudSync({
   applyCloudState,
   data,
@@ -509,6 +514,7 @@ export function useCloudSync({
     [supabase],
   );
 
+  // A failed final save deliberately blocks sign-out rather than hiding data loss.
   const signOut = useCallback(async () => {
     if (!supabase) return;
     for (

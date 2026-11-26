@@ -161,6 +161,7 @@ export function parseRecoveryQuest(
   }
 }
 
+/** World growth counts this companion's completed >=10 minute records, not time. */
 export function getWorldProgress(
   history: FocusRecord[],
   adventureId: AdventureId,

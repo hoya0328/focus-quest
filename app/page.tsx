@@ -519,6 +519,11 @@ function createAmbientSound(theme: Exclude<BgmId, "quiet">) {
   return context;
 }
 
+/**
+ * Product-flow orchestrator: React owns session transitions and persistence;
+ * Phaser only renders progress. Completion IDs must remain stable across reloads.
+ * See docs/engineering/FEATURES_CORE.md before changing completion/recovery order.
+ */
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("select");
   const [showStudyTools, setShowStudyTools] = useState(false);

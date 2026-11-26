@@ -102,6 +102,11 @@ function sentencesForRange(source: StudyQuizSource, startPage: number, endPage: 
     .filter(({ sentence }) => sentence.length >= 24 && keywordCandidates(sentence).length >= 2);
 }
 
+/**
+ * Deterministic cloze question, not semantic AI analysis. The quoted sentence must
+ * be in the studied range; distractor terms may come from the rest of the source.
+ * Returns null when evidence or three distinct distractors are unavailable.
+ */
 export function createStudyQuiz(
   source: StudyQuizSource,
   startPage: number,
@@ -146,6 +151,7 @@ export function createStudyQuiz(
   };
 }
 
+/** Bounded search of 16 variants; exhaustion must remain a skippable UI state. */
 export function createUnseenStudyQuiz(
   source: StudyQuizSource,
   startPage: number,

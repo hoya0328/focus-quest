@@ -15,6 +15,8 @@
 
 [서비스 사용해 보기](https://focus-quest.hoya0328.workers.dev) · [제품 설계](docs/PROJECT_CONTEXT.md) · [아키텍처](docs/ARCHITECTURE.md) · [로드맵](docs/ROADMAP.md)
 
+개발 인수인계는 **[기술 문서 시작하기](docs/engineering/README.md)** 에서 확인할 수 있습니다. 실행 환경, 기능별 상세 명세, API·데이터·권한, 테스트와 운영 절차를 현재 코드 기준으로 정리했습니다.
+
 ## Project Snapshot
 
 | 항목 | 내용 |
@@ -117,7 +119,7 @@ flowchart TD
 
 **구현한 범위:** 세 가지 모험, 캐릭터별 5단계 월드와 4단계 외형 성장, 5단계 이후 유물·숙련·계절 사건, 포모도로와 여러 세트 원정, 중단 후 복귀, 원정 지도형 주간 기록, 타이머 복구, 계정 동기화, 선택형 PDF 체크포인트와 로컬 학습 가이드, 종료 후 Web Push, 관계·신고가 포함된 인증 Silent Camp, 설치 가능한 PWA입니다.
 
-**추가 검증할 범위:** Chrome·Safari의 실제 기기 알림 수신, 작은 타이머, 서로 다른 두 계정의 캠프 추방·재연결을 확인하는 실사용 QA입니다. [인수인계](docs/HANDOFF.md)와 [QA 기록](docs/QA_REPORT_2026-08-11.md)을 함께 관리합니다.
+**추가 검증할 범위:** 일반 사용자 이메일 발송 설정, 실제 기기 알림·작은 타이머·서로 다른 두 기기의 캠프 상호작용, 외부 백업과 독립 키 복구입니다. [현재 제한](docs/engineering/LIMITATIONS.md)과 [검증 기준](docs/engineering/QUALITY.md)을 확인해 주세요. 날짜별 QA·인계 문서는 당시의 기록입니다.
 
 **의도적으로 남긴 범위:** 실제 사용자·실기기 QA, 유료 결제와 유료 AI 호출, Android·iOS 스토어 서명·심사입니다. 현재 PWA와 패키징 준비 사항은 [네이티브 패키징 안내](docs/NATIVE_PACKAGING.md)에 정리했습니다.
 
@@ -137,6 +139,7 @@ npm run dev
 
 ```bash
 npm run test:logic
+npm run docs:check
 npm run lint
 npm run build
 node --test tests/rendered-html.test.mjs
@@ -153,8 +156,9 @@ npm run release:check
 | :--- | :--- |
 | 사용자 문제와 제품 방향 | [프로젝트 맥락](docs/PROJECT_CONTEXT.md) · [퀘스트 설계](docs/QUEST_MVP.md) |
 | 구조와 설계 배경 | [아키텍처](docs/ARCHITECTURE.md) · [설계 결정](docs/DECISIONS.md) |
+| 기술 인수인계·기능 명세 | [문서 시작점](docs/engineering/README.md) · [API 계약](docs/engineering/API_CONTRACTS.md) · [데이터·권한](docs/engineering/DATA_MODEL.md) |
 | 실행 환경과 검증 | [프로젝트 세팅](docs/SERVICE_SETUP.md) · [QA 기록](docs/QA_REPORT_2026-08-11.md) |
-| 다음 개발 범위 | [로드맵](docs/ROADMAP.md) · [인수인계](docs/HANDOFF.md) |
+| 다음 개발 범위 | [로드맵](docs/ROADMAP.md) · [현재 제한](docs/engineering/LIMITATIONS.md) |
 
 ---
 

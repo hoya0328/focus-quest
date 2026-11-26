@@ -49,6 +49,12 @@ function storageUploadErrorMessage(error: unknown) {
     : "PDF를 저장하지 못했어요.";
 }
 
+/**
+ * Browser PDF extraction plus private Storage/metadata persistence. These two
+ * remote writes are not a transaction: insertion failure compensates by removing
+ * the uploaded object. Account deletion also scans the owner prefix for orphans;
+ * a failed compensation must not be described as an atomic rollback.
+ */
 export function useStudyMaterials(enabled: boolean) {
   const client = getSupabaseBrowserClient();
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);

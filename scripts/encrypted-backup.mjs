@@ -43,6 +43,7 @@ function dpapi(bytes, operation) {
   } catch { throw new Error("Windows account-bound key protection failed; no unencrypted key was saved."); }
 }
 
+/** CurrentUser DPAPI on Windows; existing archives must never receive a new key. */
 export async function loadBackupKey(root) {
   if (process.env.BACKUP_ENCRYPTION_KEY) {
     const key = Buffer.from(process.env.BACKUP_ENCRYPTION_KEY, "base64");
@@ -84,6 +85,7 @@ export async function writeArchive(directory, files, key, { projectRef, createdA
   return index;
 }
 
+/** Returns plaintext only in memory after authenticating index, manifest and objects. */
 export async function readArchive(directory, key) {
   const index = JSON.parse(await readFile(path.join(directory, "index.json"), "utf8"));
   if (index.version !== 2 || index.keyId !== digest(key).slice(0, 16) || index.expiresAt !== expirationDate(index.createdAt)) throw new Error("Invalid backup index or key.");
@@ -111,6 +113,10 @@ export async function removeArchive(root, directory) {
   await rm(target, { recursive: true });
 }
 
+/**
+ * Destructive, opt-in caller path. Verify every candidate before any deletion;
+ * matching a deletion tombstone purges the whole archive, not individual rows.
+ */
 export async function pruneArchives(root, key, deletions, keepDirectory, now = Date.now()) {
   const candidates = [];
   for (const entry of await readdir(root, { withFileTypes: true })) {
