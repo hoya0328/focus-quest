@@ -17,7 +17,7 @@
 | [app/chatgpt-auth.ts](../../app/chatgpt-auth.ts) | `ChatGPTUser` (L4), `getChatGPTUser` (L19), `requireChatGPTUser` (L38), `chatGPTSignInPath` (L47), `chatGPTSignOutPath` (L52) |
 | [app/components/AdventureArchive.tsx](../../app/components/AdventureArchive.tsx) | `AdventureArchive` (L23) |
 | [app/components/AdventureQuestScene.tsx](../../app/components/AdventureQuestScene.tsx) | `AdventureQuestScene` (L34) |
-| [app/components/AuthDialog.tsx](../../app/components/AuthDialog.tsx) | `AuthDialog` (L22) |
+| [app/components/AuthDialog.tsx](../../app/components/AuthDialog.tsx) | `AuthDialog` (L23) |
 | [app/components/CampLobby.tsx](../../app/components/CampLobby.tsx) | `CampCompanion` (L18), `CampLobby` (L76) |
 | [app/components/CampReflectionPanel.tsx](../../app/components/CampReflectionPanel.tsx) | `CampReflectionPanel` (L27) |
 | [app/components/CompanionEvolutionSprite.tsx](../../app/components/CompanionEvolutionSprite.tsx) | `CompanionEvolutionSprite` (L17) |
@@ -99,7 +99,7 @@
 | [lib/supabase-client.ts](../../lib/supabase-client.ts) | `isSupabaseConfigured` (L11), `isGoogleAuthEnabled` (L15), `getSupabaseBrowserClient` (L18) |
 | [lib/support-requests.ts](../../lib/support-requests.ts) | `SUPPORT_NOTICE_VERSION` (L1), `SUPPORT_MAX_LENGTH` (L2), `SUPPORT_CATEGORIES` (L3), `SupportCategory` (L4), `SupportStatus` (L5), `SupportSubmission` (L6), `SupportTicket` (L7), `SupportPage` (L8), `parseSupportSubmission` (L11), `parseSupportCursor` (L22), `createSupportEndpoint` (L64) |
 | [lib/telemetry-session.ts](../../lib/telemetry-session.ts) | `telemetryStorageKeys` (L3), `isDormantReturn` (L10) |
-| [lib/visit-analytics.ts](../../lib/visit-analytics.ts) | `VISIT_ANALYTICS_PREFERENCE` (L1), `visitAnalyticsAllowed` (L4), `validAnalyticsToken` (L8) |
+| [lib/visit-analytics.ts](../../lib/visit-analytics.ts) | `VISIT_ANALYTICS_PREFERENCE` (L1), `VISIT_ANALYTICS_CHANGED` (L2), `saveVisitAnalyticsPreference` (L5), `visitAnalyticsAllowed` (L14), `validAnalyticsToken` (L18) |
 | [lib/world-growth.ts](../../lib/world-growth.ts) | `WORLD_LEVEL_MIN` (L3), `WORLD_LEVEL_MAX` (L4), `clampWorldLevel` (L12), `getWorldBackgroundKey` (L20), `getWorldBackgroundPath` (L27) |
 | [scripts/backup-production.mjs](../../scripts/backup-production.mjs) | — |
 | [scripts/build-e2e.mjs](../../scripts/build-e2e.mjs) | — |

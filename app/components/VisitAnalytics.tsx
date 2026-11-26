@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { validAnalyticsToken, visitAnalyticsAllowed, VISIT_ANALYTICS_PREFERENCE } from "@/lib/visit-analytics";
+import { saveVisitAnalyticsPreference, validAnalyticsToken, visitAnalyticsAllowed, VISIT_ANALYTICS_CHANGED, VISIT_ANALYTICS_PREFERENCE } from "@/lib/visit-analytics";
 import "./visit-analytics.css";
 
 export default function VisitAnalytics() {
@@ -21,6 +21,7 @@ export default function VisitAnalytics() {
       try {
         const saved = localStorage.getItem(VISIT_ANALYTICS_PREFERENCE);
         setPreference(saved);
+        if (path === "/" && saved !== "allowed") return;
         const result = await fetch("/api/visit-analytics", { cache: "no-store", signal: controller.signal });
         if (!result.ok) return;
         const config = await result.json();
@@ -38,24 +39,25 @@ export default function VisitAnalytics() {
       } catch { /* Analytics failure never blocks the timer, including storage restrictions. */ }
     };
     void init();
-    const onStorage = (event: StorageEvent) => {
-      if (event.key !== VISIT_ANALYTICS_PREFERENCE) return;
-      if (loaded.current) location.reload();
-      else setPreference(event.newValue);
+    const syncPreference = () => {
+      let next = null;
+      try { next = localStorage.getItem(VISIT_ANALYTICS_PREFERENCE); } catch { /* Storage restrictions leave analytics disabled. */ }
+      if (loaded.current && next !== "allowed") location.reload();
+      else setPreference(next);
     };
+    const onStorage = (event: StorageEvent) => { if (event.key === null || event.key === VISIT_ANALYTICS_PREFERENCE) syncPreference(); };
     window.addEventListener("storage", onStorage);
-    return () => { cancelled = true; controller.abort(); clearTimeout(timeout); window.removeEventListener("storage", onStorage); };
+    window.addEventListener(VISIT_ANALYTICS_CHANGED, syncPreference);
+    return () => { cancelled = true; controller.abort(); clearTimeout(timeout); window.removeEventListener("storage", onStorage); window.removeEventListener(VISIT_ANALYTICS_CHANGED, syncPreference); };
   }, [path, preference]);
 
-  if ((path !== "/" && path !== "/privacy") || !available) return null;
+  // Loading on the home page is independent of rendering privacy controls there.
+  if (path !== "/privacy" || !available) return null;
 
   const change = (next: "allowed" | "denied") => {
-    try {
-      localStorage.setItem(VISIT_ANALYTICS_PREFERENCE, next);
-      if (loaded.current && next === "denied") { location.reload(); return; }
-      setPreference(next);
+    if (saveVisitAnalyticsPreference(next)) {
       setNotice(next === "allowed" ? "방문 통계를 허용했습니다. 로그인 사용 통계와는 별도로 처리됩니다." : "외부 방문 통계를 사용하지 않습니다.");
-    } catch { setNotice("이 브라우저는 설정 저장을 허용하지 않아 방문 분석을 켜지 않았습니다."); }
+    } else { setNotice("이 브라우저는 설정 저장을 허용하지 않아 방문 분석을 켜지 않았습니다."); }
   };
   return <section className="visit-analytics" id="visit-analytics" aria-labelledby="visit-analytics-title">
     <div><h2 id="visit-analytics-title">방문 통계 설정</h2><p>사이트 방문과 로딩 품질을 Cloudflare로 측정하도록 허용할 수 있어요. 이메일·공부 내용은 전송하지 않습니다. 허용하지 않아도 모든 기능을 쓸 수 있습니다.</p>

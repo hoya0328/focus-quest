@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { AuthActionResult } from "@/app/hooks/useCloudSync";
 import { PRIVACY_NOTICE_PATH, type SignupPrivacyConfirmation } from "@/lib/privacy";
 import { TERMS_PATH } from "@/lib/operating-policy";
+import { saveVisitAnalyticsPreference } from "@/lib/visit-analytics";
 
 type AuthMode = "signin" | "signup";
 
@@ -38,6 +39,7 @@ export default function AuthDialog({
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [noticeConfirmed, setNoticeConfirmed] = useState(false);
   const [termsConfirmed, setTermsConfirmed] = useState(false);
+  const [analyticsConsent, setAnalyticsConsent] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -47,6 +49,7 @@ export default function AuthDialog({
     setAgeConfirmed(false);
     setNoticeConfirmed(false);
     setTermsConfirmed(false);
+    setAnalyticsConsent(false);
     setNotice("");
     onClose();
   };
@@ -57,6 +60,7 @@ export default function AuthDialog({
     setAgeConfirmed(false);
     setNoticeConfirmed(false);
     setTermsConfirmed(false);
+    setAnalyticsConsent(false);
   };
 
   useEffect(() => {
@@ -76,6 +80,15 @@ export default function AuthDialog({
   }, [open, passwordRecovery]);
 
   if (!open) return null;
+  const analyticsBlocked = typeof navigator !== "undefined" && navigator.doNotTrack === "1";
+
+  const applyOptionalAnalytics = (result: AuthActionResult) => {
+    // Signup grants a new choice only; existing opt-in/withdrawal remains in privacy settings.
+    if (result.ok && mode === "signup" && analyticsConsent && !analyticsBlocked && !saveVisitAnalyticsPreference("allowed")) {
+      return `${result.message} 방문 통계는 설정을 저장할 수 없어 켜지 않았어요.`;
+    }
+    return result.message;
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -107,7 +120,7 @@ export default function AuthDialog({
         ? await onSignIn(email, password)
         : await onSignUp(email, password, { ageConfirmed, noticeConfirmed, termsConfirmed });
     setBusy(false);
-    setNotice(result.message);
+    setNotice(applyOptionalAnalytics(result));
     if (result.ok && mode === "signin") closeDialog();
   };
 
@@ -131,7 +144,7 @@ export default function AuthDialog({
     setBusy(true);
     const result = await onGoogle();
     setBusy(false);
-    setNotice(result.message);
+    setNotice(applyOptionalAnalytics(result));
   };
 
   return (
@@ -221,6 +234,7 @@ export default function AuthDialog({
                 setAgeConfirmed(false);
                 setNoticeConfirmed(false);
                 setTermsConfirmed(false);
+                setAnalyticsConsent(false);
               }}
               placeholder="name@example.com"
               ref={emailRef}
@@ -259,6 +273,20 @@ export default function AuthDialog({
               <label>
                 <input type="checkbox" checked={termsConfirmed} disabled={busy} onChange={(event) => setTermsConfirmed(event.target.checked)} required={mode === "signup"} />
                 <span>이용약관에 동의합니다. <small>현재 무료 공개 베타로 제공됩니다.</small></span>
+              </label>
+            </fieldset>
+          )}
+          {!passwordRecovery && mode === "signup" && (
+            <fieldset className="auth-privacy-checks">
+              <legend>선택 사항</legend>
+              <label>
+                <input type="checkbox" checked={analyticsConsent} disabled={busy || analyticsBlocked} onChange={(event) => setAnalyticsConsent(event.target.checked)} />
+                <span>서비스 개선을 위한 방문 통계 측정에 동의합니다. (선택)
+                  <small>{analyticsBlocked
+                    ? "브라우저의 추적 금지 설정에 따라 방문 통계는 사용하지 않아요."
+                    : "Cloudflare로 방문·로딩 품질을 측정하며 이메일·공부 내용은 보내지 않아요. 동의하지 않아도 가입할 수 있습니다."}</small>
+                  <small>이 브라우저에만 적용돼요. 기존 선택의 변경·철회는 <a href={`${PRIVACY_NOTICE_PATH}#visit-analytics`} target="_blank" rel="noopener noreferrer">개인정보 처리방침 (새 탭)</a>에서 할 수 있어요.</small>
+                </span>
               </label>
             </fieldset>
           )}

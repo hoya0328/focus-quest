@@ -126,6 +126,19 @@ test("visit analytics requires explicit opt-in and excludes auth/operator URLs a
   for (const value of [null, "", "not-a-site-token", "https://attacker.example/", "a".repeat(33)]) assert.equal(validAnalyticsToken(value), false);
 });
 
+test("analytics controls live in privacy and optional signup never changes mandatory signup metadata", async () => {
+  const [analytics, dialog, privacy] = await Promise.all([
+    readFile(new URL("../app/components/VisitAnalytics.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/AuthDialog.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../lib/privacy.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(analytics, /if \(path !== "\/privacy" \|\| !available\) return null/);
+  assert.match(analytics, /VISIT_ANALYTICS_CHANGED, syncPreference/);
+  assert.match(dialog, /\[analyticsConsent, setAnalyticsConsent\] = useState\(false\)/);
+  assert.match(dialog, /result\.ok && mode === "signup" && analyticsConsent && !analyticsBlocked/);
+  assert.doesNotMatch(privacy, /analyticsConsent|VISIT_ANALYTICS_PREFERENCE/);
+});
+
 test("server route selects a minimal event projection and caps pagination", async () => {
   const source = await readFile(new URL("../app/api/operations/route.ts", import.meta.url), "utf8");
   assert.match(source, /FOCUS_QUEST_OPERATOR_USER_IDS/);

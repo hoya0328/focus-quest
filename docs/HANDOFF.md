@@ -10,6 +10,7 @@
 | 검증·장애 대응 | [품질 기준](engineering/QUALITY.md), [운영 런북](OPERATIONS_RUNBOOK.md) |
 | 검색·운영 통계 | [발견성과 측정 계약](engineering/FEATURES_PLATFORM.md#fq-16--검색-발견성과-운영자-통계), [HTTP 계약](engineering/API_CONTRACTS.md) |
 | 서비스명·검색 제목·공유 설명 | [공개 문구 설정](../lib/service-config.ts), [홈 구조화 데이터](../lib/search-discovery.ts), [렌더링 검증](../tests/rendered-html.test.mjs) |
+| 방문 통계 선택 동의·철회 | [가입 UI](../app/components/AuthDialog.tsx), [브라우저 선택/수집](../app/components/VisitAnalytics.tsx), [동의 흐름 회귀](../e2e/launch.spec.ts) |
 | 문의 접수·운영자 문의함·설치 | [문의 API 계약](engineering/API_CONTRACTS.md#post-apisupport-get-apisupport-patch-apisupport), [회귀](../tests/support-requests.test.mjs), [브라우저](../e2e/support-install.spec.ts), [DB 역할 검사](../supabase/tests/support_inbox_security.sql) |
 | 외부 의존·미완료 검증 | [현재 제한](engineering/LIMITATIONS.md) |
 
