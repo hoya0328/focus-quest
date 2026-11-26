@@ -20,6 +20,10 @@
 
 공개 방문 분석은 선택형 Cloudflare Web Analytics, 로그인 후 기능 이용은 기존 Supabase 이벤트로 분리한다. 기본 방문 분석은 꺼짐이며 공부 내용·계정 식별자를 외부 beacon에 붙이지 않는다. 운영 화면은 서버 전용 UUID allowlist로 보호하고 익명 집계가 아닌 계정 연결 원본을 개인정보로 관리한다. 이벤트 건수·기간 내 이용자 비율과 세션 완주율·가입 코호트 유지율을 혼용하지 않는다. [기능 계약](engineering/FEATURES_PLATFORM.md#fq-16--검색-발견성과-운영자-통계).
 
+## 비공개 문의 접수
+
+문의 메모는 메일 클라이언트 없이 제출하며 기존 운영자 UUID allowlist의 계정만 읽는다. 로그인·이메일과 연결하지 않고 별도 안내 확인을 받는다. 서버 접수 RPC의 원자적 한도로 남용을 완화하고 접수 후 90일 정리한다. 단기 문의를 학습 기록 백업에 넣지 않으므로 문의함의 독립 복구를 보장하지 않는다. [API 계약](engineering/API_CONTRACTS.md#post-apisupport-get-apisupport-patch-apisupport).
+
 ## 문서 일치 기준
 
 계약은 기능 ID·수용 기준·소스/테스트 연결로 유지한다. 새 API/테이블은 문서 검사에서 누락을 확인한다. 개인 작업 체계·상세 실행 로그를 기술 결정과 섞지 않는다. [변경 기준](../CONTRIBUTING.md).

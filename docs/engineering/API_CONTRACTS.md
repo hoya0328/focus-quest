@@ -19,6 +19,15 @@
 
 공개 설정 endpoint. `{enabled:false}` 또는 `{enabled:true,token:<public-site-id>}`만 반환한다. 32자리 hex 형식의 사이트 식별자는 의도적으로 공개되며 Cloudflare API 자격 증명이 아니다. 응답은 no-store/noindex. 관리자 키·운영자 UUID는 반환하지 않는다.
 
+## POST /api/support, GET /api/support, PATCH /api/support
+
+- POST는 비로그인도 사용하며 같은 Origin의 JSON만 받는다. 16KiB body 한도, UUID v4 재시도 키, `category=bug|suggestion|question`, 10~3,000자 `message`, `consent=true`, 현재 `noticeVersion`이 필요하다. 계정·이메일·자료는 수집하지 않는다. 성공 200 `{id,message}`이며 접수 본문을 돌려주지 않는다.
+- 서버는 Cloudflare가 제공한 접속 IP를 서버 비밀키 HMAC과 UTC 날짜로 가명화한다. 원래 IP는 저장하지 않는다. 접수 RPC는 트랜잭션 잠금으로 동시 요청을 직렬화하고 같은 일 단위 식별값에 시간당 3건·일 10건, 전체 일 500건을 적용한다. 자정·공유 네트워크·서버 키 교체의 경계가 있는 남용 완화이며 완전한 봇 차단이나 비용 하드캡은 아니다.
+- 동일 UUID·내용·식별값 재시도는 중복 저장하지 않는다. 키 충돌 409, 한도 429 + Retry-After, 입력 400/413, Origin 불일치 403, 서버 실패 503. 비밀값·DB 오류·다른 문의는 오류에 포함하지 않는다.
+- GET/PATCH는 서버 검증 Supabase JWT + 기존 운영자 allowlist만 허용한다. 무인증/만료 401, 비운영자 403. GET `access=1`은 내용 없이 메뉴 노출 권한만, 일반 GET은 최신 50건과 `nextCursor`를 반환한다. cursor는 검증된 밀리초 ISO 시각/UUID 키셋이며 90일 이전 문의는 제외한다.
+- PATCH `{id,status:open|closed}`는 상태·처리시각만 변경한다. 메시지 수정/삭제 API는 없다. 문의의 접수 번호는 조회 권한이 아니다. 모든 응답은 private/no-store/noindex다.
+- `/operations/support`는 내용 없는 HTML shell이며 private/no-store/noindex다. 실제 문의는 권한 API가 반환하며 계정 전환·로그아웃 시 화면에서 제거한다. [구현](../../app/api/support/route.ts), [단위](../../tests/support-requests.test.mjs), [DB 역할 검증](../../supabase/tests/support_inbox_security.sql).
+
 ## GET /robots.txt, GET /sitemap.xml
 
 기존 공개 origin만 사용한다. sitemap은 `/`, `/privacy`, `/terms`만 열거한다. robots는 `/api/`, `/operations`, `/auth/`를 제외한다. 검색 지시문은 인증이 아니며 검색엔진 등록·색인 승인을 보장하지 않는다.

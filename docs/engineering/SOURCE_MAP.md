@@ -11,6 +11,7 @@
 | [app/api/cloud-state/route.ts](../../app/api/cloud-state/route.ts) | `dynamic` (L14), `GET` (L111), `PUT` (L132), `DELETE` (L244) |
 | [app/api/operations/route.ts](../../app/api/operations/route.ts) | `dynamic` (L5), `GET` (L7) |
 | [app/api/push-subscriptions/route.ts](../../app/api/push-subscriptions/route.ts) | `dynamic` (L6), `POST` (L60), `DELETE` (L113) |
+| [app/api/support/route.ts](../../app/api/support/route.ts) | `dynamic` (L6), `POST` (L59), `GET` (L60), `PATCH` (L61) |
 | [app/api/visit-analytics/route.ts](../../app/api/visit-analytics/route.ts) | `GET` (L5) |
 | [app/base.css](../../app/base.css) | 스타일시트 |
 | [app/chatgpt-auth.ts](../../app/chatgpt-auth.ts) | `ChatGPTUser` (L4), `getChatGPTUser` (L19), `requireChatGPTUser` (L38), `chatGPTSignInPath` (L47), `chatGPTSignOutPath` (L52) |
@@ -22,13 +23,15 @@
 | [app/components/CompanionEvolutionSprite.tsx](../../app/components/CompanionEvolutionSprite.tsx) | `CompanionEvolutionSprite` (L17) |
 | [app/components/ExamExpeditionPanel.tsx](../../app/components/ExamExpeditionPanel.tsx) | `ExamExpeditionPanel` (L6) |
 | [app/components/FishingQuestScene.tsx](../../app/components/FishingQuestScene.tsx) | `FishingQuestScene` (L31) |
-| [app/components/InstallGuide.tsx](../../app/components/InstallGuide.tsx) | `InstallGuide` (L16) |
+| [app/components/InstallGuide.tsx](../../app/components/InstallGuide.tsx) | `InstallGuide` (L6) |
+| [app/components/OperatorInboxLink.tsx](../../app/components/OperatorInboxLink.tsx) | `OperatorInboxLink` (L6) |
 | [app/components/PlusInterestPanel.tsx](../../app/components/PlusInterestPanel.tsx) | `PlusInterestPanel` (L11) |
 | [app/components/QuestBoard.tsx](../../app/components/QuestBoard.tsx) | `QuestBoard` (L73) |
 | [app/components/RestQuestScene.tsx](../../app/components/RestQuestScene.tsx) | `RestQuestScene` (L42) |
 | [app/components/RetentionPanel.tsx](../../app/components/RetentionPanel.tsx) | `RetentionPanel` (L36) |
 | [app/components/StudyMaterialLibrary.tsx](../../app/components/StudyMaterialLibrary.tsx) | `StudyMaterialLibrary` (L32) |
 | [app/components/StudyQuizPanel.tsx](../../app/components/StudyQuizPanel.tsx) | `StudyCheckpointPanel` (L103), `StudyRecallPanel` (L176) |
+| [app/components/SupportButton.tsx](../../app/components/SupportButton.tsx) | `SupportButton` (L7) |
 | [app/components/VisitAnalytics.tsx](../../app/components/VisitAnalytics.tsx) | `VisitAnalytics` (L8) |
 | [app/components/WeeklyAdventureLog.tsx](../../app/components/WeeklyAdventureLog.tsx) | `WeeklyAdventureLog` (L50) |
 | [app/components/visit-analytics.css](../../app/components/visit-analytics.css) | 스타일시트 |
@@ -37,6 +40,7 @@
 | [app/hooks/useCloudSync.ts](../../app/hooks/useCloudSync.ts) | `CloudSyncStatus` (L28), `AuthActionResult` (L36), `useCloudSync` (L52) |
 | [app/hooks/usePlusInterest.ts](../../app/hooks/usePlusInterest.ts) | `PlusInterestLevel` (L6), `PlusPriceBand` (L7), `usePlusInterest` (L19) |
 | [app/hooks/useProductTelemetry.ts](../../app/hooks/useProductTelemetry.ts) | `ProductEventName` (L12), `useProductTelemetry` (L40) |
+| [app/hooks/usePwaInstall.ts](../../app/hooks/usePwaInstall.ts) | `usePwaInstall` (L19) |
 | [app/hooks/useSilentCamp.ts](../../app/hooks/useSilentCamp.ts) | `CampStatus` (L23), `CampRole` (L24), `CampContact` (L25), `CampHistoryEntry` (L32), `CampInvitation` (L40), `useSilentCamp` (L105) |
 | [app/hooks/useStudyMaterials.ts](../../app/hooks/useStudyMaterials.ts) | `MaterialPhase` (L16), `useStudyMaterials` (L58) |
 | [app/hooks/useStudyProgress.ts](../../app/hooks/useStudyProgress.ts) | `useStudyProgress` (L24) |
@@ -45,11 +49,14 @@
 | [app/operations/OperationsDashboard.tsx](../../app/operations/OperationsDashboard.tsx) | `OperationsDashboard` (L12) |
 | [app/operations/operations.css](../../app/operations/operations.css) | 스타일시트 |
 | [app/operations/page.tsx](../../app/operations/page.tsx) | `metadata` (L5), `OperationsPage` (L11) |
-| [app/page.tsx](../../app/page.tsx) | `Home` (L528) |
+| [app/operations/support/SupportInbox.tsx](../../app/operations/support/SupportInbox.tsx) | `SupportInbox` (L8) |
+| [app/operations/support/page.tsx](../../app/operations/support/page.tsx) | `metadata` (L6), `SupportInboxPage` (L12) |
+| [app/page.tsx](../../app/page.tsx) | `Home` (L526) |
 | [app/privacy/page.tsx](../../app/privacy/page.tsx) | `metadata` (L10), `PrivacyPage` (L29) |
 | [app/privacy/privacy.css](../../app/privacy/privacy.css) | 스타일시트 |
 | [app/robots.txt/route.ts](../../app/robots.txt/route.ts) | `GET` (L3) |
 | [app/sitemap.xml/route.ts](../../app/sitemap.xml/route.ts) | `GET` (L3) |
+| [app/support.css](../../app/support.css) | 스타일시트 |
 | [app/terms/page.tsx](../../app/terms/page.tsx) | `metadata` (L7), `TermsPage` (L13) |
 | [app/tokens.css](../../app/tokens.css) | 스타일시트 |
 | [build/sites-vite-plugin.ts](../../build/sites-vite-plugin.ts) | `sites` (L18) |
@@ -61,6 +68,7 @@
 | [e2e/privacy.spec.ts](../../e2e/privacy.spec.ts) | — |
 | [e2e/responsive.spec.ts](../../e2e/responsive.spec.ts) | — |
 | [e2e/staging.spec.ts](../../e2e/staging.spec.ts) | — |
+| [e2e/support-install.spec.ts](../../e2e/support-install.spec.ts) | — |
 | [e2e/world-growth.spec.ts](../../e2e/world-growth.spec.ts) | — |
 | [lib/adventure-archive.ts](../../lib/adventure-archive.ts) | `ArchiveRelic` (L3), `AdventureArchive` (L11), `isAdventureArchiveUnlocked` (L21), `getAdventureArchive` (L48), `getNextMasteryTarget` (L74) |
 | [lib/camp-reflection.ts](../../lib/camp-reflection.ts) | `getCampReflectionRecommendation` (L4) |
@@ -77,6 +85,7 @@
 | [lib/pomodoro.ts](../../lib/pomodoro.ts) | `SessionMode` (L1), `AdventureId` (L2), `BgmId` (L3), `CampOutcome` (L4), `CampDifficulty` (L5), `CampReflection` (L7), `ExpeditionProgress` (L14), `ActiveSession` (L22), `FocusRecord` (L39), `WeeklyDay` (L54), `WeeklySummary` (L61), `ACTIVE_SESSION_KEY` (L68), `HISTORY_KEY` (L69), `MAX_HISTORY_RECORDS` (L70), `MAX_FOCUS_INTENT_LENGTH` (L71), `MAX_CAMP_REFLECTION_LENGTH` (L72), `normalizeFocusIntent` (L110), `normalizeCampReflectionNote` (L115), `localDateKey` (L136), `createActiveSession` (L145), `remainingForSession` (L186), `pauseActiveSession` (L193), `resumeActiveSession` (L205), `parseActiveSession` (L219), `parseHistory` (L257), `createFocusRecord` (L299), `addFocusRecord` (L339), `addCampOutcome` (L347), `addCampReflection` (L357), `getDailyCount` (L377), `getFocusStreak` (L386), `getWeeklySummary` (L408), `createExpeditionProgress` (L445) |
 | [lib/privacy.ts](../../lib/privacy.ts) | `PRIVACY_NOTICE_PATH` (L1), `PRIVACY_NOTICE_VERSION` (L4), `PRIVACY_CONTACT` (L5), `SignupPrivacyConfirmation` (L10), `signupPrivacyMetadata` (L18) |
 | [lib/push-reminders.ts](../../lib/push-reminders.ts) | `VAPID_PUBLIC_KEY` (L1), `PushSubscriptionBody` (L4), `urlBase64ToUint8Array` (L13), `nextReminderAt` (L20), `parsePushSubscription` (L32) |
+| [lib/pwa-install.ts](../../lib/pwa-install.ts) | `InstallPlatform` (L1), `getInstallPlatform` (L2), `INSTALL_STEPS` (L7) |
 | [lib/quiz-feedback.ts](../../lib/quiz-feedback.ts) | `QuizFeedbackStage` (L1), `QuizFeedbackValue` (L3), `QuizFeedbackState` (L5), `QUIZ_FEEDBACK_OPTIONS` (L10), `emptyQuizFeedback` (L19) |
 | [lib/retention.ts](../../lib/retention.ts) | `RECOVERY_QUEST_LIFETIME_MS` (L8), `RECOVERY_QUEST_KEY` (L9), `RECOVERY_UPDATED_AT_KEY` (L10), `RecoveryQuest` (L13), `WorldProgress` (L23), `AdventureTraceProgress` (L34), `CompanionMemory` (L44), `BehaviorInsights` (L50), `WORLD_GROWTH_MINIMUM_MINUTES` (L61), `WORLD_GROWTH_MILESTONES` (L62), `createRecoveryQuest` (L92), `parseRecoveryQuest` (L118), `getWorldProgress` (L165), `getAdventureTraceProgress` (L198), `getCompanionMemory` (L231), `getBehaviorInsights` (L260) |
 | [lib/search-discovery.ts](../../lib/search-discovery.ts) | `PUBLIC_INDEX_PATHS` (L3), `websiteJsonLd` (L6), `sitemapXml` (L16), `robotsText` (L21) |
@@ -88,6 +97,7 @@
 | [lib/study-quests.ts](../../lib/study-quests.ts) | `QuestContract` (L9), `QuestStatus` (L15), `StudySubject` (L17), `StudyQuest` (L28), `SubjectDraft` (L51), `SubjectProgress` (L58), `QuestLearningState` (L67), `ExamExpedition` (L69), `ExamExpeditionReport` (L81), `QuestDraft` (L94), `SubjectRow` (L110), `QuestRow` (L121), `subjectFromRow` (L144), `questFromRow` (L157), `questProgress` (L190), `getQuestLearningState` (L202), `getRecommendedQuest` (L212), `getExamExpedition` (L233), `getExamExpeditionReport` (L318), `getSubjectProgress` (L407), `normalizeQuestDraft` (L476), `normalizeSubjectDraft` (L505) |
 | [lib/study-quiz.ts](../../lib/study-quiz.ts) | `QUIZ_SOURCE_KIND` (L1), `MAX_QUIZ_SOURCE_CHARACTERS` (L2), `StudyQuizSource` (L4), `StudyPageText` (L9), `StudyQuiz` (L11), `createStudyQuizSource` (L34), `parseStudyQuizSource` (L48), `parseStudyPageRange` (L67), `createStudyQuiz` (L110), `createUnseenStudyQuiz` (L155) |
 | [lib/supabase-client.ts](../../lib/supabase-client.ts) | `isSupabaseConfigured` (L11), `isGoogleAuthEnabled` (L15), `getSupabaseBrowserClient` (L18) |
+| [lib/support-requests.ts](../../lib/support-requests.ts) | `SUPPORT_NOTICE_VERSION` (L1), `SUPPORT_MAX_LENGTH` (L2), `SUPPORT_CATEGORIES` (L3), `SupportCategory` (L4), `SupportStatus` (L5), `SupportSubmission` (L6), `SupportTicket` (L7), `SupportPage` (L8), `parseSupportSubmission` (L11), `parseSupportCursor` (L22), `createSupportEndpoint` (L64) |
 | [lib/telemetry-session.ts](../../lib/telemetry-session.ts) | `telemetryStorageKeys` (L3), `isDormantReturn` (L10) |
 | [lib/visit-analytics.ts](../../lib/visit-analytics.ts) | `VISIT_ANALYTICS_PREFERENCE` (L1), `visitAnalyticsAllowed` (L4), `validAnalyticsToken` (L8) |
 | [lib/world-growth.ts](../../lib/world-growth.ts) | `WORLD_LEVEL_MIN` (L3), `WORLD_LEVEL_MAX` (L4), `clampWorldLevel` (L12), `getWorldBackgroundKey` (L20), `getWorldBackgroundPath` (L27) |
@@ -134,8 +144,9 @@
 | [tests/seasonal-events.test.mjs](../../tests/seasonal-events.test.mjs) | — |
 | [tests/silent-camp.test.mjs](../../tests/silent-camp.test.mjs) | — |
 | [tests/study-quests.test.mjs](../../tests/study-quests.test.mjs) | — |
+| [tests/support-requests.test.mjs](../../tests/support-requests.test.mjs) | — |
 | [tests/virtual-user-qa.test.mjs](../../tests/virtual-user-qa.test.mjs) | — |
-| [worker/index.ts](../../worker/index.ts) | `default` (L199) |
+| [worker/index.ts](../../worker/index.ts) | `default` (L201) |
 
 ## SQL 테이블 최초 정의
 
@@ -158,6 +169,7 @@
 | `focus_quest_plus_interest` | [supabase/migrations/202611240003_plus_interest_research.sql L1](../../supabase/migrations/202611240003_plus_interest_research.sql#L1) |
 | `focus_quest_product_events` | [supabase/migrations/202611130001_product_readiness.sql L52](../../supabase/migrations/202611130001_product_readiness.sql#L52) |
 | `focus_quest_push_subscriptions` | [supabase/migrations/202611250002_web_push_reminders.sql L1](../../supabase/migrations/202611250002_web_push_reminders.sql#L1) |
+| `focus_quest_support_requests` | [supabase/migrations/202611260001_support_inbox.sql L2](../../supabase/migrations/202611260001_support_inbox.sql#L2) |
 | `study_materials` | [supabase/migrations/202607280001_study_materials.sql L1](../../supabase/migrations/202607280001_study_materials.sql#L1) |
 | `study_quest_focus_sessions` | [supabase/migrations/202607260002_study_quests.sql L43](../../supabase/migrations/202607260002_study_quests.sql#L43) |
 | `study_quest_progress` | [supabase/migrations/202611130001_product_readiness.sql L1](../../supabase/migrations/202611130001_product_readiness.sql#L1) |
@@ -185,6 +197,7 @@
 | `is_active_focus_quest_camp_member` | requested_camp_id uuid | [supabase/migrations/202611250003_harden_camp_membership_check.sql L8](../../supabase/migrations/202611250003_harden_camp_membership_check.sql#L8) |
 | `join_focus_quest_camp` | requested_code text, requested_nickname text, requested_adventure_id text, requested_focus_minutes integer | [supabase/migrations/202611250008_fix_camp_upsert_targets.sql L2](../../supabase/migrations/202611250008_fix_camp_upsert_targets.sql#L2) |
 | `leave_focus_quest_camp` | requested_camp_id uuid | [supabase/migrations/202611250001_secure_silent_camps.sql L198](../../supabase/migrations/202611250001_secure_silent_camps.sql#L198) |
+| `prune_focus_quest_support` | 없음 | [supabase/migrations/202611260001_support_inbox.sql L51](../../supabase/migrations/202611260001_support_inbox.sql#L51) |
 | `record_focus_quest_camp_completion` | requested_camp_id uuid, requested_duration_minutes integer | [supabase/migrations/202611250005_camp_relationships.sql L85](../../supabase/migrations/202611250005_camp_relationships.sql#L85) |
 | `record_focus_quest_deletion` | 없음 | [supabase/migrations/202611250009_operating_policy.sql L60](../../supabase/migrations/202611250009_operating_policy.sql#L60) |
 | `remove_focus_quest_camp_member` | requested_camp_id uuid, requested_user_id uuid, should_block boolean default false | [supabase/migrations/202611250001_secure_silent_camps.sql L236](../../supabase/migrations/202611250001_secure_silent_camps.sql#L236) |
@@ -192,4 +205,5 @@
 | `report_focus_quest_camp_member` | requested_camp_id uuid, requested_user_id uuid, requested_reason text | [supabase/migrations/202611250005_camp_relationships.sql L193](../../supabase/migrations/202611250005_camp_relationships.sql#L193) |
 | `run_focus_quest_retention` | 없음 | [supabase/migrations/202611250009_operating_policy.sql L111](../../supabase/migrations/202611250009_operating_policy.sql#L111) |
 | `save_study_quest_progress` | p_quest_id uuid, p_material_id uuid, p_reached_page integer | [supabase/migrations/202611130001_product_readiness.sql L141](../../supabase/migrations/202611130001_product_readiness.sql#L141) |
+| `submit_focus_quest_support` | requested_id uuid, requested_category text, requested_message text, requested_rate_key text, requested_notice_version text | [supabase/migrations/202611260001_support_inbox.sql L20](../../supabase/migrations/202611260001_support_inbox.sql#L20) |
 | `update_focus_quest_camp_member` | requested_camp_id uuid, requested_nickname text, requested_adventure_id text, requested_focus_minutes integer | [supabase/migrations/202611250001_secure_silent_camps.sql L164](../../supabase/migrations/202611250001_secure_silent_camps.sql#L164) |

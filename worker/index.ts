@@ -189,6 +189,8 @@ const worker = {
         await cleanupDeletedPdfs(admin);
         const result = await admin.rpc("run_focus_quest_retention");
         if (result.error) throw new Error("Scheduled retention failed.");
+        const support = await admin.rpc("prune_focus_quest_support");
+        if (support.error) throw new Error("Support retention failed.");
       })());
     } else {
       ctx.waitUntil(sendDueReminders(env));

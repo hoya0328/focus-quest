@@ -33,6 +33,7 @@ node --test tests/pomodoro.test.mjs tests/cloud-state.test.mjs
 | FQ-11~13: 캠프·알림·운영 신호 | [camp](../../tests/silent-camp.test.mjs), [push](../../tests/push-reminders.test.mjs), [PWA](../../tests/pwa.test.mjs), [operations](../../tests/operations.test.mjs) |
 | FQ-14~15: 개인정보·백업 | [privacy](../../tests/privacy.test.mjs), [retention safety](../../tests/operating-policy.test.mjs), [문서 화면](../../e2e/privacy.spec.ts) |
 | FQ-16: 검색·운영 통계·선택형 분석 | [권한/집계](../../tests/launch-analytics.test.mjs), [화면](../../e2e/launch.spec.ts) |
+| 문의·설치 | [입력/운영 권한](../../tests/support-requests.test.mjs), [기기별 UI](../../e2e/support-install.spec.ts), [운영 DB 역할별 롤백 검사](../../supabase/tests/support_inbox_security.sql) |
 
 일부 보안 회귀는 SQL/소스의 정책 구조를 검사한다. 이것은 실제 DB 권한 검증과 다르다. 격리 `staging.spec.ts`는 합성 계정·원본 PDF·캠프·권한을 실제 경로로 검증한다. 운영 익명 검사만 성공했다고 소유자 정상 접근까지 검증됐다고 말하지 않는다.
 

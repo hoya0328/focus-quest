@@ -1204,15 +1204,15 @@
   padding: var(--space-lg);
 }
 
-.focus-quest-app .support-footer div {
+.focus-quest-app .support-footer > div {
   display: grid;
   gap: 0.3rem;
 }
 
 .focus-quest-app .support-footer strong { color: var(--color-text); }
 .focus-quest-app .support-footer nav { display: flex; flex-wrap: wrap; gap: .75rem; }
-.focus-quest-app .support-footer span { color: var(--color-text-muted); font-size: var(--text-xs); }
-.focus-quest-app .support-footer a {
+.focus-quest-app .support-footer > div > span { color: var(--color-text-muted); font-size: var(--text-xs); }
+.focus-quest-app .support-footer > nav > :is(a, .support-open-button) {
   border: 1px solid color-mix(in srgb, var(--color-primary) 60%, transparent);
   border-radius: 999px;
   color: var(--color-primary);
@@ -1221,17 +1221,23 @@
   font-weight: 800;
   padding: 0.75rem 1rem;
   text-decoration: none;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 44px;
 }
 
-.focus-quest-app .support-footer a:hover,
-.focus-quest-app .support-footer a:focus-visible {
+.focus-quest-app .support-footer > nav > a:hover,
+.focus-quest-app .support-footer > nav > a:focus-visible,
+.focus-quest-app .support-footer .support-open-button:hover,
+.focus-quest-app .support-footer .support-open-button:focus-visible {
   background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   outline: none;
 }
 
 @media (max-width: 640px) {
   .focus-quest-app .support-footer { align-items: stretch; flex-direction: column; }
-  .focus-quest-app .support-footer a { text-align: center; }
+  .focus-quest-app .support-footer > nav > :is(a, .support-open-button) { text-align: center; }
 }
 
 .focus-quest-app .camp-entry-banner p {

@@ -7,7 +7,7 @@
 - UUID: 소유자/관계 식별자. `user_id`는 보통 `auth.users.id` cascade 참조다.
 - `*_at`: PostgreSQL timestamptz/ISO, 화면 날짜 묶음은 기기 로컬 날짜. `target_date`는 시간 없는 date다.
 - 분/초/밀리초를 구분한다. `file_size_bytes`는 byte, MiB는 1,048,576byte다.
-- 21개 앱 public 테이블 중 전체 백업 대상은 18개다. 삭제 대장/실행 상태/파생 quota는 동일한 복구 대상 집합으로 다루지 않는다.
+- 22개 앱 public 테이블 중 학습·계정 백업 대상은 18개다. 삭제 대장/실행 상태/파생 quota와 단기 문의 메모는 동일한 복구 대상 집합으로 다루지 않는다.
 
 ## 관계
 
@@ -54,6 +54,7 @@ deletion_ledger → PDF bytes cleanup → encrypted archive cleanup → processe
 | `focus_quest_deletion_ledger` | PK id, kind,target_id,owner_id,storage_deleted_at,created_at,processed_at; unique(kind,target_id) | 서버 RPC/trigger 전용. 처리 확인+생성 후 35일 정리, 미처리 보존 |
 | `focus_quest_operation_runs` | PK operation,completed_at,counts JSONB | 서버 RPC 전용. 민감 본문 없는 최근 운영 결과 |
 | `focus_quest_pdf_quotas` | PK user_id,object_count≥0 | Storage trigger 전용 파생값. 백업에서 덮어쓸 사용자 원장 아님 |
+| `focus_quest_support_requests` | PK id,category,message,status,created/reviewed_at,rate_key,notice_version | 일반 역할 직접 접근 없음. Worker가 접수 RPC/운영자 JWT 검증. 90일 보관, 학습 백업 제외. 원래 IP·이메일·계정 ID 미저장 |
 
 원문: [기본 클라우드](../../supabase/migrations/202607260001_focus_quest_cloud_states.sql), [과목/퀘스트](../../supabase/migrations/202607260002_study_quests.sql), [PDF](../../supabase/migrations/202607280001_study_materials.sql), [학습 진척](../../supabase/migrations/202611130001_product_readiness.sql), [Plus](../../supabase/migrations/202611240003_plus_interest_research.sql), [캠프](../../supabase/migrations/202611250001_secure_silent_camps.sql), [관계](../../supabase/migrations/202611250005_camp_relationships.sql), [Push](../../supabase/migrations/202611250002_web_push_reminders.sql), [운영 데이터](../../supabase/migrations/202611250009_operating_policy.sql).
 

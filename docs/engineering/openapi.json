@@ -15,6 +15,23 @@
     }
   ],
   "paths": {
+    "/api/support": {
+      "post": {
+        "operationId": "submitSupportMemo", "summary": "로그인 없이 같은 Origin에서 비공개 문의 메모 접수", "security": [],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["id", "category", "message", "consent", "noticeVersion"], "properties": { "id": { "type": "string", "format": "uuid" }, "category": { "enum": ["bug", "suggestion", "question"] }, "message": { "type": "string", "minLength": 10, "maxLength": 3000 }, "consent": { "const": true }, "noticeVersion": { "const": "2026-11-26.1" } } } } } },
+        "responses": { "200": { "description": "접수 ID. 중복 재시도는 같은 ID 반환. 본문/타인 문의 없음." }, "400": { "description": "입력 또는 동의 오류" }, "403": { "description": "Origin 또는 cross-site 오류" }, "409": { "description": "접수 ID 충돌" }, "413": { "description": "16KiB body 초과" }, "429": { "description": "서버 접수 한도" }, "503": { "description": "서버 설정 또는 저장 실패" } }
+      },
+      "get": {
+        "operationId": "getOperatorSupportInbox", "summary": "운영자만 최신 문의/접근 권한 확인", "security": [{ "supabaseBearer": [] }],
+        "parameters": [{ "name": "cursor", "in": "query", "schema": { "type": "string" } }, { "name": "access", "in": "query", "schema": { "enum": ["1"] } }],
+        "responses": { "200": { "description": "tickets/nextCursor 또는 allowed:true. private/no-store/noindex." }, "400": { "description": "잘못된 cursor" }, "401": { "description": "무인증/만료" }, "403": { "description": "비운영자" }, "503": { "description": "조회 실패" } }
+      },
+      "patch": {
+        "operationId": "updateSupportStatus", "summary": "운영자만 문의 처리 상태 변경", "security": [{ "supabaseBearer": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["id", "status"], "properties": { "id": { "type": "string", "format": "uuid" }, "status": { "enum": ["open", "closed"] } } } } } },
+        "responses": { "200": { "description": "updated:true" }, "400": { "description": "입력 오류" }, "401": { "description": "무인증/만료" }, "403": { "description": "비운영자 또는 Origin 오류" }, "404": { "description": "없거나 만료된 문의" }, "503": { "description": "갱신 실패" } }
+      }
+    },
     "/api/operations": {
       "get": {
         "operationId": "getOperationsDashboard",

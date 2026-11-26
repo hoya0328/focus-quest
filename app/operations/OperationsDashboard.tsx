@@ -72,7 +72,7 @@ export default function OperationsDashboard() {
           <img src="/brand/focus-quest-mark.png" width="36" height="36" alt="" />
           Focus Quest
         </Link>
-        <Link href="/" prefetch={false}>타이머로 돌아가기</Link>
+        <nav className="support-inbox-nav"><Link href="/operations/support" prefetch={false}>문의 수신함</Link><Link href="/" prefetch={false}>타이머로 돌아가기</Link></nav>
       </header>
       <main id="operations-content" className="operations-main">
         <div className="operations-heading">

@@ -10,6 +10,7 @@
 | 검증·장애 대응 | [품질 기준](engineering/QUALITY.md), [운영 런북](OPERATIONS_RUNBOOK.md) |
 | 검색·운영 통계 | [발견성과 측정 계약](engineering/FEATURES_PLATFORM.md#fq-16--검색-발견성과-운영자-통계), [HTTP 계약](engineering/API_CONTRACTS.md) |
 | 서비스명·검색 제목·공유 설명 | [공개 문구 설정](../lib/service-config.ts), [홈 구조화 데이터](../lib/search-discovery.ts), [렌더링 검증](../tests/rendered-html.test.mjs) |
+| 문의 접수·운영자 문의함·설치 | [문의 API 계약](engineering/API_CONTRACTS.md#post-apisupport-get-apisupport-patch-apisupport), [회귀](../tests/support-requests.test.mjs), [브라우저](../e2e/support-install.spec.ts), [DB 역할 검사](../supabase/tests/support_inbox_security.sql) |
 | 외부 의존·미완료 검증 | [현재 제한](engineering/LIMITATIONS.md) |
 
 공개 문서는 구현 계약을 설명한다. 상세 실행·승인 이력, 배포 식별자별 내부 기록, 사용자 자료와 자격 증명은 비공개 운영 기록으로 관리하며 이 파일에 추가하지 않는다. 과거 검증 결과를 현재 배포의 증거로 간주하지 않는다.

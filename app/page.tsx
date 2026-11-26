@@ -22,6 +22,9 @@ import CampReflectionPanel from "@/app/components/CampReflectionPanel";
 import RetentionPanel from "@/app/components/RetentionPanel";
 import WeeklyAdventureLog from "@/app/components/WeeklyAdventureLog";
 import InstallGuide from "@/app/components/InstallGuide";
+import SupportButton from "@/app/components/SupportButton";
+import OperatorInboxLink from "@/app/components/OperatorInboxLink";
+import { usePwaInstall } from "@/app/hooks/usePwaInstall";
 import CompanionEvolutionSprite from "@/app/components/CompanionEvolutionSprite";
 import { StudyCheckpointPanel, StudyRecallPanel } from "@/app/components/StudyQuizPanel";
 import { useCloudSync } from "@/app/hooks/useCloudSync";
@@ -129,11 +132,6 @@ const NOTIFICATION_KEY = "focus-quest-notifications";
 const REMINDER_TIME_KEY = "focus-quest-reminder-time";
 const DISTRACTION_NOTES_KEY = "focus-quest-distraction-notes";
 const CAMP_NICKNAME_KEY = "focus-quest-camp-nickname";
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
-
 type FullscreenDocument = Document & {
   webkitExitFullscreen?: () => Promise<void> | void;
   webkitFullscreenElement?: Element | null;
@@ -550,9 +548,7 @@ export default function Home() {
   const [showExit, setShowExit] = useState(false);
   const [isCelebrating, setIsCelebrating] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const [installPrompt, setInstallPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
-  const [showIosInstallHint, setShowIosInstallHint] = useState(false);
+  const installation = usePwaInstall();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
   const [focusIntent, setFocusIntent] = useState("");
@@ -1155,17 +1151,10 @@ export default function Home() {
           scope: `${publicBasePath}/`,
           updateViaCache: "none",
         })
-        .then((registration) => registration.update());
+        .then((registration) => registration.update())
+        .catch(() => { /* Installation help remains available if this browser blocks service workers. */ });
     }
 
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      Boolean(
-        (navigator as Navigator & { standalone?: boolean }).standalone,
-      );
-    setShowIosInstallHint(
-      /iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone,
-    );
     setHydrated(true);
   }, []);
 
@@ -1262,24 +1251,6 @@ export default function Home() {
         : selected.name;
     }
   }, [focusIntent, remaining, selected.name, sessionExpedition]);
-
-  useEffect(() => {
-    const onBeforeInstall = (event: Event) => {
-      event.preventDefault();
-      setInstallPrompt(event as BeforeInstallPromptEvent);
-    };
-    const onInstalled = () => {
-      setInstallPrompt(null);
-      setShowIosInstallHint(false);
-    };
-
-    window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
-  }, []);
 
   const stopAudio = useCallback(() => {
     if (audioRef.current) {
@@ -2186,13 +2157,6 @@ export default function Home() {
     if (silentCampStatus === "joined") void leaveSilentCamp();
   };
 
-  const installApp = async () => {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
-    const choice = await installPrompt.userChoice;
-    if (choice.outcome === "accepted") setInstallPrompt(null);
-  };
-
   const isExpeditionCheckpoint = Boolean(
     completionMode === "focus" &&
       completedExpedition &&
@@ -2263,6 +2227,7 @@ export default function Home() {
                       클라우드 기록 삭제
                     </button>
                   )}
+                  {cloudSync.authProvider === "supabase" && <OperatorInboxLink />}
                   {cloudSync.authProvider === "supabase" ? (
                     <>
                       <button type="button" onClick={cloudSync.signOut}>
@@ -2450,24 +2415,6 @@ export default function Home() {
             worlds={worldProgress}
           />
 
-          {(installPrompt || showIosInstallHint) && (
-            <aside className="install-card" aria-label="앱 설치 안내">
-              <div>
-                <strong>홈 화면에서 바로 모험하기</strong>
-                <p>
-                  {showIosInstallHint
-                    ? "iPhone에서는 공유 버튼을 누른 뒤 ‘홈 화면에 추가’를 선택해 주세요."
-                    : "앱처럼 설치하면 주소창 없이 더 몰입해서 사용할 수 있어요."}
-                </p>
-              </div>
-              {installPrompt && (
-                <button type="button" onClick={() => void installApp()}>
-                  앱으로 설치
-                </button>
-              )}
-            </aside>
-          )}
-
           <section className="camp-entry-banner" aria-labelledby="camp-entry-title">
             <div>
               <span className="camp-beta-badge">초대 전용 베타</span>
@@ -2506,7 +2453,7 @@ export default function Home() {
             selectedId={selectedId}
           />
 
-          <InstallGuide />
+          <InstallGuide installation={installation} />
 
           <footer className="support-footer">
             <div>
@@ -2516,12 +2463,7 @@ export default function Home() {
             <nav aria-label="서비스 안내">
               <a href="/privacy" target="_blank" rel="noopener noreferrer">개인정보 처리방침 <span className="sr-only">(새 탭)</span></a>
               <a href="/terms" target="_blank" rel="noopener noreferrer">이용약관 <span className="sr-only">(새 탭)</span></a>
-              <a
-                href="mailto:letshoya@naver.com?subject=Focus%20Quest%20%EB%B2%84%EA%B7%B8%20%EB%B0%8F%20%EB%AC%B8%EC%9D%98"
-                onClick={() => void trackProductEvent("feedback_opened")}
-              >
-                버그 신고 · 문의
-              </a>
+              <SupportButton onOpen={() => void trackProductEvent("feedback_opened")} />
             </nav>
           </footer>
         </section>

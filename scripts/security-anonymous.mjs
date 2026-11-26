@@ -82,12 +82,15 @@ for (const [table, identityColumn] of Object.entries({
   focus_quest_deletion_ledger: "id",
   focus_quest_operation_runs: "operation",
   focus_quest_pdf_quotas: "user_id",
+  focus_quest_support_requests: "id",
 })) {
   await expectAnonymousTableDeniedOrEmpty(table, identityColumn);
 }
 
 for (const [name, body] of [
   ["export_focus_quest_backup", {}],
+  ["prune_focus_quest_support", {}],
+  ["submit_focus_quest_support", { requested_id: "10000000-0000-4000-8000-000000000099", requested_category: "bug", requested_message: "Synthetic denied request only.", requested_rate_key: "b".repeat(64), requested_notice_version: "2026-11-26.1" }],
   ["run_focus_quest_retention", {}],
   ["focus_quest_operation_status", {}],
   ["focus_quest_pending_pdf_cleanup", {}],
@@ -130,6 +133,15 @@ try {
 }
 
 const cloudResponse = await fetch(`${PUBLIC_BASE_URL}/api/cloud-state`);
+for (const [label, init, expected] of [
+  ["read", {}, 401],
+  ["forged-token", { headers: { Authorization: "Bearer synthetic-invalid-token" } }, 401],
+  ["update", { method: "PATCH", headers: { Origin: PUBLIC_BASE_URL, "Content-Type": "application/json" }, body: JSON.stringify({ id: "10000000-0000-4000-8000-000000000099", status: "closed" }) }, 401],
+  ["cross-origin-intake", { method: "POST", headers: { Origin: "https://untrusted.example", "Content-Type": "application/json" }, body: "{}" }, 403],
+]) {
+  const response = await fetch(`${PUBLIC_BASE_URL}/api/support`, { ...init, signal: AbortSignal.timeout(15_000) });
+  checks.push({ boundary: `anonymous:support-api:${label}`, passed: response.status === expected && response.headers.get("cache-control")?.includes("no-store"), status: response.status });
+}
 checks.push({
   boundary: "anonymous:cloud-state-api:read",
   passed: cloudResponse.status === 401 || cloudResponse.status === 404,

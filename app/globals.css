@@ -2865,49 +2865,9 @@ input[type="range"] {
 }
 
 /* Weekly adventure log */
-.install-card,
 .weekly-summary {
   width: min(1120px, calc(100% - 40px));
   margin-inline: auto;
-}
-
-.install-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin-top: 34px;
-  padding: 20px 22px;
-  border: 3px solid #65cad0;
-  background:
-    linear-gradient(90deg, rgba(46, 181, 193, 0.16), transparent 60%),
-    #0b2a3b;
-  box-shadow: 6px 6px 0 #03101b;
-}
-
-.install-card strong {
-  display: block;
-  margin-bottom: 7px;
-  color: #f7d99f;
-  font-size: 16px;
-}
-
-.install-card p {
-  margin: 0;
-  color: #a9c6c8;
-  font-size: 13px;
-  line-height: 1.65;
-}
-
-.install-card button {
-  flex: 0 0 auto;
-  padding: 13px 18px;
-  border: 2px solid #ffe4a8;
-  background: #e69a35;
-  color: #071522;
-  font-weight: 900;
-  box-shadow: 4px 4px 0 #020a12;
-  cursor: pointer;
 }
 
 .weekly-summary {
@@ -3273,15 +3233,6 @@ input[type="range"] {
 }
 
 @media (max-width: 720px) {
-  .install-card {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .install-card button {
-    width: 100%;
-  }
-
   .weekly-summary {
     width: calc(100% - 26px);
     padding: 18px 14px;
