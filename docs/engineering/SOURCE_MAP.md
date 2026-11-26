@@ -41,11 +41,11 @@
 | [app/hooks/useStudyMaterials.ts](../../app/hooks/useStudyMaterials.ts) | `MaterialPhase` (L16), `useStudyMaterials` (L58) |
 | [app/hooks/useStudyProgress.ts](../../app/hooks/useStudyProgress.ts) | `useStudyProgress` (L24) |
 | [app/hooks/useStudyQuests.ts](../../app/hooks/useStudyQuests.ts) | `QuestStoreStatus` (L18), `useStudyQuests` (L20) |
-| [app/layout.tsx](../../app/layout.tsx) | `metadata` (L10), `viewport` (L45), `RootLayout` (L52) |
+| [app/layout.tsx](../../app/layout.tsx) | `metadata` (L16), `viewport` (L54), `RootLayout` (L61) |
 | [app/operations/OperationsDashboard.tsx](../../app/operations/OperationsDashboard.tsx) | `OperationsDashboard` (L12) |
 | [app/operations/operations.css](../../app/operations/operations.css) | 스타일시트 |
 | [app/operations/page.tsx](../../app/operations/page.tsx) | `metadata` (L5), `OperationsPage` (L11) |
-| [app/page.tsx](../../app/page.tsx) | `Home` (L527) |
+| [app/page.tsx](../../app/page.tsx) | `Home` (L528) |
 | [app/privacy/page.tsx](../../app/privacy/page.tsx) | `metadata` (L10), `PrivacyPage` (L29) |
 | [app/privacy/privacy.css](../../app/privacy/privacy.css) | 스타일시트 |
 | [app/robots.txt/route.ts](../../app/robots.txt/route.ts) | `GET` (L3) |
@@ -79,10 +79,10 @@
 | [lib/push-reminders.ts](../../lib/push-reminders.ts) | `VAPID_PUBLIC_KEY` (L1), `PushSubscriptionBody` (L4), `urlBase64ToUint8Array` (L13), `nextReminderAt` (L20), `parsePushSubscription` (L32) |
 | [lib/quiz-feedback.ts](../../lib/quiz-feedback.ts) | `QuizFeedbackStage` (L1), `QuizFeedbackValue` (L3), `QuizFeedbackState` (L5), `QUIZ_FEEDBACK_OPTIONS` (L10), `emptyQuizFeedback` (L19) |
 | [lib/retention.ts](../../lib/retention.ts) | `RECOVERY_QUEST_LIFETIME_MS` (L8), `RECOVERY_QUEST_KEY` (L9), `RECOVERY_UPDATED_AT_KEY` (L10), `RecoveryQuest` (L13), `WorldProgress` (L23), `AdventureTraceProgress` (L34), `CompanionMemory` (L44), `BehaviorInsights` (L50), `WORLD_GROWTH_MINIMUM_MINUTES` (L61), `WORLD_GROWTH_MILESTONES` (L62), `createRecoveryQuest` (L92), `parseRecoveryQuest` (L118), `getWorldProgress` (L165), `getAdventureTraceProgress` (L198), `getCompanionMemory` (L231), `getBehaviorInsights` (L260) |
-| [lib/search-discovery.ts](../../lib/search-discovery.ts) | `PUBLIC_INDEX_PATHS` (L3), `sitemapXml` (L5), `robotsText` (L10) |
+| [lib/search-discovery.ts](../../lib/search-discovery.ts) | `PUBLIC_INDEX_PATHS` (L3), `websiteJsonLd` (L6), `sitemapXml` (L16), `robotsText` (L21) |
 | [lib/seasonal-events.ts](../../lib/seasonal-events.ts) | `SeasonalWorldEvent` (L3), `getSeasonIndex` (L32), `getSeasonalWorldEvent` (L40) |
 | [lib/server-observability.ts](../../lib/server-observability.ts) | `ApiRequestContext` (L1), `createApiRequestContext` (L8), `addOperationalHeaders` (L22), `logApiFailure` (L30) |
-| [lib/service-config.ts](../../lib/service-config.ts) | `PUBLIC_SERVICE_URL` (L2), `GOOGLE_SITE_VERIFICATION` (L5) |
+| [lib/service-config.ts](../../lib/service-config.ts) | `PUBLIC_SERVICE_URL` (L2), `PUBLIC_SERVICE_NAME` (L3), `PUBLIC_SERVICE_KOREAN_NAME` (L4), `PUBLIC_SERVICE_TITLE` (L5), `PUBLIC_SERVICE_DESCRIPTION` (L6), `GOOGLE_SITE_VERIFICATION` (L9) |
 | [lib/silent-camp.ts](../../lib/silent-camp.ts) | `SilentCampMember` (L13), `SilentCampChatMessage` (L21), `SilentCampTimer` (L29), `SilentCampResumeState` (L41), `normalizeCampCode` (L48), `createCampCode` (L52), `createSecureCampCode` (L60), `readCampCodeFromUrl` (L69), `createCampInviteUrl` (L76), `normalizeCampNickname` (L86), `normalizeCampChatMessage` (L90), `parseSilentCampResumeState` (L94), `parseSilentCampMember` (L119), `parseSilentCampChatMessage` (L147), `electSilentCampLeader` (L177), `toSilentCampTimer` (L200), `parseSilentCampTimer` (L217), `createLocalCampSession` (L249) |
 | [lib/study-progress.ts](../../lib/study-progress.ts) | `StudyQuizStage` (L3), `StudyQuestProgressRow` (L5), `StudyQuizAttemptRow` (L13), `StudyLearningSignal` (L22), `StudyQuizFeedbackRow` (L30), `StudyQuizQualitySignal` (L37), `AdaptiveReviewPlan` (L45), `StudyAttemptSummary` (L52), `EMPTY_STUDY_QUALITY_SIGNAL` (L57), `summarizeStudyAttempts` (L65), `summarizeStudyQuizFeedback` (L103), `getAdaptiveReviewPlan` (L141), `StudyQuizAttemptDraft` (L180), `clampStudyPage` (L194), `studyProgressStorageKey` (L198) |
 | [lib/study-quests.ts](../../lib/study-quests.ts) | `QuestContract` (L9), `QuestStatus` (L15), `StudySubject` (L17), `StudyQuest` (L28), `SubjectDraft` (L51), `SubjectProgress` (L58), `QuestLearningState` (L67), `ExamExpedition` (L69), `ExamExpeditionReport` (L81), `QuestDraft` (L94), `SubjectRow` (L110), `QuestRow` (L121), `subjectFromRow` (L144), `questFromRow` (L157), `questProgress` (L190), `getQuestLearningState` (L202), `getRecommendedQuest` (L212), `getExamExpedition` (L233), `getExamExpeditionReport` (L318), `getSubjectProgress` (L407), `normalizeQuestDraft` (L476), `normalizeSubjectDraft` (L505) |

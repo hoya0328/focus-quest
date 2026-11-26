@@ -2,9 +2,29 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { buildDashboard, createOperationsEndpoint, operatorIds } from "../lib/operations-dashboard.ts";
-import { robotsText, sitemapXml, PUBLIC_INDEX_PATHS } from "../lib/search-discovery.ts";
+import { robotsText, sitemapXml, websiteJsonLd, PUBLIC_INDEX_PATHS } from "../lib/search-discovery.ts";
 import { validAnalyticsToken, visitAnalyticsAllowed } from "../lib/visit-analytics.ts";
-import { GOOGLE_SITE_VERIFICATION } from "../lib/service-config.ts";
+import {
+  GOOGLE_SITE_VERIFICATION,
+  PUBLIC_SERVICE_DESCRIPTION,
+  PUBLIC_SERVICE_KOREAN_NAME,
+  PUBLIC_SERVICE_NAME,
+  PUBLIC_SERVICE_TITLE,
+  PUBLIC_SERVICE_URL,
+} from "../lib/service-config.ts";
+
+test("search and sharing use consistent public identity without changing the installed app name", async () => {
+  assert.equal(PUBLIC_SERVICE_TITLE, "Focus Quest | 공부와 작업을 위한 포모도로 타이머");
+  assert.deepEqual(JSON.parse(websiteJsonLd()), {
+    "@context": "https://schema.org", "@type": "WebSite",
+    name: PUBLIC_SERVICE_NAME, alternateName: PUBLIC_SERVICE_KOREAN_NAME, url: PUBLIC_SERVICE_URL,
+  });
+  assert.equal(websiteJsonLd().includes("<"), false);
+  const manifest = JSON.parse(await readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"));
+  assert.equal(manifest.name, PUBLIC_SERVICE_NAME);
+  assert.equal(manifest.short_name, PUBLIC_SERVICE_NAME);
+  assert.equal(manifest.description, PUBLIC_SERVICE_DESCRIPTION);
+});
 
 test("Google ownership proof has a stable public fallback in server-rendered metadata", async () => {
   assert.equal(GOOGLE_SITE_VERIFICATION, "C5Dx4Gsws6Aav6vY-VEaChQoraxspO9EPBSqVcKR_I0");

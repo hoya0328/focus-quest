@@ -11,7 +11,7 @@
 
 # Focus Quest
 
-**집중한 시간을 작은 모험으로 보여주고, 잠시 멈추더라도 다시 시작할 수 있도록 돕는 포모도로 서비스입니다.**
+**공부와 작업을 위한 포모도로 타이머. 집중한 시간을 작은 모험으로 보여주고, 잠시 멈추더라도 다시 시작할 수 있도록 돕습니다.**
 
 [서비스 사용해 보기](https://focus-quest.hoya0328.workers.dev) · [제품 설계](docs/PROJECT_CONTEXT.md) · [아키텍처](docs/ARCHITECTURE.md) · [로드맵](docs/ROADMAP.md)
 

@@ -5,6 +5,7 @@ import { createServer } from "node:net";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { GOOGLE_SITE_VERIFICATION, PUBLIC_SERVICE_DESCRIPTION, PUBLIC_SERVICE_TITLE, PUBLIC_SERVICE_URL } from "../lib/service-config.ts";
 
 const previewRoot = new URL("../app/_sites-preview/", import.meta.url);
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -68,7 +69,26 @@ test("server-renders the adventure focus app", async (context) => {
 
   const html = await response.text();
   const normalizedHtml = html.replaceAll("<!-- -->", "");
-  assert.match(normalizedHtml, /<title>Focus Quest \| 픽셀 모험 집중 타이머<\/title>/);
+  assert.ok(normalizedHtml.includes(`<title>${PUBLIC_SERVICE_TITLE}</title>`));
+  for (const name of ["description", "og:description", "twitter:description"]) {
+    assert.ok(normalizedHtml.includes(`name="${name}" content="${PUBLIC_SERVICE_DESCRIPTION}"`)
+      || normalizedHtml.includes(`property="${name}" content="${PUBLIC_SERVICE_DESCRIPTION}"`), name);
+  }
+  for (const name of ["og:title", "twitter:title"]) {
+    assert.ok(normalizedHtml.includes(`name="${name}" content="${PUBLIC_SERVICE_TITLE}"`)
+      || normalizedHtml.includes(`property="${name}" content="${PUBLIC_SERVICE_TITLE}"`), name);
+  }
+  assert.ok(normalizedHtml.includes(`name="google-site-verification" content="${GOOGLE_SITE_VERIFICATION}"`));
+  const canonical = normalizedHtml.match(/<link rel="canonical" href="([^"]+)"/)?.[1];
+  assert.ok(canonical, "home canonical URL is present");
+  assert.equal(new URL(canonical).href, new URL("/", PUBLIC_SERVICE_URL).href);
+  assert.doesNotMatch(normalizedHtml, /픽셀 모험 집중 타이머/);
+  const websiteScripts = [...normalizedHtml.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)];
+  assert.equal(websiteScripts.length, 1);
+  const website = JSON.parse(websiteScripts[0][1]);
+  assert.equal(website.name, "Focus Quest");
+  assert.equal(website.alternateName, "포커스 퀘스트");
+  assert.equal(website.url, PUBLIC_SERVICE_URL);
   assert.match(normalizedHtml, /brand\/focus-quest-logo\.png/);
   assert.match(normalizedHtml, /오늘의 동행/);
   assert.match(normalizedHtml, /누구와 집중할까요/);

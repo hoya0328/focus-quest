@@ -1,7 +1,7 @@
 {
   "name": "Focus Quest",
   "short_name": "Focus Quest",
-  "description": "픽셀 모험 친구와 함께하는 반응형 포모도로 집중 타이머",
+  "description": "캐릭터와 함께 공부하고 집중 시간을 기록하세요. 집중·휴식 시간을 자유롭게 설정하고, 친구와 집중 캠프도 함께할 수 있는 웹 포모도로 타이머입니다.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

@@ -14,6 +14,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import Image from "next/image";
+import { websiteJsonLd } from "@/lib/search-discovery";
 import AuthDialog from "@/app/components/AuthDialog";
 import AdventureArchive from "@/app/components/AdventureArchive";
 import CampLobby from "@/app/components/CampLobby";
@@ -2213,6 +2214,7 @@ export default function Home() {
         } as React.CSSProperties
       }
     >
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: websiteJsonLd() }} />
       {screen !== "focus" && (
         <header className="topbar">
           <button className="brand" type="button" onClick={() => setScreen("select")} aria-label="Focus Quest 홈">

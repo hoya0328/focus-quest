@@ -2,7 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./adventure-motion-v2.css";
 import "./focus-quest-2026.css";
-import { GOOGLE_SITE_VERIFICATION, PUBLIC_SERVICE_URL } from "@/lib/service-config";
+import {
+  GOOGLE_SITE_VERIFICATION,
+  PUBLIC_SERVICE_DESCRIPTION,
+  PUBLIC_SERVICE_NAME,
+  PUBLIC_SERVICE_TITLE,
+  PUBLIC_SERVICE_URL,
+} from "@/lib/service-config";
 import VisitAnalytics from "@/app/components/VisitAnalytics";
 
 const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -10,16 +16,19 @@ const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 export const metadata: Metadata = {
   metadataBase: new URL(PUBLIC_SERVICE_URL),
   alternates: { canonical: "/" },
-  title: "Focus Quest | 픽셀 모험 집중 타이머",
-  description: "픽셀 모험 친구와 한 칸씩 완성하는 반응형 포모도로 집중 타이머",
+  title: PUBLIC_SERVICE_TITLE,
+  description: PUBLIC_SERVICE_DESCRIPTION,
   openGraph: {
     type: "website", locale: "ko_KR", url: PUBLIC_SERVICE_URL,
-    siteName: "Focus Quest", title: "Focus Quest | 픽셀 모험 집중 타이머",
-    description: "모리·나루·보리와 함께 오늘의 집중을 한 칸씩 완성하세요.",
-    images: [{ url: "/brand/focus-quest-512.png", width: 512, height: 512, alt: "Focus Quest" }],
+    siteName: PUBLIC_SERVICE_NAME, title: PUBLIC_SERVICE_TITLE,
+    description: PUBLIC_SERVICE_DESCRIPTION,
+    images: [{ url: "/brand/focus-quest-512.png", width: 512, height: 512, alt: PUBLIC_SERVICE_NAME }],
   },
-  twitter: { card: "summary", title: "Focus Quest | 픽셀 모험 집중 타이머", images: ["/brand/focus-quest-512.png"] },
-  applicationName: "Focus Quest",
+  twitter: {
+    card: "summary", title: PUBLIC_SERVICE_TITLE,
+    description: PUBLIC_SERVICE_DESCRIPTION, images: ["/brand/focus-quest-512.png"],
+  },
+  applicationName: PUBLIC_SERVICE_NAME,
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || GOOGLE_SITE_VERIFICATION,
     other: process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION
@@ -35,7 +44,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Focus Quest",
+    title: PUBLIC_SERVICE_NAME,
   },
   formatDetection: {
     telephone: false,
