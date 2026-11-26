@@ -5,12 +5,42 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { expirationDate } from "../lib/operating-policy.ts";
-import { encrypt, decrypt, writeArchive, readArchive, pruneArchives, removeArchive } from "../scripts/encrypted-backup.mjs";
+import { encrypt, decrypt, writeArchive, readArchive, pruneArchives, removeArchive, withBackupLock } from "../scripts/encrypted-backup.mjs";
 
 test("retention expiry is exactly 30 days and invalid dates fail closed", () => {
   assert.equal(expirationDate("2026-11-25T00:00:00Z"), "2026-12-25T00:00:00.000Z");
   assert.throws(() => expirationDate("invalid"));
   assert.throws(() => expirationDate("2026-11-25T00:00:00Z", 0));
+});
+
+test("cleanup verifies every archive before removing any expired candidate", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "fq-cleanup-test-"));
+  const key = randomBytes(32);
+  try {
+    const files = new Map([["snapshot.json", Buffer.from("synthetic")]]);
+    const expired = path.join(root, "daily-a-expired");
+    const broken = path.join(root, "daily-z-broken");
+    await writeArchive(expired, files, key, { projectRef: "local-supabase", createdAt: "2026-01-01T00:00:00Z" });
+    await writeArchive(broken, files, key, { projectRef: "local-supabase" });
+    await writeFile(path.join(broken, "unexpected.enc"), "synthetic unlisted data");
+    await assert.rejects(pruneArchives(root, key, [], path.join(root, "daily-keep")), /unlisted/);
+    assert.equal((await readArchive(expired, key)).files.size, 1);
+    await rm(path.join(broken, "unexpected.enc"));
+    await rm(path.join(broken, "manifest.enc"));
+    await assert.rejects(pruneArchives(root, key, [], path.join(root, "daily-keep")), { code: "ENOENT" });
+    assert.equal((await readArchive(expired, key)).files.size, 1);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("concurrent backups are blocked and the owned lock is released on failure", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "fq-lock-test-"));
+  try {
+    await withBackupLock(root, async () => {
+      await assert.rejects(withBackupLock(root, async () => {}), /Another backup/);
+    });
+    await assert.rejects(withBackupLock(root, async () => { throw new Error("synthetic failure"); }), /synthetic/);
+    assert.deepEqual(await readdir(root), []);
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("authenticated encryption rejects wrong keys, object swaps and tampering", () => {

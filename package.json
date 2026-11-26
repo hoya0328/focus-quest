@@ -26,6 +26,7 @@
     "release:check": "npm run lint && npx tsc --noEmit && npm run test:logic && npm run build && npm run release:budget && node --test tests/rendered-html.test.mjs && npm run security:secrets",
     "backup:create": "npm run backup:daily",
     "backup:verify": "node scripts/verify-backup.mjs",
+    "backup:verify:encrypted": "node scripts/verify-encrypted-backups.mjs",
     "backup:weekly": "node --env-file=.env.local scripts/weekly-backup.mjs",
     "backup:daily": "node --env-file=.env.local scripts/run-linked-operations.mjs daily",
     "ops:report": "node --env-file-if-exists=.env.operations.local scripts/operations-report.mjs",

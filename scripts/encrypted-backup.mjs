@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { chmod, lstat, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, open, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { BACKUP_RETENTION_DAYS, expirationDate } from "../lib/operating-policy.ts";
@@ -56,6 +56,9 @@ export async function loadBackupKey(root) {
   let protectedKey;
   try { protectedKey = await readFile(keyFile); } catch (error) {
     if (error.code !== "ENOENT") throw error;
+    if ((await readdir(root)).some((name) => /^(daily-|legacy-)/.test(name))) {
+      throw new Error("Existing encrypted backups have no protected key. Restore the original key; never replace it.");
+    }
     protectedKey = dpapi(randomBytes(32), "Protect");
     await writeFile(keyFile, protectedKey, { flag: "wx", mode: 0o600 });
   }
@@ -88,6 +91,8 @@ export async function readArchive(directory, key) {
   if (JSON.stringify(authenticated.index) !== JSON.stringify(index)) throw new Error("Backup index authentication failed.");
   const manifest = authenticated.files;
   if (!Array.isArray(manifest) || manifest.length > 100_000) throw new Error("Invalid backup manifest.");
+  const expectedFiles = ["index.json", "manifest.enc", ...manifest.map((file) => `${file.object}.enc`)].sort();
+  if (JSON.stringify((await readdir(directory)).sort()) !== JSON.stringify(expectedFiles)) throw new Error("Backup contains missing or unlisted files.");
   const files = new Map();
   for (const file of manifest) {
     if (!uuid.test(file.object) || typeof file.name !== "string" || files.has(file.name)) throw new Error("Invalid backup object reference.");
@@ -107,24 +112,38 @@ export async function removeArchive(root, directory) {
 }
 
 export async function pruneArchives(root, key, deletions, keepDirectory, now = Date.now()) {
-  let removed = 0;
+  const candidates = [];
   for (const entry of await readdir(root, { withFileTypes: true })) {
     if (!entry.isDirectory() || entry.name.startsWith(".") || !/^(daily-|weekly-|legacy-|\d{4}-\d{2}-\d{2})/.test(entry.name)) continue;
     const directory = path.join(root, entry.name);
     if (path.resolve(directory) === path.resolve(keepDirectory)) continue;
-    let archive;
-    try { archive = await readArchive(directory, key); } catch (error) {
-      if (error.code === "ENOENT") continue; // Legacy exports are converted separately, never treated as encrypted.
-      throw error;
-    }
+    // Verify the entire set before deleting anything. A broken or unconverted
+    // backup must never be silently skipped and then acknowledged as cleaned.
+    const archive = await readArchive(directory, key);
     const snapshot = archive.files.get("snapshot.json")?.toString() ?? [...archive.files.values()].map((value) => value.toString()).join("\n");
     const containsDeletedData = deletions.some((item) => snapshot.includes(item.target_id));
     if (Date.parse(archive.index.expiresAt) <= now || containsDeletedData) {
-      await removeArchive(root, directory);
-      removed++;
+      candidates.push(directory);
     }
   }
-  return removed;
+  for (const directory of candidates) await removeArchive(root, directory);
+  return candidates.length;
+}
+
+export async function withBackupLock(root, task) {
+  const lockPath = path.join(root, ".backup.lock");
+  let lock;
+  try { lock = await open(lockPath, "wx", 0o600); } catch (error) {
+    if (error.code === "EEXIST") throw new Error("Another backup may be running. Check the exact process before clearing its lock.");
+    throw error;
+  }
+  try {
+    await lock.writeFile(JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }));
+    return await task();
+  } finally {
+    await lock.close();
+    await rm(lockPath);
+  }
 }
 
 export { BACKUP_RETENTION_DAYS };
