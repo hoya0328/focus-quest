@@ -223,5 +223,6 @@ test("public worker adds browser security and private-response cache headers", a
   assert.match(worker, /X-Content-Type-Options["'],\s*["']nosniff/i);
   assert.match(worker, /X-Frame-Options["'],\s*["']DENY/i);
   assert.match(worker, /pathname\.startsWith\(["']\/api\//);
-  assert.match(worker, /Cache-Control["'],\s*["']no-store/i);
+  assert.match(worker, /Cache-Control["'],[^\n]*["']no-store["']/i);
+  assert.match(worker, /privateResponse \? "private, no-store" : "no-store"/);
 });

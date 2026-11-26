@@ -118,6 +118,14 @@ test("server-renders the adventure focus app", async (context) => {
   assert.equal(forgedCloud.status, 404);
   assert.equal(forgedCloud.headers.get("cache-control"), "no-store");
 
+  const anonymousInbox = await fetch(new URL("api/support", worker.url));
+  assert.equal(anonymousInbox.status, 401);
+  assert.equal(anonymousInbox.headers.get("cache-control"), "private, no-store");
+  const inboxShell = await fetch(new URL("operations/support", worker.url));
+  assert.equal(inboxShell.status, 200);
+  assert.equal(inboxShell.headers.get("cache-control"), "private, no-store");
+  assert.match(inboxShell.headers.get("x-robots-tag") ?? "", /noindex/);
+
   const privacy = await fetch(new URL("privacy", worker.url));
   assert.equal(privacy.status, 200);
   const notice = (await privacy.text()).replaceAll("<!-- -->", "");

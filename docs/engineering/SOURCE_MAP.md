@@ -146,7 +146,7 @@
 | [tests/study-quests.test.mjs](../../tests/study-quests.test.mjs) | — |
 | [tests/support-requests.test.mjs](../../tests/support-requests.test.mjs) | — |
 | [tests/virtual-user-qa.test.mjs](../../tests/virtual-user-qa.test.mjs) | — |
-| [worker/index.ts](../../worker/index.ts) | `default` (L201) |
+| [worker/index.ts](../../worker/index.ts) | `default` (L204) |
 
 ## SQL 테이블 최초 정의
 

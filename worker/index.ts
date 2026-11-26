@@ -136,7 +136,10 @@ function withSecurityHeaders(response: Response, url: URL, analyticsEnabled = fa
   headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("X-Frame-Options", "DENY");
-  if (url.pathname.startsWith("/api/")) headers.set("Cache-Control", "no-store");
+  if (url.pathname.startsWith("/api/")) {
+    const privateResponse = headers.get("Cache-Control")?.toLowerCase().includes("private");
+    headers.set("Cache-Control", privateResponse ? "private, no-store" : "no-store");
+  }
   if (url.pathname === "/operations" || url.pathname.startsWith("/operations/")) {
     headers.set("Cache-Control", "private, no-store");
     headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
