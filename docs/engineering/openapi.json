@@ -15,6 +15,45 @@
     }
   ],
   "paths": {
+    "/api/operations": {
+      "get": {
+        "operationId": "getOperationsDashboard",
+        "summary": "서버 allowlist 운영자에게만 내용 없는 이용 집계 제공",
+        "security": [{ "supabaseBearer": [] }],
+        "parameters": [{ "name": "days", "in": "query", "schema": { "type": "integer", "enum": [7, 30], "default": 7 } }],
+        "responses": {
+          "200": { "description": "KST 기간, summary, daily, companions. 계정 ID·개별 이벤트 없음. no-store/noindex." },
+          "400": { "description": "7/30 이외 기간" },
+          "401": { "description": "무인증 또는 검증 실패" },
+          "403": { "description": "비운영자 또는 Origin 불일치" },
+          "503": { "description": "서버 설정·조회 실패·안전 한도 초과. 부분 집계 없음." }
+        }
+      }
+    },
+    "/api/visit-analytics": {
+      "get": {
+        "operationId": "getPublicVisitAnalyticsConfig",
+        "summary": "선택형 방문 분석의 공개 사이트 식별자 제공",
+        "security": [],
+        "responses": { "200": { "description": "enabled boolean, 활성일 때만 공개 token. 관리자 API 키 아님. no-store/noindex." } }
+      }
+    },
+    "/robots.txt": {
+      "get": {
+        "operationId": "getRobotsInstructions",
+        "summary": "공개 검색 지침과 사이트맵 주소",
+        "security": [],
+        "responses": { "200": { "description": "text/plain. 검색 지침은 인증이나 색인 보장이 아님." } }
+      }
+    },
+    "/sitemap.xml": {
+      "get": {
+        "operationId": "getPublicSitemap",
+        "summary": "홈·개인정보·약관만 포함한 공개 사이트맵",
+        "security": [],
+        "responses": { "200": { "description": "application/xml. 운영자/인증/비공개 자료 URL 없음." } }
+      }
+    },
     "/api/account": {
       "delete": {
         "operationId": "deleteAccount",

@@ -35,7 +35,7 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-chromium",
-      testMatch: [/guest\.spec\.ts/, /world-growth\.spec\.ts/, /privacy\.spec\.ts/],
+      testMatch: [/guest\.spec\.ts/, /world-growth\.spec\.ts/, /privacy\.spec\.ts/, /launch\.spec\.ts/],
       use: { ...devices["Desktop Chrome"], ...localChrome },
     },
     {

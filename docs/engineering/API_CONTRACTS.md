@@ -4,7 +4,24 @@
 
 일반 공개 서비스는 Supabase Auth/REST/RPC/Storage/Realtime와 Worker의 계정·Push API를 사용한다. 모든 데이터를 자체 REST API로 감싼 구조가 아니다. 아래 HTTP 계약의 기계 판독판은 [openapi.json](openapi.json)이다.
 
-공통: JSON 응답, `Cache-Control:no-store`, `X-Request-Id`. 요청 ID는 추적용이며 인증이 아니다. account 응답 오류에는 `requestId`가 포함될 수 있지만 Push 오류 body는 `error`만 반환하므로 공통 필수 필드로 가정하지 않는다. 예제 토큰/URL은 실제 자격 증명이 아니다.
+기존 계정·Push API는 JSON 응답, `Cache-Control:no-store`, `X-Request-Id`를 사용한다. 요청 ID는 추적용이며 인증이 아니다. account 응답 오류에는 `requestId`가 포함될 수 있지만 Push 오류 body는 `error`만 반환하므로 공통 필수 필드로 가정하지 않는다. 예제 토큰/URL은 실제 자격 증명이 아니다.
+
+## GET /api/operations?days=7|30
+
+- Supabase Bearer JWT를 `auth.getUser`로 검증한 뒤, 서버 전용 `FOCUS_QUEST_OPERATOR_USER_IDS`의 정확한 UUID 목록과 비교한다. 사용자 metadata·이메일·클라이언트 UI는 운영 권한 근거가 아니다.
+- 무인증/만료 401, 비운영자/다른 Origin 403, 기간 오류 400, 서버 설정·조회 실패 503. `Cache-Control:no-store`, `Vary:Authorization`, `X-Robots-Tag:noindex,nofollow,noarchive`. 이 API는 별도 requestId 필드를 계약하지 않는다.
+- 성공은 KST 달력 기준 최근 7/30일(오늘 포함)의 summary/daily/companions/period/generatedAt. 계정 ID·이메일·개별 원본 행은 반환하지 않는다.
+- 로그인 사용자 이벤트만 조회한다. 시작/완료 건수는 개별 세션의 짝을 보증하지 않는다. 기존 summary 비율은 기간 내 고유 계정 비율이며 세션 완주율로 표시하지 않는다. `returned_after_7d`는 가입 기준 D7 지표가 아니다.
+- 페이지당 500행, 최대 50,000행/20초 소프트 마감. 쿼리는 10초 timeout. 제한 도달 시 부분 결과를 완전한 통계로 반환하지 않는다.
+- `/operations` HTML은 비밀 데이터를 포함하지 않는 클라이언트 shell이다. API에서 권한을 다시 검증하며 문서도 no-store/noindex로 처리한다.
+
+## GET /api/visit-analytics
+
+공개 설정 endpoint. `{enabled:false}` 또는 `{enabled:true,token:<public-site-id>}`만 반환한다. 32자리 hex 형식의 사이트 식별자는 의도적으로 공개되며 Cloudflare API 자격 증명이 아니다. 응답은 no-store/noindex. 관리자 키·운영자 UUID는 반환하지 않는다.
+
+## GET /robots.txt, GET /sitemap.xml
+
+기존 공개 origin만 사용한다. sitemap은 `/`, `/privacy`, `/terms`만 열거한다. robots는 `/api/`, `/operations`, `/auth/`를 제외한다. 검색 지시문은 인증이 아니며 검색엔진 등록·색인 승인을 보장하지 않는다.
 
 ## DELETE /api/account
 

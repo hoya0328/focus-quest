@@ -9,8 +9,9 @@ const publicRoot = join(root, "public");
 const limits = {
   largestClientScript: 1_250_000,
   largestPublicImage: 2_600_000,
-  // Includes the new, route-specific privacy document and signup confirmations.
-  totalClientCss: 230_000,
+  // Aggregate across all routes: privacy + operator CSS are separate chunks.
+  // The operator route adds ~6.3 KB; image and JS budgets stay unchanged.
+  totalClientCss: 240_000,
   totalClientScripts: 2_600_000,
 };
 

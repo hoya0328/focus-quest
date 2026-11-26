@@ -1,0 +1,11 @@
+.visit-analytics { max-width: 72rem; margin: 0 auto; padding: 1.5rem 1.25rem 2rem; border-top: 1px solid var(--color-border); color: var(--color-text-soft); background: var(--color-canvas); font: .9375rem/1.65 var(--font-body); }
+.visit-analytics h2 { margin: 0 0 .5rem; max-width: none; font: 700 1rem/1.5 var(--font-body); color: var(--color-text); }
+.visit-analytics p { max-width: 72ch; margin: .5rem 0; }
+.visit-analytics .visit-analytics-note { font-size: .875rem; }
+.visit-analytics-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-block: 1rem; }
+.visit-analytics button { min-height: 44px; padding: .625rem 1rem; border: 1px solid var(--color-border); border-radius: 8px; font: inherit; color: var(--color-text); background: var(--color-surface); cursor: pointer; }
+.visit-analytics button[aria-pressed="true"] { border-color: var(--color-secondary); }
+.visit-analytics button:hover:not(:disabled) { background: #292131; }
+.visit-analytics button:active:not(:disabled) { transform: translateY(1px); }
+.visit-analytics button:disabled { cursor: not-allowed; opacity: .6; }
+.visit-analytics button:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 4px; }

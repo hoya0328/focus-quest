@@ -33,7 +33,7 @@ for (const table of generated.tableNames) {
   check(dataModel.includes(`\`${table}\``), `Missing data ownership contract: ${table}`);
 }
 const features = (await Promise.all(["FEATURES_CORE.md", "FEATURES_LEARNING.md", "FEATURES_PLATFORM.md"].map((name) => read(`${engineering}/${name}`)))).join("\n");
-for (let id = 1; id <= 15; id++) {
+for (let id = 1; id <= 16; id++) {
   const name = `FQ-${String(id).padStart(2, "0")}`;
   check(features.includes(`## ${name} —`), `Missing feature contract ${name}`);
 }
@@ -83,4 +83,4 @@ if (process.argv.includes("--comments-only")) {
   }
 }
 if (failures.length) throw new Error(failures.join("\n"));
-console.log(JSON.stringify({ status: "verified", documents: documents.length, localLinks: linkCount, features: 15, apiOperations, commentsOnlyFiles, ...{ modules: generated.modules, tables: generated.tables, sqlFunctions: generated.functions } }));
+console.log(JSON.stringify({ status: "verified", documents: documents.length, localLinks: linkCount, features: 16, apiOperations, commentsOnlyFiles, ...{ modules: generated.modules, tables: generated.tables, sqlFunctions: generated.functions } }));

@@ -88,6 +88,16 @@ npm run camp:moderate -- REPORT_ID reviewed
 
 ## 7. 배포와 롤백
 
+### 검색과 분석 설정
+
+- `/sitemap.xml`·`/robots.txt` 정상 응답을 확인한 뒤 Search Console/네이버 서치어드바이저의 본인 소유권 확인과 사이트맵 제출을 별도로 수행한다. 사이트맵 제출은 색인 완료가 아니다.
+- `/operations`는 앱 홈에서 지정 운영자 계정으로 로그인한 브라우저에서 연다. 비운영자는 집계 API를 호출해도 403이며 사용자 metadata 변경으로 승격되지 않는다.
+- Worker Secret `FOCUS_QUEST_OPERATOR_USER_IDS`는 승인된 계정 UUID 목록이다. 공개 문서·클라이언트 코드에 실제 값을 기록하지 않는다. `CLOUDFLARE_WEB_ANALYTICS_TOKEN`은 API 토큰과 다른 공개 사이트 식별자다.
+- 기존 CLI 인증으로 읽기 전용 확인은 `node --env-file-if-exists=.env.local scripts/configure-launch.mjs`를 사용할 수 있다. 지정 운영자 조회는 로컬 프로세스의 `FOCUS_QUEST_OPERATOR_EMAIL`을 사용한다. `--apply`는 기존 Worker 바인딩을 갱신하고 버전을 배포할 수 있으므로 Git 반영·대상 검증·배포 승인 뒤에만 사용한다. 분석 관리 403은 권한 확장이나 유료 플랜 변경으로 우회하지 않고 대시보드의 무료 사이트 식별자로 연결한다.
+- 실사용 통계에 허구의 숫자를 넣지 않는다. UI 테스트의 합성 세션·응답은 운영 JWT·DB 성공의 증거가 아니다.
+
+### 릴리스 절차
+
 1. Git 상태·해당 소스 SHA·필요 migration 적용·일반/격리 검사 결과를 확인한다.
 2. 검증한 정확한 소스를 기존 승인 Git 원격에 반영한다. 명세 정리 요청만으로 외부 push/배포까지 허용됐다고 가정하지 않는다.
 3. 현재 승인된 배포 경로를 사용한다. Sites를 쓸 경우 원래 hosting.json ID를 유지하며 NOT_FOUND를 새 프로젝트 생성/접근 공개로 우회하지 않는다. 기존 공개 Worker 대상 배포와 구분한다.

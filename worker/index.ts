@@ -11,6 +11,8 @@ interface Env {
   SUPABASE_SERVICE_ROLE_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   VAPID_PUBLIC_KEY?: string;
+  CLOUDFLARE_WEB_ANALYTICS_TOKEN?: string;
+  FOCUS_QUEST_OPERATOR_USER_IDS?: string;
   DB: D1Database;
   IMAGES: {
     input(stream: ReadableStream): {
@@ -104,7 +106,7 @@ async function sendDueReminders(env: Env) {
   }));
 }
 
-function contentSecurityPolicy(url: URL) {
+function contentSecurityPolicy(url: URL, analyticsEnabled: boolean) {
   const localConnections = ["127.0.0.1", "localhost"].includes(url.hostname)
     ? " http://127.0.0.1:* ws://127.0.0.1:*"
     : "";
@@ -114,11 +116,11 @@ function contentSecurityPolicy(url: URL) {
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    `script-src 'self' 'unsafe-inline'${analyticsEnabled ? " https://static.cloudflareinsights.com/beacon.min.js" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co${localConnections}`,
+    `connect-src 'self' https://*.supabase.co wss://*.supabase.co${localConnections}${analyticsEnabled ? " https://cloudflareinsights.com" : ""}`,
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
     "manifest-src 'self'",
@@ -126,15 +128,19 @@ function contentSecurityPolicy(url: URL) {
   ].join("; ");
 }
 
-function withSecurityHeaders(response: Response, url: URL): Response {
+function withSecurityHeaders(response: Response, url: URL, analyticsEnabled = false): Response {
   const headers = new Headers(response.headers);
-  headers.set("Content-Security-Policy", contentSecurityPolicy(url));
+  headers.set("Content-Security-Policy", contentSecurityPolicy(url, analyticsEnabled));
   headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=()");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("X-Frame-Options", "DENY");
   if (url.pathname.startsWith("/api/")) headers.set("Cache-Control", "no-store");
+  if (url.pathname === "/operations" || url.pathname.startsWith("/operations/")) {
+    headers.set("Cache-Control", "private, no-store");
+    headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -164,7 +170,8 @@ const worker = {
       return withSecurityHeaders(imageResponse, url);
     }
 
-    return withSecurityHeaders(await handler.fetch(request, env, ctx), url);
+    const analyticsEnabled = url.pathname === "/" && /^[a-f0-9]{32}$/i.test(env.CLOUDFLARE_WEB_ANALYTICS_TOKEN ?? "");
+    return withSecurityHeaders(await handler.fetch(request, env, ctx), url, analyticsEnabled);
   },
   async scheduled(
     controller: { cron: string },

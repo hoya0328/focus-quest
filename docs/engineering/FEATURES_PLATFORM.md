@@ -52,3 +52,12 @@
 - Worker의 DB 만료 정리와 PC의 암호화 파일 정리는 다른 프로세스다. 외부 사본·독립 키 복구는 아직 없다.
 - **수용:** 잘못된 키/수정·누락·목록 외 파일 거절, 손상 사본 발견 시 선행 삭제도 하지 않음, 동시 실행 거절/자기 lock 정리, 보호 범위 밖 삭제 거절, 민감 본문 미출력.
 - **근거:** [일일 orchestration](../../scripts/daily-backup.mjs), [암호화 저장](../../scripts/encrypted-backup.mjs), [독립 검증](../../scripts/verify-encrypted-backups.mjs), [PDF 재처리](../../lib/cleanup-deleted-pdfs.ts), [회귀](../../tests/operating-policy.test.mjs), [정책](../OPERATING_POLICY.md), [런북](../OPERATIONS_RUNBOOK.md).
+
+## FQ-16 — 검색 발견성과 운영자 통계
+
+- 공개 sitemap/robots와 Open Graph·Twitter 기본 공유 정보를 제공한다. 별도 도메인 구매·검색 등록·색인·광고 심사는 자동 수행하지 않는다.
+- 운영자 화면은 7/30일 이용자·집중 시작/완료/중단, 날짜와 동료별 건수를 제공한다. 서버 allowlist + 검증된 JWT가 필요하며 응답에 개별 계정 식별자·공부 내용이 없다.
+- Cloudflare 방문 분석은 별도 사이트 식별자가 설정된 경우만 사용한다. 기본 꺼짐, 브라우저별 opt-in, DNT 존중, 깨끗한 공개 홈만 허용하며 인증 query/hash·운영자 페이지는 제외한다. 수집 오류가 타이머를 막지 않는다. 설정을 끄면 분석 중인 탭을 새로고침해 기존 코드도 중단한다.
+- 기존 로그인 제품 이벤트는 별도의 운영 목적 기록이며 방문 분석 허용/거절과 혼동하지 않는다. 비로그인 이용을 로그인 퍼널로 계산하거나 마지막 방문 신호를 가입 코호트 D7으로 설명하지 않는다.
+- **수용:** 무인증/일반 사용자 API 거절, 운영자 성공, no-store/noindex, 빈 데이터와 장애 상태, 390px 표 접근, 기본 외부 beacon 0건·허용 뒤 로드·콜백 URL 제외.
+- **근거:** [계산·권한](../../lib/operations-dashboard.ts), [API](../../app/api/operations/route.ts), [화면](../../app/operations/OperationsDashboard.tsx), [선택형 분석](../../app/components/VisitAnalytics.tsx), [검색](../../lib/search-discovery.ts), [단위](../../tests/launch-analytics.test.mjs), [브라우저](../../e2e/launch.spec.ts).

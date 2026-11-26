@@ -9,7 +9,9 @@
 | [app/adventure-motion-v2.css](../../app/adventure-motion-v2.css) | 스타일시트 |
 | [app/api/account/route.ts](../../app/api/account/route.ts) | `dynamic` (L10), `DELETE` (L132) |
 | [app/api/cloud-state/route.ts](../../app/api/cloud-state/route.ts) | `dynamic` (L14), `GET` (L111), `PUT` (L132), `DELETE` (L244) |
+| [app/api/operations/route.ts](../../app/api/operations/route.ts) | `dynamic` (L5), `GET` (L7) |
 | [app/api/push-subscriptions/route.ts](../../app/api/push-subscriptions/route.ts) | `dynamic` (L6), `POST` (L60), `DELETE` (L113) |
+| [app/api/visit-analytics/route.ts](../../app/api/visit-analytics/route.ts) | `GET` (L5) |
 | [app/base.css](../../app/base.css) | 스타일시트 |
 | [app/chatgpt-auth.ts](../../app/chatgpt-auth.ts) | `ChatGPTUser` (L4), `getChatGPTUser` (L19), `requireChatGPTUser` (L38), `chatGPTSignInPath` (L47), `chatGPTSignOutPath` (L52) |
 | [app/components/AdventureArchive.tsx](../../app/components/AdventureArchive.tsx) | `AdventureArchive` (L23) |
@@ -27,7 +29,9 @@
 | [app/components/RetentionPanel.tsx](../../app/components/RetentionPanel.tsx) | `RetentionPanel` (L36) |
 | [app/components/StudyMaterialLibrary.tsx](../../app/components/StudyMaterialLibrary.tsx) | `StudyMaterialLibrary` (L32) |
 | [app/components/StudyQuizPanel.tsx](../../app/components/StudyQuizPanel.tsx) | `StudyCheckpointPanel` (L103), `StudyRecallPanel` (L176) |
+| [app/components/VisitAnalytics.tsx](../../app/components/VisitAnalytics.tsx) | `VisitAnalytics` (L8) |
 | [app/components/WeeklyAdventureLog.tsx](../../app/components/WeeklyAdventureLog.tsx) | `WeeklyAdventureLog` (L50) |
+| [app/components/visit-analytics.css](../../app/components/visit-analytics.css) | 스타일시트 |
 | [app/focus-quest-2026.css](../../app/focus-quest-2026.css) | 스타일시트 |
 | [app/globals.css](../../app/globals.css) | 스타일시트 |
 | [app/hooks/useCloudSync.ts](../../app/hooks/useCloudSync.ts) | `CloudSyncStatus` (L28), `AuthActionResult` (L36), `useCloudSync` (L52) |
@@ -37,10 +41,15 @@
 | [app/hooks/useStudyMaterials.ts](../../app/hooks/useStudyMaterials.ts) | `MaterialPhase` (L16), `useStudyMaterials` (L58) |
 | [app/hooks/useStudyProgress.ts](../../app/hooks/useStudyProgress.ts) | `useStudyProgress` (L24) |
 | [app/hooks/useStudyQuests.ts](../../app/hooks/useStudyQuests.ts) | `QuestStoreStatus` (L18), `useStudyQuests` (L20) |
-| [app/layout.tsx](../../app/layout.tsx) | `metadata` (L9), `viewport` (L31), `RootLayout` (L38) |
+| [app/layout.tsx](../../app/layout.tsx) | `metadata` (L10), `viewport` (L45), `RootLayout` (L52) |
+| [app/operations/OperationsDashboard.tsx](../../app/operations/OperationsDashboard.tsx) | `OperationsDashboard` (L12) |
+| [app/operations/operations.css](../../app/operations/operations.css) | 스타일시트 |
+| [app/operations/page.tsx](../../app/operations/page.tsx) | `metadata` (L5), `OperationsPage` (L11) |
 | [app/page.tsx](../../app/page.tsx) | `Home` (L527) |
 | [app/privacy/page.tsx](../../app/privacy/page.tsx) | `metadata` (L10), `PrivacyPage` (L29) |
 | [app/privacy/privacy.css](../../app/privacy/privacy.css) | 스타일시트 |
+| [app/robots.txt/route.ts](../../app/robots.txt/route.ts) | `GET` (L3) |
+| [app/sitemap.xml/route.ts](../../app/sitemap.xml/route.ts) | `GET` (L3) |
 | [app/terms/page.tsx](../../app/terms/page.tsx) | `metadata` (L7), `TermsPage` (L13) |
 | [app/tokens.css](../../app/tokens.css) | 스타일시트 |
 | [build/sites-vite-plugin.ts](../../build/sites-vite-plugin.ts) | `sites` (L18) |
@@ -48,6 +57,7 @@
 | [db/schema.ts](../../db/schema.ts) | `userCloudStates` (L3) |
 | [e2e/guest.spec.ts](../../e2e/guest.spec.ts) | — |
 | [e2e/helpers.ts](../../e2e/helpers.ts) | `AdventureId` (L3), `completedHistory` (L12), `resetGuestStorage` (L37), `seedHistory` (L42), `expectNoHorizontalOverflow` (L50), `openHome` (L58), `openSetup` (L74), `setInputValue` (L83) |
+| [e2e/launch.spec.ts](../../e2e/launch.spec.ts) | — |
 | [e2e/privacy.spec.ts](../../e2e/privacy.spec.ts) | — |
 | [e2e/responsive.spec.ts](../../e2e/responsive.spec.ts) | — |
 | [e2e/staging.spec.ts](../../e2e/staging.spec.ts) | — |
@@ -60,6 +70,7 @@
 | [lib/companion-growth.ts](../../lib/companion-growth.ts) | `COMPANION_GROWTH_STORAGE_KEY` (L3), `MAX_COMPANION_GROWTH_ENTRIES` (L4), `CompanionGrowthEntry` (L6), `CompanionStage` (L13), `CompanionGrowth` (L15), `parseCompanionGrowthEntries` (L50), `parseStoredCompanionGrowth` (L58), `growthEntriesFromHistory` (L67), `mergeCompanionGrowthEntries` (L79), `addCompanionGrowthRecord` (L97), `getCompanionGrowth` (L105) |
 | [lib/local-study-coach.ts](../../lib/local-study-coach.ts) | `LocalStudyGuide` (L3), `createLocalStudyGuide` (L33) |
 | [lib/operating-policy.ts](../../lib/operating-policy.ts) | `OPERATING_POLICY_VERSION` (L1), `TERMS_VERSION` (L2), `TERMS_PATH` (L3), `BACKUP_RETENTION_DAYS` (L4), `EVENT_RETENTION_DAYS` (L5), `RESOLVED_CASE_RETENTION_DAYS` (L6), `MAX_STUDY_PDFS` (L7), `MAX_STUDY_PDF_TOTAL_BYTES` (L8), `expirationDate` (L9) |
+| [lib/operations-dashboard.ts](../../lib/operations-dashboard.ts) | `DashboardEvent` (L3), `operatorIds` (L13), `buildDashboard` (L22), `OperationsDashboard` (L61), `createOperationsEndpoint` (L72) |
 | [lib/operations.ts](../../lib/operations.ts) | `ProductEventSnapshot` (L1), `OperationsReport` (L7), `buildOperationsReport` (L23), `BackupManifest` (L74), `validateBackupManifest` (L81) |
 | [lib/pdf-analysis.ts](../../lib/pdf-analysis.ts) | `MAX_PDF_BYTES` (L6), `MAX_PDF_PAGES` (L7), `MAX_EXTRACTED_TEXT_CHARACTERS` (L8), `createStudyMaterialStoragePath` (L14), `StudyMaterial` (L24), `MaterialRow` (L40), `materialFromRow` (L56) |
 | [lib/pdf-client.ts](../../lib/pdf-client.ts) | `PdfInputError` (L10), `validatePdfFile` (L17), `extractPdfText` (L31) |
@@ -68,6 +79,7 @@
 | [lib/push-reminders.ts](../../lib/push-reminders.ts) | `VAPID_PUBLIC_KEY` (L1), `PushSubscriptionBody` (L4), `urlBase64ToUint8Array` (L13), `nextReminderAt` (L20), `parsePushSubscription` (L32) |
 | [lib/quiz-feedback.ts](../../lib/quiz-feedback.ts) | `QuizFeedbackStage` (L1), `QuizFeedbackValue` (L3), `QuizFeedbackState` (L5), `QUIZ_FEEDBACK_OPTIONS` (L10), `emptyQuizFeedback` (L19) |
 | [lib/retention.ts](../../lib/retention.ts) | `RECOVERY_QUEST_LIFETIME_MS` (L8), `RECOVERY_QUEST_KEY` (L9), `RECOVERY_UPDATED_AT_KEY` (L10), `RecoveryQuest` (L13), `WorldProgress` (L23), `AdventureTraceProgress` (L34), `CompanionMemory` (L44), `BehaviorInsights` (L50), `WORLD_GROWTH_MINIMUM_MINUTES` (L61), `WORLD_GROWTH_MILESTONES` (L62), `createRecoveryQuest` (L92), `parseRecoveryQuest` (L118), `getWorldProgress` (L165), `getAdventureTraceProgress` (L198), `getCompanionMemory` (L231), `getBehaviorInsights` (L260) |
+| [lib/search-discovery.ts](../../lib/search-discovery.ts) | `PUBLIC_INDEX_PATHS` (L3), `sitemapXml` (L5), `robotsText` (L10) |
 | [lib/seasonal-events.ts](../../lib/seasonal-events.ts) | `SeasonalWorldEvent` (L3), `getSeasonIndex` (L32), `getSeasonalWorldEvent` (L40) |
 | [lib/server-observability.ts](../../lib/server-observability.ts) | `ApiRequestContext` (L1), `createApiRequestContext` (L8), `addOperationalHeaders` (L22), `logApiFailure` (L30) |
 | [lib/service-config.ts](../../lib/service-config.ts) | `PUBLIC_SERVICE_URL` (L2) |
@@ -77,11 +89,13 @@
 | [lib/study-quiz.ts](../../lib/study-quiz.ts) | `QUIZ_SOURCE_KIND` (L1), `MAX_QUIZ_SOURCE_CHARACTERS` (L2), `StudyQuizSource` (L4), `StudyPageText` (L9), `StudyQuiz` (L11), `createStudyQuizSource` (L34), `parseStudyQuizSource` (L48), `parseStudyPageRange` (L67), `createStudyQuiz` (L110), `createUnseenStudyQuiz` (L155) |
 | [lib/supabase-client.ts](../../lib/supabase-client.ts) | `isSupabaseConfigured` (L11), `isGoogleAuthEnabled` (L15), `getSupabaseBrowserClient` (L18) |
 | [lib/telemetry-session.ts](../../lib/telemetry-session.ts) | `telemetryStorageKeys` (L3), `isDormantReturn` (L10) |
+| [lib/visit-analytics.ts](../../lib/visit-analytics.ts) | `VISIT_ANALYTICS_PREFERENCE` (L1), `visitAnalyticsAllowed` (L4), `validAnalyticsToken` (L8) |
 | [lib/world-growth.ts](../../lib/world-growth.ts) | `WORLD_LEVEL_MIN` (L3), `WORLD_LEVEL_MAX` (L4), `clampWorldLevel` (L12), `getWorldBackgroundKey` (L20), `getWorldBackgroundPath` (L27) |
 | [scripts/backup-production.mjs](../../scripts/backup-production.mjs) | — |
 | [scripts/build-e2e.mjs](../../scripts/build-e2e.mjs) | — |
 | [scripts/check-build-budget.mjs](../../scripts/check-build-budget.mjs) | — |
 | [scripts/check-documentation.mjs](../../scripts/check-documentation.mjs) | — |
+| [scripts/configure-launch.mjs](../../scripts/configure-launch.mjs) | — |
 | [scripts/daily-backup.mjs](../../scripts/daily-backup.mjs) | — |
 | [scripts/diagnose-isolated-auth.mjs](../../scripts/diagnose-isolated-auth.mjs) | — |
 | [scripts/encrypted-backup.mjs](../../scripts/encrypted-backup.mjs) | `encrypt` (L11), `decrypt` (L20), `protectDirectory` (L28), `loadBackupKey` (L47), `writeArchive` (L71), `readArchive` (L89), `removeArchive` (L108), `pruneArchives` (L120), `withBackupLock` (L139), `BACKUP_RETENTION_DAYS` (L155) |
@@ -104,6 +118,7 @@
 | [tests/adventure-archive.test.mjs](../../tests/adventure-archive.test.mjs) | — |
 | [tests/cloud-state.test.mjs](../../tests/cloud-state.test.mjs) | — |
 | [tests/documentation.test.mjs](../../tests/documentation.test.mjs) | — |
+| [tests/launch-analytics.test.mjs](../../tests/launch-analytics.test.mjs) | — |
 | [tests/local-study-coach.test.mjs](../../tests/local-study-coach.test.mjs) | — |
 | [tests/operating-policy.test.mjs](../../tests/operating-policy.test.mjs) | — |
 | [tests/operations.test.mjs](../../tests/operations.test.mjs) | — |
@@ -120,7 +135,7 @@
 | [tests/silent-camp.test.mjs](../../tests/silent-camp.test.mjs) | — |
 | [tests/study-quests.test.mjs](../../tests/study-quests.test.mjs) | — |
 | [tests/virtual-user-qa.test.mjs](../../tests/virtual-user-qa.test.mjs) | — |
-| [worker/index.ts](../../worker/index.ts) | `default` (L192) |
+| [worker/index.ts](../../worker/index.ts) | `default` (L199) |
 
 ## SQL 테이블 최초 정의
 

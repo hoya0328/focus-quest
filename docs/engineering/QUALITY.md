@@ -32,10 +32,13 @@ node --test tests/pomodoro.test.mjs tests/cloud-state.test.mjs
 | FQ-07~10: 학습 | [study-quests](../../tests/study-quests.test.mjs), [guide](../../tests/local-study-coach.test.mjs), [staging](../../e2e/staging.spec.ts) |
 | FQ-11~13: 캠프·알림·운영 신호 | [camp](../../tests/silent-camp.test.mjs), [push](../../tests/push-reminders.test.mjs), [PWA](../../tests/pwa.test.mjs), [operations](../../tests/operations.test.mjs) |
 | FQ-14~15: 개인정보·백업 | [privacy](../../tests/privacy.test.mjs), [retention safety](../../tests/operating-policy.test.mjs), [문서 화면](../../e2e/privacy.spec.ts) |
+| FQ-16: 검색·운영 통계·선택형 분석 | [권한/집계](../../tests/launch-analytics.test.mjs), [화면](../../e2e/launch.spec.ts) |
 
 일부 보안 회귀는 SQL/소스의 정책 구조를 검사한다. 이것은 실제 DB 권한 검증과 다르다. 격리 `staging.spec.ts`는 합성 계정·원본 PDF·캠프·권한을 실제 경로로 검증한다. 운영 익명 검사만 성공했다고 소유자 정상 접근까지 검증됐다고 말하지 않는다.
 
 ## PR 리뷰 체크
+
+전체 route CSS 합계 예산은 240KB다. 운영자 전용 CSS 약 6.3KB와 선택형 분석 설정 UI를 포함한 값이며 한 번의 홈 방문에서 모든 route CSS를 불러온다는 뜻은 아니다. 개별 JS 1.25MB·전체 JS 2.6MB·이미지 2.6MB 예산은 유지한다.
 
 - 기존 동작을 바꾸는가, 명세/회귀가 그 변경을 설명하는가?
 - 날짜/분/초/ms, session ID, cloud revision/schemaVersion을 혼동하지 않았는가?
@@ -48,7 +51,7 @@ node --test tests/pomodoro.test.mjs tests/cloud-state.test.mjs
 
 ## 자동 문서 검사 범위
 
-`docs:generate`는 지정된 소스 파일을 정렬해 export 위치와 최신 SQL 정의 위치를 만든다. timestamp·현재 사용자·실행 로그를 생성물에 넣지 않는다. `docs:check`는 생성물 drift, 문서의 로컬 링크, FQ-01~15 존재, 전체 테이블의 데이터 사전 포함, OpenAPI HTTP 메서드 일치를 검사한다. `--comments-only`는 기존 런타임 파일의 변경 전/후 AST 구조·토큰·리터럴값을 비교한다. 줄 위치·서식·주석은 비교하지 않는다. 소스 지도 생성물은 자동 수정해도 되지만 의미 명세는 코드 리뷰가 필요하다. `test:docs`는 주석·줄바꿈 변경의 허용과 실제 리터럴/연산자/JSX 변경 탐지를 회귀 검사한다.
+`docs:generate`는 지정된 소스 파일을 정렬해 export 위치와 최신 SQL 정의 위치를 만든다. timestamp·현재 사용자·실행 로그를 생성물에 넣지 않는다. `docs:check`는 생성물 drift, 문서의 로컬 링크, FQ-01~16 존재, 전체 테이블의 데이터 사전 포함, OpenAPI HTTP 메서드 일치를 검사한다. `--comments-only`는 기존 런타임 파일의 변경 전/후 AST 구조·토큰·리터럴값을 비교한다. 줄 위치·서식·주석은 비교하지 않는다. 소스 지도 생성물은 자동 수정해도 되지만 의미 명세는 코드 리뷰가 필요하다. `test:docs`는 주석·줄바꿈 변경의 허용과 실제 리터럴/연산자/JSX 변경 탐지를 회귀 검사한다.
 
 ## 결과 기록의 경계
 
