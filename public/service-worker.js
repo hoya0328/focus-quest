@@ -1,23 +1,11 @@
 const CACHE_NAME = "focus-quest-v8";
 const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const OFFLINE_PAGE_KEY = `${BASE_PATH}/__focus-quest-offline`;
+// Keep only the recovery page and its icon on the install path.
+// Adventure art and install icons are cached on use instead.
 const CORE_ASSETS = [
   `${BASE_PATH}/offline.html`,
-  `${BASE_PATH}/manifest.webmanifest`,
-  `${BASE_PATH}/brand/focus-quest-logo.png`,
-  `${BASE_PATH}/brand/focus-quest-mark.png`,
-  `${BASE_PATH}/brand/focus-quest-192.png`,
-  `${BASE_PATH}/brand/focus-quest-512.png`,
-  `${BASE_PATH}/brand/focus-quest-maskable-512.png`,
-  `${BASE_PATH}/characters/momo-hiking.webp`,
-  `${BASE_PATH}/characters/podo-swimming.webp`,
-  `${BASE_PATH}/characters/bori-fishing.webp`,
-  `${BASE_PATH}/characters/mori-rest.webp`,
-  `${BASE_PATH}/characters/naru-rest.webp`,
-  `${BASE_PATH}/characters/bori-rest.webp`,
-  `${BASE_PATH}/characters/evolution/mori-evolution-v1.webp`,
-  `${BASE_PATH}/characters/evolution/naru-evolution-v1.webp`,
-  `${BASE_PATH}/characters/evolution/bori-evolution-v1.webp`
+  `${BASE_PATH}/brand/focus-quest-192.png`
 ];
 const CACHEABLE_DESTINATIONS = new Set([
   "audio",
@@ -135,8 +123,8 @@ self.addEventListener("push", (event) => {
   const url = typeof payload.url === "string" ? payload.url : `${BASE_PATH}/`;
   event.waitUntil(self.registration.showNotification(title, {
     body,
-    icon: `${BASE_PATH}/brand/focus-quest-mark.png`,
-    badge: `${BASE_PATH}/brand/focus-quest-mark.png`,
+    icon: `${BASE_PATH}/brand/focus-quest-192.png`,
+    badge: `${BASE_PATH}/brand/focus-quest-192.png`,
     data: { url },
     tag: "focus-quest-daily-reminder",
     renotify: false,

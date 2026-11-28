@@ -41,6 +41,8 @@ node --test tests/pomodoro.test.mjs tests/cloud-state.test.mjs
 
 전체 route CSS 합계 예산은 240KB다. 운영자 전용 CSS 약 6.3KB와 선택형 분석 설정 UI를 포함한 값이며 한 번의 홈 방문에서 모든 route CSS를 불러온다는 뜻은 아니다. 개별 JS 1.25MB·전체 JS 2.6MB·이미지 2.6MB 예산은 유지한다.
 
+첫 화면의 모험 미리보기·로고 합계는 모바일 260KB, 데스크톱 370KB 이하다. 원본 아트를 바꾼 경우 `node scripts/build-entry-previews.mjs`로 축소 자산을 갱신하고, 반응형 회귀에서 첫 화면이 원본 아트를 요청하는지 확인한다.
+
 - 기존 동작을 바꾸는가, 명세/회귀가 그 변경을 설명하는가?
 - 날짜/분/초/ms, session ID, cloud revision/schemaVersion을 혼동하지 않았는가?
 - loading/empty/error/retry/expired/offline 상태와 중복 클릭을 처리했는가?

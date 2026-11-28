@@ -9,19 +9,26 @@ const evolutionSheets: Record<AdventureId, string> = {
 
 type CompanionEvolutionSpriteProps = {
   adventureId: AdventureId;
+  assetBasePath?: string;
   className?: string;
   friend: string;
+  rendition?: "full" | "preview";
   stage: CompanionStage;
 };
 
 export default function CompanionEvolutionSprite({
   adventureId,
+  assetBasePath = "",
   className = "",
   friend,
+  rendition = "full",
   stage,
 }: CompanionEvolutionSpriteProps) {
   const positions = [0, 32.58, 65.15, 97.73] as const;
   const position = positions[stage - 1];
+  const image = rendition === "preview"
+    ? `/previews/${adventureId}-companion.webp`
+    : evolutionSheets[adventureId];
 
   return (
     <span
@@ -29,7 +36,7 @@ export default function CompanionEvolutionSprite({
       className={`companion-evolution-sprite companion-evolution-${adventureId} companion-evolution-stage-${stage} ${className}`.trim()}
       role="img"
       style={{
-        backgroundImage: `url(${evolutionSheets[adventureId]})`,
+        backgroundImage: `url(${assetBasePath}${image})`,
         backgroundPosition: `${position}% center`,
       }}
     />

@@ -89,12 +89,11 @@ test("server-renders the adventure focus app", async (context) => {
   assert.equal(website.name, "Focus Quest");
   assert.equal(website.alternateName, "포커스 퀘스트");
   assert.equal(website.url, PUBLIC_SERVICE_URL);
-  assert.match(normalizedHtml, /brand\/focus-quest-logo\.png/);
-  assert.match(normalizedHtml, /오늘의 동행/);
+  assert.match(normalizedHtml, /previews\/wordmark\.webp/);
   assert.match(normalizedHtml, /누구와 집중할까요/);
-  assert.match(normalizedHtml, /친구마다 걷는 길과 마지막 장면이 달라요/);
-  assert.match(normalizedHtml, /모리와 준비하기/);
-  assert.match(normalizedHtml, /시간, 목표, 공부 자료를 정할 수 있어요/);
+  assert.match(normalizedHtml, /모리와 25분 시작/);
+  assert.match(normalizedHtml, /25분 집중 · 5분 휴식/);
+  assert.match(normalizedHtml, /시간·음악 설정/);
   assert.match(normalizedHtml, /해오름 봉우리/);
   assert.match(normalizedHtml, /유리산호 유적/);
   assert.match(normalizedHtml, /달비늘 호수/);
@@ -147,7 +146,7 @@ test("removes starter preview code and dependencies", async () => {
   ]);
 
   assert.doesNotMatch(page, /codex-preview|_sites-preview|SkeletonPreview/);
-  assert.match(page, /첫 집중 시작 순서/);
+  assert.match(page, /<CompanionGate/);
   assert.match(page, /같은 리듬으로 시작/);
   assert.match(page, /className="complete-hero"/);
   assert.doesNotMatch(page, /className="complete-halo"|className="badge"/);

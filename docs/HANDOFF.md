@@ -8,6 +8,7 @@
 | 기능·구조 | [기술 명세](engineering/README.md), [아키텍처](ARCHITECTURE.md) |
 | 데이터·권한·연동 | [데이터 모델](engineering/DATA_MODEL.md), [API 계약](engineering/API_CONTRACTS.md) |
 | 검증·장애 대응 | [품질 기준](engineering/QUALITY.md), [운영 런북](OPERATIONS_RUNBOOK.md) |
+| 첫 화면·25분 바로 시작 | [캐릭터 선택](../app/components/CompanionGate.tsx), [미리보기 생성](../scripts/build-entry-previews.mjs), [완주·휴식 검증](../e2e/guest.spec.ts), [모바일·태블릿 검증](../e2e/responsive.spec.ts) |
 | 검색·운영 통계 | [발견성과 측정 계약](engineering/FEATURES_PLATFORM.md#fq-16--검색-발견성과-운영자-통계), [HTTP 계약](engineering/API_CONTRACTS.md) |
 | 서비스명·검색 제목·공유 설명 | [공개 문구 설정](../lib/service-config.ts), [홈 구조화 데이터](../lib/search-discovery.ts), [렌더링 검증](../tests/rendered-html.test.mjs) |
 | 방문 통계 선택 동의·철회 | [가입 UI](../app/components/AuthDialog.tsx), [브라우저 선택/수집](../app/components/VisitAnalytics.tsx), [동의 흐름 회귀](../e2e/launch.spec.ts) |

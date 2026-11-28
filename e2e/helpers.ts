@@ -2,13 +2,6 @@ import { expect, type Page } from "@playwright/test";
 
 export type AdventureId = "hike" | "swim" | "fish";
 
-const ENTRY_PREVIEW_ASSETS =
-  /\/(?:backgrounds\/(?:hike-pixel-summit-v1|swim-pixel-depth|fish-pixel-lake-v1)|characters\/(?:momo-hiking|podo-swimming|bori-fishing)|brand\/focus-quest-logo)\.png(?:\?.*)?$/;
-const TRANSPARENT_PIXEL = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-  "base64",
-);
-
 export function completedHistory(
   count: number,
   adventureId: AdventureId,
@@ -56,13 +49,6 @@ export async function expectNoHorizontalOverflow(page: Page) {
 }
 
 export async function openHome(page: Page) {
-  await page.route(ENTRY_PREVIEW_ASSETS, (route) =>
-    route.fulfill({
-      body: TRANSPARENT_PIXEL,
-      contentType: "image/png",
-      status: 200,
-    }),
-  );
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "누구와 집중할까요?" })).toBeVisible();
   await expect(page.locator(".account-chip small")).toHaveText("이 기기에 저장 중", {
@@ -71,10 +57,8 @@ export async function openHome(page: Page) {
   await page.waitForLoadState("load", { timeout: 15_000 });
 }
 
-export async function openSetup(page: Page, companion = "모리") {
-  await page
-    .getByRole("button", { name: `${companion}와 준비하기` })
-    .dispatchEvent("click");
+export async function openSetup(page: Page) {
+  await page.getByRole("button", { name: "시간·음악 설정" }).click();
   await expect(page.locator(".screen-setup h1")).toHaveText(
     "나만의 집중 시간을 만들어요.",
   );

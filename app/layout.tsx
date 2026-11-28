@@ -37,9 +37,9 @@ export const metadata: Metadata = {
   },
   manifest: `${publicBasePath}/manifest.webmanifest`,
   icons: {
-    icon: `${publicBasePath}/brand/focus-quest-mark.png`,
-    shortcut: `${publicBasePath}/brand/focus-quest-mark.png`,
-    apple: `${publicBasePath}/brand/focus-quest-mark.png`,
+    icon: `${publicBasePath}/brand/focus-quest-192.png`,
+    shortcut: `${publicBasePath}/brand/focus-quest-192.png`,
+    apple: `${publicBasePath}/brand/focus-quest-192.png`,
   },
   appleWebApp: {
     capable: true,

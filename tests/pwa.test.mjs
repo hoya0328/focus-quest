@@ -33,11 +33,11 @@ test("the service worker provides an offline navigation fallback", async () => {
   assert.match(serviceWorker, /addEventListener\("push"/);
   assert.match(serviceWorker, /showNotification/);
   assert.match(serviceWorker, /addEventListener\("notificationclick"/);
-  assert.match(serviceWorker, /brand\/focus-quest-logo\.png/);
-  assert.match(serviceWorker, /brand\/focus-quest-mark\.png/);
-  assert.match(serviceWorker, /characters\/mori-rest\.webp/);
-  assert.match(serviceWorker, /characters\/naru-rest\.webp/);
-  assert.match(serviceWorker, /characters\/bori-rest\.webp/);
+  const core = serviceWorker.match(/const CORE_ASSETS = \[([\s\S]*?)\];/)?.[1] ?? "";
+  assert.deepEqual(
+    [...core.matchAll(/\$\{BASE_PATH\}(\/[^\x60]+)/g)].map(([, path]) => path),
+    ["/offline.html", "/brand/focus-quest-192.png"],
+  );
   assert.match(serviceWorker, /cache: "no-store"/);
   assert.match(serviceWorker, /self\.clients\.claim\(\)/);
   assert.doesNotMatch(serviceWorker, /client\.navigate\(client\.url\)/);

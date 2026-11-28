@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { AdventureId } from "@/lib/pomodoro";
 import type { CompanionGrowth } from "@/lib/companion-growth";
 import type {
@@ -20,6 +21,7 @@ type WorldCard = {
 };
 
 type RetentionPanelProps = {
+  assetBasePath: string;
   companionMemory: CompanionMemory;
   companionGrowth: CompanionGrowth;
   insights: BehaviorInsights;
@@ -34,6 +36,7 @@ type RetentionPanelProps = {
 };
 
 export default function RetentionPanel({
+  assetBasePath,
   companionMemory,
   companionGrowth,
   insights,
@@ -46,6 +49,22 @@ export default function RetentionPanel({
   selectedFriend,
   worlds,
 }: RetentionPanelProps) {
+  const worldGrid = useRef<HTMLDivElement>(null);
+  const [showWorldPreviews, setShowWorldPreviews] = useState(false);
+
+  useEffect(() => {
+    const grid = worldGrid.current;
+    if (!grid || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) {
+        setShowWorldPreviews(true);
+        observer.disconnect();
+      }
+    });
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section className="retention-panel" aria-labelledby="retention-title">
       <header className="retention-heading">
@@ -82,7 +101,9 @@ export default function RetentionPanel({
           <div className={`companion-stage-portrait stage-${companionGrowth.stage}`}>
             <CompanionEvolutionSprite
               adventureId={selectedId}
+              assetBasePath={assetBasePath}
               friend={selectedFriend}
+              rendition="preview"
               stage={companionGrowth.stage}
             />
             <span>{companionGrowth.stage}단계 모습</span>
@@ -135,7 +156,7 @@ export default function RetentionPanel({
           </div>
           <small>각 세계 최대 5단계</small>
         </div>
-        <div className="world-restoration-grid">
+        <div className="world-restoration-grid" ref={worldGrid}>
           {worlds.map(({ friend, name, progress, trace }) => (
             <button
               aria-pressed={selectedId === progress.adventureId}
@@ -147,12 +168,12 @@ export default function RetentionPanel({
               <span
                 aria-hidden="true"
                 className="world-next-preview"
-                style={{
-                  backgroundImage: `url(${getWorldBackgroundPath(
+                style={showWorldPreviews ? {
+                  backgroundImage: `url(${assetBasePath}${getWorldBackgroundPath(
                     progress.adventureId,
                     progress.nextTarget ? progress.level + 1 : progress.level,
                   )})`,
-                }}
+                } : undefined}
               >
                 <i>{progress.nextTarget ? "다음 풍경" : "완성된 풍경"}</i>
               </span>

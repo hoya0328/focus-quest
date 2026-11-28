@@ -5473,10 +5473,6 @@ input[type="range"] {
   font-style: normal;
 }
 
-.quick-start-note {
-  margin-bottom: 34px;
-}
-
 .timer-card > .active-focus-intent {
   max-width: 100%;
   margin-bottom: 6px;
@@ -6003,11 +5999,4 @@ input[type="range"] {
     height: 52px;
   }
 
-  .quick-start-note {
-    align-items: flex-start;
-  }
-
-  .quick-start-note i {
-    display: none;
-  }
 }

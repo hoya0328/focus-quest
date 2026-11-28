@@ -1,5 +1,5 @@
 import { readdir, stat } from "node:fs/promises";
-import { extname, join, relative } from "node:path";
+import { basename, dirname, extname, join, relative } from "node:path";
 
 const root = process.cwd();
 const clientRoot = join(root, "dist", "client");
@@ -9,6 +9,8 @@ const publicRoot = join(root, "public");
 const limits = {
   largestClientScript: 1_250_000,
   largestPublicImage: 2_600_000,
+  mobileEntryPreviews: 260_000,
+  desktopEntryPreviews: 370_000,
   // Aggregate across all routes: privacy + operator CSS are separate chunks.
   // The operator route adds ~6.3 KB; image and JS budgets stay unchanged.
   totalClientCss: 240_000,
@@ -55,9 +57,12 @@ const largest = (items) =>
     size: 0,
   });
 
+const entryPreviews = imageSizes.filter(({ file }) => dirname(file) === join(publicRoot, "previews"));
 const metrics = {
   largestClientScript: largest(scriptSizes),
   largestPublicImage: largest(imageSizes),
+  mobileEntryPreviews: sum(entryPreviews.filter(({ file }) => !basename(file).endsWith("-landscape.webp"))),
+  desktopEntryPreviews: sum(entryPreviews.filter(({ file }) => !basename(file).endsWith("-landscape-small.webp"))),
   totalClientCss: sum(styleSizes),
   totalClientScripts: sum(scriptSizes),
 };

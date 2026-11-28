@@ -34,6 +34,8 @@ export type ActiveSession = {
   questId?: string;
   focusIntent?: string;
   expedition?: ExpeditionProgress;
+  /** A one-off rest for this focus, independent of the saved custom rhythm. */
+  plannedBreakMinutes?: number;
 };
 
 export type FocusRecord = {
@@ -67,6 +69,7 @@ export type WeeklySummary = {
 
 export const ACTIVE_SESSION_KEY = "haru-focus-active-session";
 export const HISTORY_KEY = "haru-focus-history";
+export const QUICK_START_RHYTHM = { focusMinutes: 25, breakMinutes: 5 } as const;
 export const MAX_HISTORY_RECORDS = 400;
 export const MAX_FOCUS_INTENT_LENGTH = 80;
 export const MAX_CAMP_REFLECTION_LENGTH = 160;
@@ -150,6 +153,7 @@ export function createActiveSession({
   questId,
   focusIntent,
   expedition,
+  plannedBreakMinutes,
   now = Date.now(),
 }: {
   mode: SessionMode;
@@ -159,6 +163,7 @@ export function createActiveSession({
   questId?: string;
   focusIntent?: string;
   expedition?: ExpeditionProgress;
+  plannedBreakMinutes?: number;
   now?: number;
 }): ActiveSession {
   const seconds = Math.max(1, Math.round(durationMinutes * 60));
@@ -176,6 +181,7 @@ export function createActiveSession({
     ...(questId ? { questId } : {}),
     ...(normalizedIntent ? { focusIntent: normalizedIntent } : {}),
     ...(expedition ? { expedition } : {}),
+    ...(plannedBreakMinutes !== undefined ? { plannedBreakMinutes } : {}),
   };
 }
 
@@ -238,6 +244,11 @@ export function parseActiveSession(raw: string | null, now = Date.now()) {
         (normalizeFocusIntent(value.focusIntent) !== value.focusIntent ||
           value.focusIntent.length === 0)) ||
       (value.expedition !== undefined && !isValidExpedition(value.expedition)) ||
+      (value.plannedBreakMinutes !== undefined &&
+        (value.mode !== "focus" ||
+          !Number.isInteger(value.plannedBreakMinutes) ||
+          value.plannedBreakMinutes < 1 ||
+          value.plannedBreakMinutes > 30)) ||
       (!value.paused && !isFinitePositive(value.endAt))
     ) {
       return null;

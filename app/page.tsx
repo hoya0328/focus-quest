@@ -11,7 +11,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type KeyboardEvent,
 } from "react";
 import Image from "next/image";
 import { websiteJsonLd } from "@/lib/search-discovery";
@@ -25,7 +24,9 @@ import InstallGuide from "@/app/components/InstallGuide";
 import SupportButton from "@/app/components/SupportButton";
 import OperatorInboxLink from "@/app/components/OperatorInboxLink";
 import { usePwaInstall } from "@/app/hooks/usePwaInstall";
+import CompanionGate from "@/app/components/CompanionGate";
 import CompanionEvolutionSprite from "@/app/components/CompanionEvolutionSprite";
+import SceneErrorBoundary from "@/app/components/SceneErrorBoundary";
 import { StudyCheckpointPanel, StudyRecallPanel } from "@/app/components/StudyQuizPanel";
 import { useCloudSync } from "@/app/hooks/useCloudSync";
 import { useProductTelemetry } from "@/app/hooks/useProductTelemetry";
@@ -50,6 +51,7 @@ import {
 import {
   ACTIVE_SESSION_KEY,
   HISTORY_KEY,
+  QUICK_START_RHYTHM,
   addCampReflection,
   addCampOutcome,
   addFocusRecord,
@@ -528,8 +530,8 @@ export default function Home() {
   const [showStudyTools, setShowStudyTools] = useState(false);
   const [selectedId, setSelectedId] = useState<AdventureId>("hike");
   const [campNickname, setCampNickname] = useState("모험가");
-  const [focusMinutes, setFocusMinutes] = useState(25);
-  const [breakMinutes, setBreakMinutes] = useState(5);
+  const [focusMinutes, setFocusMinutes] = useState<number>(QUICK_START_RHYTHM.focusMinutes);
+  const [breakMinutes, setBreakMinutes] = useState<number>(QUICK_START_RHYTHM.breakMinutes);
   const [bgm, setBgm] = useState<BgmId>("forest");
   const [remaining, setRemaining] = useState(25 * 60);
   const [sessionMode, setSessionMode] = useState<SessionMode>("focus");
@@ -564,6 +566,7 @@ export default function Home() {
   const [expeditionSets, setExpeditionSets] = useState(1);
   const [sessionExpedition, setSessionExpedition] = useState<ExpeditionProgress | null>(null);
   const [completedExpedition, setCompletedExpedition] = useState<ExpeditionProgress | null>(null);
+  const [completedPlannedBreakMinutes, setCompletedPlannedBreakMinutes] = useState<number | null>(null);
   const [recoveryQuest, setRecoveryQuest] = useState<RecoveryQuest | null>(null);
   const [recoveryUpdatedAt, setRecoveryUpdatedAt] = useState(
     EMPTY_SESSION_UPDATED_AT,
@@ -819,6 +822,7 @@ export default function Home() {
         );
         setCompletionMode(session.mode);
         setCompletedExpedition(session.expedition ?? null);
+        setCompletedPlannedBreakMinutes(session.plannedBreakMinutes ?? null);
         setFocusIntent(session.focusIntent ?? "");
         setEndAt(null);
         setPaused(false);
@@ -861,6 +865,7 @@ export default function Home() {
         setCampReflectionSaved(Boolean(completedRecord?.campReflection));
         setCompletionMode(previousSession.mode);
         setCompletedExpedition(previousSession.expedition ?? null);
+        setCompletedPlannedBreakMinutes(previousSession.plannedBreakMinutes ?? null);
         setRemaining(0);
         setScreen("complete");
       } else {
@@ -1087,6 +1092,7 @@ export default function Home() {
         );
         setCompletionMode(session.mode);
         setCompletedExpedition(session.expedition ?? null);
+        setCompletedPlannedBreakMinutes(session.plannedBreakMinutes ?? null);
         setEndAt(null);
         setPaused(false);
         setScreen("complete");
@@ -1353,6 +1359,7 @@ export default function Home() {
 
     setCompletionMode(session.mode);
     setCompletedExpedition(session.expedition ?? null);
+    setCompletedPlannedBreakMinutes(session.plannedBreakMinutes ?? null);
     setEndAt(null);
     setPaused(false);
     setShowExit(false);
@@ -1422,36 +1429,6 @@ export default function Home() {
     void trackProductEvent("companion_selected", { adventureId: id });
   };
 
-  const handleCompanionKeyDown = (
-    event: KeyboardEvent<HTMLButtonElement>,
-    id: AdventureId,
-  ) => {
-    const currentIndex = adventures.findIndex((adventure) => adventure.id === id);
-    let nextIndex = currentIndex;
-
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-      nextIndex = (currentIndex + 1) % adventures.length;
-    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-      nextIndex = (currentIndex - 1 + adventures.length) % adventures.length;
-    } else if (event.key === "Home") {
-      nextIndex = 0;
-    } else if (event.key === "End") {
-      nextIndex = adventures.length - 1;
-    } else {
-      return;
-    }
-
-    event.preventDefault();
-    const radioGroup = event.currentTarget.closest('[role="radiogroup"]');
-    const nextAdventure = adventures[nextIndex];
-    chooseAdventure(nextAdventure.id);
-    requestAnimationFrame(() => {
-      radioGroup
-        ?.querySelector<HTMLButtonElement>(`[data-companion-id="${nextAdventure.id}"]`)
-        ?.focus();
-    });
-  };
-
   const commitRecoveryQuest = useCallback(
     (next: RecoveryQuest | null, updatedAt = new Date().toISOString()) => {
       setRecoveryQuest(next);
@@ -1476,6 +1453,7 @@ export default function Home() {
       adventureId?: AdventureId;
       bgm?: BgmId;
       expedition?: ExpeditionProgress;
+      plannedBreakMinutes?: number;
     },
   ) => {
     const durationMinutes =
@@ -1499,6 +1477,7 @@ export default function Home() {
       questId: sessionQuestId ?? undefined,
       focusIntent: intent,
       expedition: options?.expedition,
+      plannedBreakMinutes: options?.plannedBreakMinutes,
     });
 
     completionLockRef.current = false;
@@ -1539,6 +1518,28 @@ export default function Home() {
     }
   };
 
+  const beginQuickFocus = () => {
+    // Use an explicit session snapshot; do not replace the user's custom rhythm.
+    if (!hydrated || activeSessionRef.current) return;
+    setActiveQuestId(null);
+    setActiveStudyMaterial(null);
+    beginSession("focus", {
+      durationMinutes: QUICK_START_RHYTHM.focusMinutes,
+      plannedBreakMinutes: QUICK_START_RHYTHM.breakMinutes,
+      adventureId: selected.id,
+      focusIntent: "",
+      questId: null,
+      updateFocusPreference: false,
+    });
+  };
+
+  const openCustomSetup = () => {
+    setActiveQuestId(null);
+    setScreen("setup");
+    void trackProductEvent("setup_opened", { adventureId: selectedId });
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
+
   const beginFocus = () => {
     if (completionMode === "break" && activeStudyMaterial) {
       const nextStart = Math.min(studyRangeEnd, Math.max(studyRangeStart, Number(reachedPage) + 1));
@@ -1574,9 +1575,10 @@ export default function Home() {
         : undefined;
     beginSession("focus", { expedition });
   };
+  const nextBreakMinutes = completedExpedition?.breakMinutes ?? completedPlannedBreakMinutes ?? breakMinutes;
   const beginBreak = () =>
     beginSession("break", {
-      durationMinutes: completedExpedition?.breakMinutes ?? breakMinutes,
+      durationMinutes: nextBreakMinutes,
       expedition:
         completedExpedition &&
         completedExpedition.currentSet < completedExpedition.totalSets
@@ -2174,7 +2176,7 @@ export default function Home() {
       style={
         {
           "--accent": selected.color,
-          "--page-bg": `url("${selected.background}")`,
+          "--page-bg": screen === "select" ? "none" : `url("${selected.background}")`,
         } as React.CSSProperties
       }
     >
@@ -2184,11 +2186,11 @@ export default function Home() {
           <button className="brand" type="button" onClick={() => setScreen("select")} aria-label="Focus Quest 홈">
             <Image
               className="brand-logo"
-              src={`${publicBasePath}/brand/focus-quest-logo.png`}
+              src={`${publicBasePath}/previews/wordmark.webp`}
               alt=""
-              width={2172}
-              height={724}
-              priority
+              width={528}
+              height={176}
+              loading="eager"
               unoptimized
               aria-hidden="true"
             />
@@ -2276,101 +2278,16 @@ export default function Home() {
 
       {screen === "select" && (
         <section className="select-screen entry-screen">
-          <section className="companion-gate" aria-labelledby="companion-gate-title">
-            <header className="companion-gate-copy">
-              <span>오늘의 동행</span>
-              <h1 id="companion-gate-title">누구와 집중할까요?</h1>
-              <p>친구마다 걷는 길과 마지막 장면이 달라요. 오늘 마음이 가는 한 명을 골라 주세요.</p>
-            </header>
-
-            <div className="companion-choice-grid" role="radiogroup" aria-label="함께 공부할 친구">
-              {adventures.map((adventure) => {
-                const active = selectedId === adventure.id;
-                return (
-                  <button
-                    aria-checked={active}
-                    className={`companion-choice theme-${adventure.id} ${active ? "is-active" : ""}`}
-                    data-companion-id={adventure.id}
-                    key={adventure.id}
-                    onClick={() => chooseAdventure(adventure.id)}
-                    onKeyDown={(event) => handleCompanionKeyDown(event, adventure.id)}
-                    role="radio"
-                    style={
-                      {
-                        "--choice-accent": adventure.color,
-                        "--choice-bg": `url("${adventure.background}")`,
-                      } as React.CSSProperties
-                    }
-                    tabIndex={active ? 0 : -1}
-                    type="button"
-                  >
-                    <span className="companion-choice-world" aria-hidden="true">
-                      <Image
-                        className="companion-choice-backdrop"
-                        src={adventure.background}
-                        alt=""
-                        height={941}
-                        priority
-                        unoptimized
-                        width={1672}
-                      />
-                      <CompanionEvolutionSprite
-                        adventureId={adventure.id}
-                        className="companion-choice-character"
-                        friend={adventure.friend}
-                        stage={getCompanionGrowth(companionGrowth, adventure.id).stage}
-                      />
-                    </span>
-                    <span className="companion-choice-copy">
-                      <small>{adventure.role}</small>
-                      <strong>{adventure.friend}</strong>
-                      <span>{adventure.name}</span>
-                      <span className="companion-choice-description">{adventure.tagline}</span>
-                    </span>
-                    <span className="companion-choice-mark" aria-hidden="true">
-                      {active ? "함께하기" : "선택"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <footer className="companion-gate-action">
-              <div>
-                <span>선택한 친구</span>
-                <strong>{selected.friend} · {selected.name}</strong>
-                <small>{selected.reward}</small>
-              </div>
-              <button
-                onClick={() => {
-                  setActiveQuestId(null);
-                  setScreen("setup");
-                  void trackProductEvent("setup_opened", { adventureId: selectedId });
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                type="button"
-              >
-                {selected.friend}와 준비하기
-              </button>
-            </footer>
-          </section>
-
-          {hydrated && history.length === 0 && !recoveryQuest && (
-            <ol className="first-expedition-guide" aria-label="첫 집중 시작 순서">
-              <li>
-                <span>1</span>
-                <div><strong>친구 고르기</strong><small>오늘 함께할 모험을 정해요.</small></div>
-              </li>
-              <li>
-                <span>2</span>
-                <div><strong>준비하기</strong><small>시간과 자료를 한곳에서 정해요.</small></div>
-              </li>
-              <li>
-                <span>3</span>
-                <div><strong>장면과 함께 완주</strong><small>끝나면 모험 기록이 남아요.</small></div>
-              </li>
-            </ol>
-          )}
+          <CompanionGate
+            assetBasePath={publicBasePath}
+            choices={adventures}
+            growth={companionGrowth}
+            onChoose={chooseAdventure}
+            onCustomize={openCustomSetup}
+            onStart={beginQuickFocus}
+            ready={hydrated}
+            selected={selected}
+          />
 
           {lastAdventure && !recoveryQuest && (
             <aside className="returning-route" aria-label="지난 집중 다시 시작">
@@ -2388,13 +2305,8 @@ export default function Home() {
             </aside>
           )}
 
-          <div className="select-note quick-start-note">
-            <span>다음은 준비실</span>
-            <i />
-            <p>{selected.friend}와 함께 시간, 목표, 공부 자료를 정할 수 있어요.</p>
-          </div>
-
           <RetentionPanel
+            assetBasePath={publicBasePath}
             companionMemory={companionMemory}
             companionGrowth={selectedCompanionGrowth}
             insights={behaviorInsights}
@@ -2740,43 +2652,45 @@ export default function Home() {
           className={`focus-screen focus-${selected.id} session-${sessionMode} ${paused ? "is-paused" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
           style={{ "--journey": progress } as React.CSSProperties}
         >
-          <Suspense
-            fallback={
-              <div className="scene-loading" role="status">
-                {selected.friend}가 모험 장면을 준비하고 있어요.
-              </div>
-            }
-          >
-            {selected.id === "fish" && sessionMode === "focus" && (
-              <FishingQuestScene
-                progress={progress}
-                paused={paused}
-                celebrating={isCelebrating}
-                companionStage={selectedCompanionGrowth.stage}
-                worldLevel={selectedWorldLevel}
-                assetBasePath={publicBasePath}
-              />
-            )}
-            {selected.id !== "fish" && sessionMode === "focus" && (
-              <AdventureQuestScene
-                kind={selected.id}
-                progress={progress}
-                paused={paused}
-                celebrating={isCelebrating}
-                companionStage={selectedCompanionGrowth.stage}
-                worldLevel={selectedWorldLevel}
-                assetBasePath={publicBasePath}
-              />
-            )}
-            {sessionMode === "break" && (
-              <RestQuestScene
-                kind={selected.id}
-                paused={paused}
-                worldLevel={selectedWorldLevel}
-                assetBasePath={publicBasePath}
-              />
-            )}
-          </Suspense>
+          <SceneErrorBoundary key={`${selected.id}-${sessionMode}`}>
+            <Suspense
+              fallback={
+                <div className="scene-loading" role="status">
+                  {selected.friend}가 모험 장면을 준비하고 있어요.
+                </div>
+              }
+            >
+              {selected.id === "fish" && sessionMode === "focus" && (
+                <FishingQuestScene
+                  progress={progress}
+                  paused={paused}
+                  celebrating={isCelebrating}
+                  companionStage={selectedCompanionGrowth.stage}
+                  worldLevel={selectedWorldLevel}
+                  assetBasePath={publicBasePath}
+                />
+              )}
+              {selected.id !== "fish" && sessionMode === "focus" && (
+                <AdventureQuestScene
+                  kind={selected.id}
+                  progress={progress}
+                  paused={paused}
+                  celebrating={isCelebrating}
+                  companionStage={selectedCompanionGrowth.stage}
+                  worldLevel={selectedWorldLevel}
+                  assetBasePath={publicBasePath}
+                />
+              )}
+              {sessionMode === "break" && (
+                <RestQuestScene
+                  kind={selected.id}
+                  paused={paused}
+                  worldLevel={selectedWorldLevel}
+                  assetBasePath={publicBasePath}
+                />
+              )}
+            </Suspense>
+          </SceneErrorBoundary>
 
           <div className="scene-progress-track">
             <div style={{ width: `${progress * 100}%` }} />
@@ -3084,7 +2998,7 @@ export default function Home() {
                   ))}
                 </div>
                 <button className="primary-button" type="button" onClick={beginBreak}>
-                  <span>{completedExpedition?.breakMinutes ?? breakMinutes}분 쉬고 다음 구간으로</span>
+                  <span>{nextBreakMinutes}분 쉬고 다음 구간으로</span>
                   <strong>다음</strong>
                 </button>
               </div>
@@ -3156,7 +3070,7 @@ export default function Home() {
                     </p>
                     {campOutcome === "finished" && (
                       <button className="primary-button" type="button" onClick={beginBreak}>
-                        <span>{breakMinutes}분 쉬어가기</span><strong>다음</strong>
+                        <span>{nextBreakMinutes}분 쉬어가기</span><strong>다음</strong>
                       </button>
                     )}
                     {campOutcome === "unfinished" && (

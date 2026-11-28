@@ -447,6 +447,7 @@
 }
 
 .focus-quest-app .expedition-log-body {
+  --log-backdrop: url("/previews/fish-landscape.webp");
   display: grid;
   grid-template-columns: minmax(0, 1fr) 200px;
   gap: clamp(24px, 4vw, 48px);
@@ -455,7 +456,7 @@
   border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(7, 41, 52, .88), rgba(8, 27, 39, .92)),
-    url("/backgrounds/fish-pixel-lake-v1.webp") center 42% / cover;
+    var(--log-backdrop) center 42% / cover;
 }
 
 .focus-quest-app .expedition-week-route {
@@ -2391,38 +2392,6 @@
   box-shadow: none;
 }
 .focus-quest-app .select-note i { background: var(--color-border-strong); }
-.focus-quest-app .first-expedition-guide {
-  display: grid;
-  width: min(100%, 980px);
-  margin: var(--space-lg) auto 0;
-  padding: 0;
-  grid-template-columns: minmax(0, .94fr) minmax(0, 1fr) minmax(0, 1.06fr);
-  list-style: none;
-  border-block: var(--rule-hair) solid var(--color-border);
-}
-.focus-quest-app .first-expedition-guide li {
-  display: grid;
-  min-width: 0;
-  padding: var(--space-md);
-  grid-template-columns: 30px minmax(0, 1fr);
-  gap: var(--space-sm);
-  align-items: center;
-}
-.focus-quest-app .first-expedition-guide li + li { border-left: var(--rule-hair) solid var(--color-border); }
-.focus-quest-app .first-expedition-guide li > span {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-soft);
-  color: var(--color-primary);
-  font-size: var(--text-xs);
-  font-weight: 800;
-}
-.focus-quest-app .first-expedition-guide div { display: grid; gap: var(--space-2xs); min-width: 0; }
-.focus-quest-app .first-expedition-guide strong { color: var(--color-text); font-size: var(--text-sm); }
-.focus-quest-app .first-expedition-guide small { color: var(--color-text-muted); font-size: var(--text-xs); }
 .focus-quest-app .returning-route {
   display: flex;
   width: min(100%, 980px);
@@ -2534,6 +2503,9 @@
   grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
   gap: var(--space-md);
   margin-top: var(--space-lg);
+}
+@media (max-width: 64rem) {
+  .focus-quest-app .retention-grid { grid-template-columns: minmax(0, 1fr); }
 }
 .focus-quest-app .retention-card {
   padding: var(--space-lg);
@@ -3065,8 +3037,6 @@
   .focus-quest-app .companion-stage-hud { top: var(--space-md); left: var(--space-md); }
   .focus-quest-app .adventure-options { grid-template-columns: minmax(0, 1fr); }
   .focus-quest-app .adventure-options button { min-height: 72px; }
-  .focus-quest-app .first-expedition-guide { grid-template-columns: minmax(0, 1fr); }
-  .focus-quest-app .first-expedition-guide li + li { border-top: var(--rule-hair) solid var(--color-border); border-left: 0; }
   .focus-quest-app .returning-route { align-items: stretch; flex-direction: column; gap: var(--space-md); }
   .focus-quest-app .returning-route button { width: 100%; }
   .focus-quest-app .recovery-card,
@@ -3076,7 +3046,6 @@
   .focus-quest-app .retention-heading,
   .focus-quest-app .world-restoration-heading,
   .focus-quest-app .retention-panel .recovery-card { align-items: stretch; flex-direction: column; }
-  .focus-quest-app .retention-grid,
   .focus-quest-app .world-restoration-grid { grid-template-columns: minmax(0, 1fr); }
   .focus-quest-app .journey-trace-reward { grid-template-columns: minmax(0, 1fr); }
   .focus-quest-app .behavior-report-metrics { grid-template-columns: minmax(0, 1fr); }
@@ -3925,8 +3894,7 @@
   }
 }
 
-/* 2026-11 companion-first entry
- * The opening screen answers one question only: who will study with me? */
+/* Companion selection and the two paths into a focus session. */
 .focus-quest-app .entry-screen {
   padding-top: clamp(12px, 2vw, 28px);
 }
@@ -3934,39 +3902,32 @@
 .focus-quest-app .companion-gate {
   overflow: hidden;
   border: var(--rule-hair) solid rgba(244, 235, 216, .18);
-  border-radius: 10px;
+  border-radius: 14px;
   background:
     radial-gradient(circle at 50% -20%, rgba(67, 106, 122, .24), transparent 44%),
     #080d16;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, .34);
 }
 
 .focus-quest-app .companion-gate-copy {
   display: grid;
   max-width: 720px;
   margin: 0 auto;
-  padding: clamp(34px, 5vw, 66px) var(--space-lg) clamp(26px, 4vw, 46px);
+  padding: clamp(22px, 3.4vw, 48px) var(--space-lg) clamp(18px, 2.5vw, 34px);
   gap: 8px;
   text-align: center;
-}
-
-.focus-quest-app .companion-gate-copy > span {
-  color: var(--color-primary);
-  font-size: var(--text-sm);
-  font-weight: 800;
 }
 
 .focus-quest-app .companion-gate-copy h1 {
   margin: 0;
   color: var(--color-text);
-  font-size: clamp(2.4rem, 5vw, 4.8rem);
+  font-size: clamp(2rem, 4.4vw, 4rem);
   line-height: 1.02;
-  letter-spacing: -.055em;
+  letter-spacing: -.04em;
 }
 
 .focus-quest-app .companion-gate-copy p {
   max-width: 52ch;
-  margin: 8px auto 0;
+  margin: 2px auto 0;
   color: var(--color-text-muted);
   font-size: clamp(.96rem, 1.4vw, 1.08rem);
   line-height: 1.7;
@@ -3985,17 +3946,16 @@
   overflow: hidden;
   padding: 0;
   border: 1px solid rgba(244, 235, 216, .18);
-  border-radius: 7px;
+  border-radius: 12px;
   background: #111824;
   color: var(--color-text);
   text-align: left;
   cursor: pointer;
-  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+  transition: border-color 160ms ease, background-color 160ms ease;
 }
 
 .focus-quest-app .companion-choice:hover {
   border-color: color-mix(in srgb, var(--choice-accent) 65%, white 12%);
-  transform: translateY(-3px);
 }
 
 .focus-quest-app .companion-choice.is-active {
@@ -4061,8 +4021,8 @@
 
 .focus-quest-app .companion-choice-copy {
   display: grid;
-  min-height: 210px;
-  padding: 22px 22px 58px;
+  min-height: 144px;
+  padding: 16px clamp(12px, 1.5vw, 22px);
   align-content: start;
   gap: 4px;
 }
@@ -4089,7 +4049,7 @@
 
 .focus-quest-app .companion-choice-copy .companion-choice-description {
   display: block;
-  margin: 11px 0 0;
+  margin: 7px 0 0;
   color: var(--color-text-muted);
   font-size: .86rem;
   line-height: 1.55;
@@ -4097,28 +4057,22 @@
 
 .focus-quest-app .companion-choice-mark {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
-  min-width: 62px;
-  padding: 7px 10px;
-  border: 1px solid rgba(244, 235, 216, .24);
-  border-radius: 4px;
-  color: var(--color-text-muted);
+  z-index: 2;
+  top: 10px;
+  right: 10px;
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--choice-accent);
+  color: #071019;
   font-size: .72rem;
   font-weight: 800;
   text-align: center;
 }
 
-.focus-quest-app .companion-choice.is-active .companion-choice-mark {
-  border-color: var(--choice-accent);
-  background: var(--choice-accent);
-  color: #071019;
-}
-
 .focus-quest-app .companion-gate-action {
   display: flex;
-  margin-top: clamp(24px, 4vw, 42px);
-  padding: 20px clamp(18px, 3vw, 38px);
+  margin-top: clamp(14px, 2vw, 24px);
+  padding: 16px clamp(18px, 3vw, 38px);
   border-top: 1px solid rgba(244, 235, 216, .14);
   background: rgba(15, 22, 33, .82);
   align-items: center;
@@ -4126,37 +4080,58 @@
   gap: var(--space-lg);
 }
 
-.focus-quest-app .companion-gate-action > div {
+.focus-quest-app .companion-gate-selection {
   display: grid;
   gap: 2px;
 }
 
-.focus-quest-app .companion-gate-action span,
-.focus-quest-app .companion-gate-action small {
+.focus-quest-app .companion-gate-selection span {
   color: var(--color-text-muted);
-  font-size: .78rem;
+  font-size: .88rem;
 }
 
-.focus-quest-app .companion-gate-action strong {
+.focus-quest-app .companion-gate-selection strong {
   color: var(--color-text);
   font-size: 1.05rem;
 }
 
-.focus-quest-app .companion-gate-action button {
-  min-width: 220px;
-  min-height: 54px;
-  padding: 0 24px;
-  border: 0;
-  border-radius: 5px;
-  background: var(--color-primary);
-  color: var(--color-primary-ink);
-  font-size: .95rem;
-  font-weight: 850;
+.focus-quest-app .companion-gate-buttons {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.focus-quest-app .companion-gate-buttons button {
+  min-height: 48px;
+  padding: 8px clamp(10px, 1.5vw, 22px);
+  border: var(--rule-hair) solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: .94rem;
+  font-weight: 800;
+  line-height: 1.3;
   cursor: pointer;
 }
 
-.focus-quest-app .companion-gate-action button:hover {
+.focus-quest-app .companion-gate-buttons .companion-quick-start {
+  min-width: 164px;
+  border-color: transparent;
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+}
+
+.focus-quest-app .companion-gate-buttons .companion-quick-start:hover:enabled {
   background: var(--color-primary-strong);
+}
+
+.focus-quest-app .companion-gate-buttons .companion-customize:hover:enabled {
+  background: var(--color-surface-soft);
+}
+
+.focus-quest-app .companion-gate-buttons button:disabled {
+  opacity: .66;
+  cursor: wait;
 }
 
 .focus-quest-app .setup-materials {
@@ -4199,23 +4174,13 @@
   font-weight: 800;
 }
 
-@media (max-width: 64rem) {
-  .focus-quest-app .companion-choice-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .focus-quest-app .companion-choice:last-child {
-    grid-column: 1 / -1;
-  }
-
-  .focus-quest-app .companion-choice:last-child .companion-choice-world {
-    aspect-ratio: 2.3 / 1;
-  }
-}
-
 @media (max-width: 48rem) {
   .focus-quest-app .entry-screen {
     padding: 0 0 var(--space-2xl);
+  }
+
+  .focus-quest-app .expedition-log-body {
+    --log-backdrop: url("/previews/fish-landscape-small.webp");
   }
 
   .focus-quest-app .companion-gate {
@@ -4224,7 +4189,7 @@
   }
 
   .focus-quest-app .companion-gate-copy {
-    padding: 30px 20px 24px;
+    padding: 22px 16px 18px;
     text-align: left;
   }
 
@@ -4235,48 +4200,55 @@
   .focus-quest-app .companion-choice-grid {
     padding-inline: 16px;
     grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
   }
 
-  .focus-quest-app .companion-choice,
-  .focus-quest-app .companion-choice:last-child {
+  .focus-quest-app .companion-choice {
     display: grid;
-    grid-column: auto;
-    grid-template-columns: minmax(124px, 41%) minmax(0, 1fr);
+    grid-template-columns: clamp(100px, 36%, 156px) minmax(0, 1fr);
+    align-items: center;
   }
 
-  .focus-quest-app .companion-choice-world,
-  .focus-quest-app .companion-choice:last-child .companion-choice-world {
-    min-height: 184px;
-    aspect-ratio: auto;
+  .focus-quest-app .companion-choice-world {
+    border-inline-end: 1px solid rgba(244, 235, 216, .14);
   }
 
   .focus-quest-app .companion-choice-copy {
-    min-height: 184px;
-    padding: 19px 15px 48px;
+    min-height: 0;
+    padding: 9px 12px;
+    gap: 5px;
   }
 
   .focus-quest-app .companion-choice-copy strong {
-    font-size: 1.65rem;
+    margin: 0;
+    font-size: 1.28rem;
   }
 
+  .focus-quest-app .companion-choice-copy small,
   .focus-quest-app .companion-choice-copy .companion-choice-description {
-    font-size: .78rem;
+    display: none;
   }
 
   .focus-quest-app .companion-choice-mark {
-    right: 12px;
-    bottom: 12px;
+    top: 6px;
+    right: 6px;
+    font-size: .65rem;
   }
 
   .focus-quest-app .companion-gate-action {
     align-items: stretch;
     flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px 16px;
   }
 
-  .focus-quest-app .companion-gate-action button {
-    width: 100%;
+  .focus-quest-app .companion-gate-buttons {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  }
+
+  .focus-quest-app .companion-gate-buttons .companion-quick-start {
     min-width: 0;
-    min-height: 58px;
   }
 
   .focus-quest-app .setup-materials {

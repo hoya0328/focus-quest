@@ -450,7 +450,7 @@ test.describe("isolated Supabase staging", () => {
     page,
   }) => {
     await signInPage(page, userB);
-    await page.getByRole("button", { name: "모리와 준비하기" }).click();
+    await page.getByRole("button", { name: "시간·음악 설정" }).click();
     await page
       .getByRole("button", { name: "자료와 퀘스트 열기" })
       .click();

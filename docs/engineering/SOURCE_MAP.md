@@ -20,7 +20,8 @@
 | [app/components/AuthDialog.tsx](../../app/components/AuthDialog.tsx) | `AuthDialog` (L23) |
 | [app/components/CampLobby.tsx](../../app/components/CampLobby.tsx) | `CampCompanion` (L18), `CampLobby` (L76) |
 | [app/components/CampReflectionPanel.tsx](../../app/components/CampReflectionPanel.tsx) | `CampReflectionPanel` (L27) |
-| [app/components/CompanionEvolutionSprite.tsx](../../app/components/CompanionEvolutionSprite.tsx) | `CompanionEvolutionSprite` (L17) |
+| [app/components/CompanionEvolutionSprite.tsx](../../app/components/CompanionEvolutionSprite.tsx) | `CompanionEvolutionSprite` (L19) |
+| [app/components/CompanionGate.tsx](../../app/components/CompanionGate.tsx) | `CompanionGate` (L27) |
 | [app/components/ExamExpeditionPanel.tsx](../../app/components/ExamExpeditionPanel.tsx) | `ExamExpeditionPanel` (L6) |
 | [app/components/FishingQuestScene.tsx](../../app/components/FishingQuestScene.tsx) | `FishingQuestScene` (L31) |
 | [app/components/InstallGuide.tsx](../../app/components/InstallGuide.tsx) | `InstallGuide` (L6) |
@@ -28,7 +29,8 @@
 | [app/components/PlusInterestPanel.tsx](../../app/components/PlusInterestPanel.tsx) | `PlusInterestPanel` (L11) |
 | [app/components/QuestBoard.tsx](../../app/components/QuestBoard.tsx) | `QuestBoard` (L73) |
 | [app/components/RestQuestScene.tsx](../../app/components/RestQuestScene.tsx) | `RestQuestScene` (L42) |
-| [app/components/RetentionPanel.tsx](../../app/components/RetentionPanel.tsx) | `RetentionPanel` (L36) |
+| [app/components/RetentionPanel.tsx](../../app/components/RetentionPanel.tsx) | `RetentionPanel` (L38) |
+| [app/components/SceneErrorBoundary.tsx](../../app/components/SceneErrorBoundary.tsx) | `SceneErrorBoundary` (L4) |
 | [app/components/StudyMaterialLibrary.tsx](../../app/components/StudyMaterialLibrary.tsx) | `StudyMaterialLibrary` (L32) |
 | [app/components/StudyQuizPanel.tsx](../../app/components/StudyQuizPanel.tsx) | `StudyCheckpointPanel` (L103), `StudyRecallPanel` (L176) |
 | [app/components/SupportButton.tsx](../../app/components/SupportButton.tsx) | `SupportButton` (L7) |
@@ -51,7 +53,7 @@
 | [app/operations/page.tsx](../../app/operations/page.tsx) | `metadata` (L5), `OperationsPage` (L11) |
 | [app/operations/support/SupportInbox.tsx](../../app/operations/support/SupportInbox.tsx) | `SupportInbox` (L8) |
 | [app/operations/support/page.tsx](../../app/operations/support/page.tsx) | `metadata` (L6), `SupportInboxPage` (L12) |
-| [app/page.tsx](../../app/page.tsx) | `Home` (L526) |
+| [app/page.tsx](../../app/page.tsx) | `Home` (L528) |
 | [app/privacy/page.tsx](../../app/privacy/page.tsx) | `metadata` (L10), `PrivacyPage` (L29) |
 | [app/privacy/privacy.css](../../app/privacy/privacy.css) | 스타일시트 |
 | [app/robots.txt/route.ts](../../app/robots.txt/route.ts) | `GET` (L3) |
@@ -63,7 +65,7 @@
 | [db/index.ts](../../db/index.ts) | `getDb` (L5) |
 | [db/schema.ts](../../db/schema.ts) | `userCloudStates` (L3) |
 | [e2e/guest.spec.ts](../../e2e/guest.spec.ts) | — |
-| [e2e/helpers.ts](../../e2e/helpers.ts) | `AdventureId` (L3), `completedHistory` (L12), `resetGuestStorage` (L37), `seedHistory` (L42), `expectNoHorizontalOverflow` (L50), `openHome` (L58), `openSetup` (L74), `setInputValue` (L83) |
+| [e2e/helpers.ts](../../e2e/helpers.ts) | `AdventureId` (L3), `completedHistory` (L5), `resetGuestStorage` (L30), `seedHistory` (L35), `expectNoHorizontalOverflow` (L43), `openHome` (L51), `openSetup` (L60), `setInputValue` (L67) |
 | [e2e/launch.spec.ts](../../e2e/launch.spec.ts) | — |
 | [e2e/privacy.spec.ts](../../e2e/privacy.spec.ts) | — |
 | [e2e/responsive.spec.ts](../../e2e/responsive.spec.ts) | — |
@@ -82,7 +84,7 @@
 | [lib/operations.ts](../../lib/operations.ts) | `ProductEventSnapshot` (L1), `OperationsReport` (L7), `buildOperationsReport` (L23), `BackupManifest` (L74), `validateBackupManifest` (L81) |
 | [lib/pdf-analysis.ts](../../lib/pdf-analysis.ts) | `MAX_PDF_BYTES` (L6), `MAX_PDF_PAGES` (L7), `MAX_EXTRACTED_TEXT_CHARACTERS` (L8), `createStudyMaterialStoragePath` (L14), `StudyMaterial` (L24), `MaterialRow` (L40), `materialFromRow` (L56) |
 | [lib/pdf-client.ts](../../lib/pdf-client.ts) | `PdfInputError` (L10), `validatePdfFile` (L17), `extractPdfText` (L31) |
-| [lib/pomodoro.ts](../../lib/pomodoro.ts) | `SessionMode` (L1), `AdventureId` (L2), `BgmId` (L3), `CampOutcome` (L4), `CampDifficulty` (L5), `CampReflection` (L7), `ExpeditionProgress` (L14), `ActiveSession` (L22), `FocusRecord` (L39), `WeeklyDay` (L54), `WeeklySummary` (L61), `ACTIVE_SESSION_KEY` (L68), `HISTORY_KEY` (L69), `MAX_HISTORY_RECORDS` (L70), `MAX_FOCUS_INTENT_LENGTH` (L71), `MAX_CAMP_REFLECTION_LENGTH` (L72), `normalizeFocusIntent` (L110), `normalizeCampReflectionNote` (L115), `localDateKey` (L136), `createActiveSession` (L145), `remainingForSession` (L186), `pauseActiveSession` (L193), `resumeActiveSession` (L205), `parseActiveSession` (L219), `parseHistory` (L257), `createFocusRecord` (L299), `addFocusRecord` (L339), `addCampOutcome` (L347), `addCampReflection` (L357), `getDailyCount` (L377), `getFocusStreak` (L386), `getWeeklySummary` (L408), `createExpeditionProgress` (L445) |
+| [lib/pomodoro.ts](../../lib/pomodoro.ts) | `SessionMode` (L1), `AdventureId` (L2), `BgmId` (L3), `CampOutcome` (L4), `CampDifficulty` (L5), `CampReflection` (L7), `ExpeditionProgress` (L14), `ActiveSession` (L22), `FocusRecord` (L41), `WeeklyDay` (L56), `WeeklySummary` (L63), `ACTIVE_SESSION_KEY` (L70), `HISTORY_KEY` (L71), `QUICK_START_RHYTHM` (L72), `MAX_HISTORY_RECORDS` (L73), `MAX_FOCUS_INTENT_LENGTH` (L74), `MAX_CAMP_REFLECTION_LENGTH` (L75), `normalizeFocusIntent` (L113), `normalizeCampReflectionNote` (L118), `localDateKey` (L139), `createActiveSession` (L148), `remainingForSession` (L192), `pauseActiveSession` (L199), `resumeActiveSession` (L211), `parseActiveSession` (L225), `parseHistory` (L268), `createFocusRecord` (L310), `addFocusRecord` (L350), `addCampOutcome` (L358), `addCampReflection` (L368), `getDailyCount` (L388), `getFocusStreak` (L397), `getWeeklySummary` (L419), `createExpeditionProgress` (L456) |
 | [lib/privacy.ts](../../lib/privacy.ts) | `PRIVACY_NOTICE_PATH` (L1), `PRIVACY_NOTICE_VERSION` (L4), `PRIVACY_CONTACT` (L5), `SignupPrivacyConfirmation` (L10), `signupPrivacyMetadata` (L18) |
 | [lib/push-reminders.ts](../../lib/push-reminders.ts) | `VAPID_PUBLIC_KEY` (L1), `PushSubscriptionBody` (L4), `urlBase64ToUint8Array` (L13), `nextReminderAt` (L20), `parsePushSubscription` (L32) |
 | [lib/pwa-install.ts](../../lib/pwa-install.ts) | `InstallPlatform` (L1), `getInstallPlatform` (L2), `INSTALL_STEPS` (L7) |
@@ -103,6 +105,7 @@
 | [lib/world-growth.ts](../../lib/world-growth.ts) | `WORLD_LEVEL_MIN` (L3), `WORLD_LEVEL_MAX` (L4), `clampWorldLevel` (L12), `getWorldBackgroundKey` (L20), `getWorldBackgroundPath` (L27) |
 | [scripts/backup-production.mjs](../../scripts/backup-production.mjs) | — |
 | [scripts/build-e2e.mjs](../../scripts/build-e2e.mjs) | — |
+| [scripts/build-entry-previews.mjs](../../scripts/build-entry-previews.mjs) | — |
 | [scripts/check-build-budget.mjs](../../scripts/check-build-budget.mjs) | — |
 | [scripts/check-documentation.mjs](../../scripts/check-documentation.mjs) | — |
 | [scripts/configure-launch.mjs](../../scripts/configure-launch.mjs) | — |

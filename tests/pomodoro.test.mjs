@@ -14,6 +14,7 @@ import {
   parseActiveSession,
   parseHistory,
   pauseActiveSession,
+  QUICK_START_RHYTHM,
   remainingForSession,
   resumeActiveSession,
 } from "../lib/pomodoro.ts";
@@ -40,6 +41,26 @@ test("a running focus session survives reload with the correct remaining time", 
   assert.equal(restored.remainingSeconds, 21 * 60);
   assert.equal(restored.session.mode, "focus");
   assert.equal(restored.session.focusIntent, "운영체제 3장 복습");
+});
+
+test("the quick-start rest survives pause, reload, and expiry independently of preferences", () => {
+  const now = 1_000;
+  const session = createActiveSession({
+    mode: "focus",
+    durationMinutes: QUICK_START_RHYTHM.focusMinutes,
+    plannedBreakMinutes: QUICK_START_RHYTHM.breakMinutes,
+    adventureId: "fish",
+    bgm: "quiet",
+    now,
+  });
+  const paused = pauseActiveSession(session, 123);
+  assert.equal(parseActiveSession(JSON.stringify(paused), now)?.session.plannedBreakMinutes, 5);
+  const expired = parseActiveSession(JSON.stringify(session), session.endAt + 1);
+  assert.equal(expired?.expired, true);
+  assert.equal(expired.session.plannedBreakMinutes, 5);
+  for (const invalid of [0, 31, 1.5, "5", null]) {
+    assert.equal(parseActiveSession(JSON.stringify({ ...session, plannedBreakMinutes: invalid })), null);
+  }
 });
 
 test("pause and resume preserve the remaining duration", () => {
